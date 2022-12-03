@@ -1,0 +1,77 @@
+:root {
+	--board-border-color: #000;
+	--cell-color: #fff;
+	--cell-hover-color: #ddd;
+	--cell-selected-color: #ccc;
+	--cell-selected-hover-color: #bbb;
+}
+
+body {
+	font: 14px "Century Gothic", Futura, sans-serif;
+	margin: 20px;
+}
+
+.status {
+	margin-bottom: 10px;
+}
+
+.board {
+	background: var(--board-border-color);
+	display: grid;
+	grid-template-columns: repeat(3, auto);
+	grid-template-rows: repeat(3, auto);
+	gap: 2px;
+	width: 300px;
+	height: 300px;
+	padding: 1px;
+	/* margin: 1px; */
+}
+
+.box {
+	background: var(--board-border-color);
+	display: grid;
+	grid-template-columns: repeat(3, auto);
+	grid-template-rows: repeat(3, auto);
+	gap: 1px;
+}
+
+.cell {
+	background: var(--cell-color);
+	display: flex;
+	font-size: 18px;
+	font-weight: bold;
+	justify-content: center;
+	align-items: center;
+	-webkit-user-select: none;
+	/* Safari */
+	-moz-user-select: none;
+	/* Firefox */
+	-ms-user-select: none;
+	/* IE10+/Edge */
+	user-select: none;
+	/* Standard */
+}
+
+.cell:hover {
+	background: var(--cell-hover-color);
+}
+
+.cell.selected {
+	background: var(--cell-selected-color);
+}
+
+.cell.selected:hover {
+	background: var(--cell-selected-hover-color);
+}
+
+
+
+
+.game {
+	display: flex;
+	flex-direction: row;
+}
+
+.game-info {
+	margin-left: 20px;
+}
