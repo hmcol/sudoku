@@ -2,7 +2,7 @@
 	--board-border-color: #000;
 	--cell-color: #fff;
 	--cell-hover-color: #ddd;
-	--cell-selected-color: #ccc;
+	--cell-highlight-color: #ccc;
 	--cell-selected-hover-color: #bbb;
 }
 
@@ -15,23 +15,36 @@ body {
 	margin-bottom: 10px;
 }
 
+.game {
+	display: flex;
+	flex-direction: row;
+}
+
+.game:focus {
+	outline: none;
+}
+
+.game-info {
+	margin-left: 20px;
+	width: 100px;
+}
+
 .board {
 	background: var(--board-border-color);
 	display: grid;
-	grid-template-columns: repeat(3, auto);
-	grid-template-rows: repeat(3, auto);
-	gap: 2px;
 	width: 300px;
 	height: 300px;
+	grid-template-columns: repeat(3, 1fr);
+	grid-template-rows: repeat(3, 1fr);
+	gap: 2px;
 	padding: 1px;
-	/* margin: 1px; */
 }
 
 .box {
 	background: var(--board-border-color);
 	display: grid;
-	grid-template-columns: repeat(3, auto);
-	grid-template-rows: repeat(3, auto);
+	grid-template-columns: repeat(3, 1fr);
+	grid-template-rows: repeat(3, 1fr);
 	gap: 1px;
 }
 
@@ -42,6 +55,48 @@ body {
 	font-weight: bold;
 	justify-content: center;
 	align-items: center;
+}
+
+.cell:hover {
+	background: var(--cell-hover-color);
+}
+
+.cell.selected {
+	background: var(--cell-highlight-color);
+}
+
+.cell.selected:hover {
+	background: var(--cell-selected-hover-color);
+}
+
+.cell.notes {
+	font-size: 65%;
+	display: grid;
+	grid-template-columns: repeat(3, 1fr);
+	grid-template-rows: repeat(3, 1fr);
+}
+
+.note {
+	height: 100%;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+}
+
+.note.basic {
+	color: grey;
+}
+
+.note.accent {
+	color: gold;
+}
+
+.note.eliminated {
+	color: red;
+}
+
+.cell,
+.note-option {
 	-webkit-user-select: none;
 	/* Safari */
 	-moz-user-select: none;
@@ -52,26 +107,36 @@ body {
 	/* Standard */
 }
 
-.cell:hover {
+
+.note-selector {
+	display: grid;
+	width: 100%;
+	grid-template-columns: repeat(3, 1fr);
+	grid-template-rows: 1fr;
+	gap: 3px;
+	padding: 3px;
+}
+
+.note-option {
+	aspect-ratio: 1/1;
+	font-size: 18px;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	border-style: solid;
+
+}
+
+
+.note-option:hover {
 	background: var(--cell-hover-color);
 }
 
-.cell.selected {
-	background: var(--cell-selected-color);
+.note-option.selected {
+	background: var(--cell-highlight-color);
+	border-width: 2px;
 }
 
-.cell.selected:hover {
+.note-option.selected:hover {
 	background: var(--cell-selected-hover-color);
-}
-
-
-
-
-.game {
-	display: flex;
-	flex-direction: row;
-}
-
-.game-info {
-	margin-left: 20px;
 }
