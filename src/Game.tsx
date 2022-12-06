@@ -1,63 +1,68 @@
 import React from "react";
+import { MouseEventHandler } from 'react';
 import "./Game.css";
+import { Boxes, CellData, CellId, Column, Digit, NoteType, Row } from './sudoku';
 
 const ROWS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I'];
 const COLUMNS = [1, 2, 3, 4, 5, 6, 7, 8, 9];
 
-const SelectionMode = {
-    SINGLE: 0,
-    MULTI: 1,
-    DESELECT: 2,
+enum SelectionMode {
+    SINGLE,
+    MULTI,
+    DESELECT,
 }
 
-const InputMode = {
-    DIGIT: 0,
-    NOTE: 1,
-    ACCENT: 2,
-    ELIMINATE: 3,
+enum InputMode {
+    DIGIT,
+    NOTE,
+    ACCENT,
+    STRIKE,
 }
 
-const NoteType = {
-    BASIC: 1,
-    ACCENT: 2,
-    ELIMINATED: 3,
-}
 
-function noteTypeName(noteType) {
+function noteTypeName(noteType?: NoteType) {
     switch (noteType) {
         case NoteType.BASIC:
             return "basic";
         case NoteType.ACCENT:
             return "accent";
-        case NoteType.ELIMINATED:
+        case NoteType.STRIKE:
             return "eliminated";
     }
 }
 
 
+type CellProps = {
+    cellData: CellData,
+    selected: boolean,
+    onClick: MouseEventHandler,
+    onMouseMove: MouseEventHandler,
+}
 
-class Cell extends React.Component {
-    renderNote(digit) {
-        const noteType = this.props.notes[digit];
+class Cell extends React.Component<CellProps> {
+    renderNote(digit: Digit) {
+        const noteType = this.props.cellData.notes.get(digit);
 
         return (
             <div
                 className={`note ${noteTypeName(noteType)}`}
                 key={digit}
             >
-                {noteType ? digit : ""}
+                {noteType !== undefined ? digit : ""}
             </div>
         )
     }
 
     render() {
-        if (this.props.value) {
+        const data = this.props.cellData;
+
+        if (data.value) {
             return (
                 <div
                     className={`cell ${this.props.selected ? "selected" : ""}`}
                     onClick={this.props.onClick}
                 >
-                    {this.props.value}
+                    {data.value}
                 </div>
             );
         }
@@ -75,15 +80,21 @@ class Cell extends React.Component {
 
 }
 
+type BoardProps = {
+    cells: Map<CellId, CellData>
+    selectedCells: Set<CellId>,
+    onClick: (id: CellId) => void,
+    onMouseMove: (id: CellId) => void,
+}
 
-class Board extends React.Component {
-    renderCell(id, cell) {
+class Board extends React.Component<BoardProps> {
+    renderCell(id: CellId) {
+        const cell = this.props.cells.get(id)!;
+
         return (
             <Cell
                 key={id}
-                value={cell.value}
-                given={cell.given}
-                notes={cell.notes}
+                cellData={cell}
                 selected={this.props.selectedCells.has(id)}
                 onClick={() => this.props.onClick(id)}
                 onMouseMove={(event) => event.buttons === 1 && this.props.onMouseMove(id)}
@@ -96,22 +107,23 @@ class Board extends React.Component {
 
         return (
             <div className="board">
-                {[0, 3, 6].map((rowOffset) => [0, 3, 6].map((columnOffset) =>
-                    <div className="box" key={columnOffset}>
-                        {[0, 1, 2].map((r) => [0, 1, 2].map((c) => {
-                            const id = ROWS[rowOffset + r] + COLUMNS[columnOffset + c];
-                            return this.renderCell(id, cells[id]);
-                        }
-                        ))}
+                {[...Boxes.keys()].map((i) =>
+                    <div className="box" key={i}>
+                        {Boxes[i].map((id) => this.renderCell(id))}
                     </div>
-                ))}
+                )}
             </div>
         );
     }
 }
 
-class NoteSelector extends React.Component {
-    renderOption(inputMode) {
+type NoteSelectorProps = {
+    inputMode: InputMode,
+    onClick: (inputMode: InputMode) => void,
+}
+
+class NoteSelector extends React.Component<NoteSelectorProps> {
+    renderOption(inputMode: InputMode) {
         let label;
 
         switch (inputMode) {
@@ -121,7 +133,7 @@ class NoteSelector extends React.Component {
             case InputMode.ACCENT:
                 label = "A";
                 break;
-            case InputMode.ELIMINATE:
+            case InputMode.STRIKE:
                 label = "E";
                 break;
         }
@@ -143,38 +155,38 @@ class NoteSelector extends React.Component {
                 <div className="note-selector">
                     {this.renderOption(InputMode.NOTE)}
                     {this.renderOption(InputMode.ACCENT)}
-                    {this.renderOption(InputMode.ELIMINATE)}
+                    {this.renderOption(InputMode.STRIKE)}
                 </div>
             </div>
         )
     }
 }
 
-class Game extends React.Component {
-    constructor(props) {
+type GameState = {
+    cells: Map<CellId, CellData>,
+    selectedCells: Set<CellId>,
+    selectionMode: SelectionMode,
+    inputMode: InputMode,
+}
+
+class Game extends React.Component<any, GameState> {
+    constructor(props: any) {
         super(props);
 
-        const cells = {};
+        const cells = new Map;
         ROWS.forEach((row) => COLUMNS.forEach((column) =>
-            cells[row + column] = {
-                value: null,
-                given: false,
-                notes: Array(10).fill(null),
-            }
+            cells.set(row + column, new CellData)
         ));
 
         this.state = {
-            history: [{
-                cells: cells,
-            }],
-            stepNumber: 0,
+            cells: cells,
             selectedCells: new Set(),
             selectionMode: SelectionMode.SINGLE,
             inputMode: InputMode.DIGIT,
         };
     }
 
-    handleClick(cellId) {
+    handleClick(cellId: CellId) {
         const selectedCells = new Set(this.state.selectedCells);
         const selectionMode = this.state.selectionMode;
         let inputMode = this.state.inputMode;
@@ -194,7 +206,7 @@ class Game extends React.Component {
         });
     }
 
-    handleMouseMove(cellId) {
+    handleMouseMove(cellId: CellId) {
         const selectedCells = new Set(this.state.selectedCells);
 
         selectedCells.add(cellId);
@@ -205,7 +217,7 @@ class Game extends React.Component {
         });
     }
 
-    handleKeyDown(event) {
+    handleKeyDown(event: React.KeyboardEvent) {
         const digit = parseInt(event.key);
 
         if (isNaN(digit) || digit == 0) {
@@ -215,7 +227,7 @@ class Game extends React.Component {
         this.inputDigit(digit);
     }
 
-    updateInputMode(inputMode) {
+    updateInputMode(inputMode: InputMode) {
         let newInputMode = inputMode;
 
         if (newInputMode == this.state.inputMode) {
@@ -228,47 +240,42 @@ class Game extends React.Component {
         })
     }
 
-    inputDigit(digit) {
-        const history = this.state.history.slice();
-        const cells = history[history.length - 1].cells;
+    inputDigit(digit: Digit) {
+        const cells = new Map(this.state.cells);
         const selectedCells = new Set(this.state.selectedCells);
 
         for (const id of selectedCells) {
+            let cellData = cells.get(id);
+
+            if (cellData === undefined) {
+                continue;
+            }
+
             switch (this.state.inputMode) {
                 case InputMode.DIGIT:
-                    cells[id].value = digit;
+                    cellData.value = digit;
                     break;
                 case InputMode.NOTE:
-                    cells[id].notes[digit] = NoteType.BASIC;
+                    cellData.notes.set(digit, NoteType.BASIC);
                     break;
                 case InputMode.ACCENT:
-                    cells[id].notes[digit] = NoteType.ACCENT;
+                    cellData.notes.set(digit, NoteType.ACCENT);
                     break;
-                case InputMode.ELIMINATE:
-                    cells[id].notes[digit] = NoteType.ELIMINATED;
+                case InputMode.STRIKE:
+                    cellData.notes.set(digit, NoteType.STRIKE);
                     break;
             }
         }
 
         this.setState({
-            history: history,
-            selectedCells: new Set(),
+            cells: cells,
+            selectedCells: new Set,
         })
     }
 
-    jumpTo(step) {
-        this.setState({
-            stepNumber: step,
-        });
-    }
-
     render() {
-        const history = this.state.history;
-        const current = history[this.state.stepNumber];
-
+        const cells = new Map(this.state.cells);
         const selectedCells = new Set(this.state.selectedCells);
-
-
 
 
         const status = "Sudoku";
@@ -280,7 +287,7 @@ class Game extends React.Component {
             >
                 <div className="game-board">
                     <Board
-                        cells={current.cells}
+                        cells={cells}
                         selectedCells={selectedCells}
                         onClick={(id) => this.handleClick(id)}
                         onMouseMove={(id) => this.handleMouseMove(id)}
