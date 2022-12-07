@@ -1,5 +1,11 @@
 :root {
-	--board-border-color: #000;
+	--light-color: #EAE0D5;
+	--base-color: #C6AC8F;
+	--dark-color: #22333B;
+	--border-color: #0A0908;
+
+	--other-color: #5E503F;
+
 	--cell-color: #fff;
 	--cell-hover-color: #ddd;
 	--cell-highlight-color: #ccc;
@@ -9,6 +15,7 @@
 body {
 	font: 14px "Century Gothic", Futura, sans-serif;
 	margin: 20px;
+	background-color: var(--base-color);
 }
 
 .status {
@@ -29,8 +36,8 @@ body {
 	width: 100px;
 }
 
-.board {
-	background: var(--board-border-color);
+.grid {
+	background: var(--border-color);
 	display: grid;
 	width: 300px;
 	height: 300px;
@@ -41,7 +48,7 @@ body {
 }
 
 .box {
-	background: var(--board-border-color);
+	background: var(--border-color);
 	display: grid;
 	grid-template-columns: repeat(3, 1fr);
 	grid-template-rows: repeat(3, 1fr);
@@ -49,24 +56,26 @@ body {
 }
 
 .cell {
-	background: var(--cell-color);
+	background-color: var(--base-color);
+	color: var(--other-color);
 	display: flex;
 	font-size: 18px;
-	font-weight: bold;
 	justify-content: center;
 	align-items: center;
 }
 
-.cell:hover {
-	background: var(--cell-hover-color);
+.cell.given {
+	background-color: var(--dark-color);
+	color: var(--light-color);
+	font-weight: bold;
+}
+
+.cell.restricted {
+	background-color: var(--dark-color);
 }
 
 .cell.selected {
-	background: var(--cell-highlight-color);
-}
-
-.cell.selected:hover {
-	background: var(--cell-selected-hover-color);
+	background: #540B0E;
 }
 
 .cell.notes {
@@ -76,7 +85,10 @@ body {
 	grid-template-rows: repeat(3, 1fr);
 }
 
+
+
 .note {
+	opacity: 0%;
 	height: 100%;
 	display: flex;
 	justify-content: center;
@@ -84,27 +96,30 @@ body {
 }
 
 .note.basic {
+	opacity: 100%;
 	color: grey;
 }
 
 .note.accent {
+	opacity: 100%;
 	color: gold;
 }
 
-.note.eliminated {
+.note.strike {
+	opacity: 25%;
 	color: red;
+}
+
+.note.ignore {
+	opacity: 0%;
 }
 
 .cell,
 .note-option {
-	-webkit-user-select: none;
-	/* Safari */
-	-moz-user-select: none;
-	/* Firefox */
-	-ms-user-select: none;
-	/* IE10+/Edge */
-	user-select: none;
-	/* Standard */
+	-webkit-user-select: none; 	/* Safari */
+	-moz-user-select: none; 	/* Firefox */
+	-ms-user-select: none;		/* IE10+/Edge */
+	user-select: none;			/* Standard */
 }
 
 
@@ -118,6 +133,7 @@ body {
 }
 
 .note-option {
+	background-color: var(--other-color);
 	aspect-ratio: 1/1;
 	font-size: 18px;
 	display: flex;
@@ -127,16 +143,7 @@ body {
 
 }
 
-
-.note-option:hover {
-	background: var(--cell-hover-color);
-}
-
 .note-option.selected {
-	background: var(--cell-highlight-color);
+	background: var(--light-color);
 	border-width: 2px;
-}
-
-.note-option.selected:hover {
-	background: var(--cell-selected-hover-color);
 }

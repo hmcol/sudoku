@@ -1,10 +1,9 @@
 import React from "react";
 import { MouseEventHandler } from 'react';
 import "./Game.css";
-import { Boxes, CellData, CellId, Column, Digit, NoteType, Row } from './sudoku';
+import { Board, BOXES, Cell, CellId, CELLS, Digit, NoteType, parseDigit } from './sudoku';
 
-const ROWS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I'];
-const COLUMNS = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+
 
 enum SelectionMode {
     SINGLE,
@@ -20,82 +19,81 @@ enum InputMode {
 }
 
 
-function noteTypeName(noteType?: NoteType) {
-    switch (noteType) {
-        case NoteType.BASIC:
-            return "basic";
-        case NoteType.ACCENT:
-            return "accent";
-        case NoteType.STRIKE:
-            return "eliminated";
-    }
-}
-
 
 type CellProps = {
-    cellData: CellData,
+    cell: Cell,
     selected: boolean,
+    restricted: boolean,
     onClick: MouseEventHandler,
     onMouseMove: MouseEventHandler,
 }
 
-class Cell extends React.Component<CellProps> {
+class CellComponent extends React.Component<CellProps> {
     renderNote(digit: Digit) {
-        const noteType = this.props.cellData.notes.get(digit);
+        const noteType = this.props.cell.notes.get(digit);
 
         return (
             <div
-                className={`note ${noteTypeName(noteType)}`}
+                className={`note ${noteType}`}
                 key={digit}
             >
-                {noteType !== undefined ? digit : ""}
+                {digit}
             </div>
-        )
+        );
     }
 
     render() {
-        const data = this.props.cellData;
+        const cell = this.props.cell;
 
-        if (data.value) {
+        const given = cell.given ? " given" : "";
+        const selected = this.props.selected ? " selected" : "";
+        const restricted = this.props.restricted ? " restricted" : "";
+        
+
+        if (cell.digit !== undefined) {
             return (
                 <div
-                    className={`cell ${this.props.selected ? "selected" : ""}`}
+                    className={`cell ${given} ${selected} ${restricted}`}
                     onClick={this.props.onClick}
                 >
-                    {data.value}
+                    {cell.digit}
                 </div>
             );
         }
 
         return (
             <div
-                className={`cell notes ${this.props.selected ? "selected" : ""}`}
+                className={`cell notes ${selected} ${restricted}`}
                 onClick={this.props.onClick}
                 onMouseMove={this.props.onMouseMove}
             >
-                {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((i) => this.renderNote(i))}
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((i) => this.renderNote(i as Digit))}
             </div>
         );
     }
 
 }
 
-type BoardProps = {
-    cells: Map<CellId, CellData>
+type GridProps = {
+    cells: Map<CellId, Cell>,
     selectedCells: Set<CellId>,
+    restrictedDigit?: Digit, 
     onClick: (id: CellId) => void,
     onMouseMove: (id: CellId) => void,
 }
 
-class Board extends React.Component<BoardProps> {
+class Grid extends React.Component<GridProps> {
     renderCell(id: CellId) {
         const cell = this.props.cells.get(id)!;
 
+        const selected = this.props.selectedCells.has(id) || (cell.digit !== undefined && cell.digit == this.props.restrictedDigit);
+
         return (
-            <Cell
+            <CellComponent
                 key={id}
-                cellData={cell}
-                selected={this.props.selectedCells.has(id)}
+                cell={cell}
+                selected={selected}
+                restricted={cell.restricted(this.props.restrictedDigit)}
                 onClick={() => this.props.onClick(id)}
                 onMouseMove={(event) => event.buttons === 1 && this.props.onMouseMove(id)}
             />
@@ -103,13 +101,13 @@ class Board extends React.Component<BoardProps> {
     }
 
     render() {
-        const cells = Object.assign({}, this.props.cells);
-
         return (
-            <div className="board">
-                {[...Boxes.keys()].map((i) =>
-                    <div className="box" key={i}>
-                        {Boxes[i].map((id) => this.renderCell(id))}
+            <div className="grid">
+                {BOXES.map((box, index) =>
+                    <div className="box" key={index}>
+                        {box.map((id) =>
+                            this.renderCell(id)
+                        )}
                     </div>
                 )}
             </div>
@@ -163,46 +161,54 @@ class NoteSelector extends React.Component<NoteSelectorProps> {
 }
 
 type GameState = {
-    cells: Map<CellId, CellData>,
+    board: Board,
     selectedCells: Set<CellId>,
     selectionMode: SelectionMode,
     inputMode: InputMode,
+    restrictedDigit?: Digit,
 }
 
 class Game extends React.Component<any, GameState> {
     constructor(props: any) {
         super(props);
 
-        const cells = new Map;
-        ROWS.forEach((row) => COLUMNS.forEach((column) =>
-            cells.set(row + column, new CellData)
-        ));
-
         this.state = {
-            cells: cells,
+            board: new Board(),
             selectedCells: new Set(),
             selectionMode: SelectionMode.SINGLE,
             inputMode: InputMode.DIGIT,
         };
     }
 
-    handleClick(cellId: CellId) {
+    handleClick(id: CellId) {
+        const cells = new Map(this.state.board.cells);
         const selectedCells = new Set(this.state.selectedCells);
         const selectionMode = this.state.selectionMode;
-        let inputMode = this.state.inputMode;
 
-        if (!selectedCells.delete(cellId)) {
-            if (selectionMode == SelectionMode.SINGLE) {
-                selectedCells.clear();
-            }
+        let restrictedDigit = cells.get(id)?.digit;
+        if (restrictedDigit === this.state.restrictedDigit) {
+            restrictedDigit = undefined;
+        }
 
-            selectedCells.add(cellId);
-            inputMode = InputMode.DIGIT;
+        switch (selectionMode) {
+            case SelectionMode.SINGLE:
+                if (selectedCells.has(id) && selectedCells.size == 1) {
+                    selectedCells.delete(id);
+                } else {
+                    selectedCells.clear();
+                    selectedCells.add(id);
+                }
+                break;
+            case SelectionMode.MULTI:
+                if (!selectedCells.delete(id)) {
+                    selectedCells.add(id);
+                }
+                break;
         }
 
         this.setState({
             selectedCells: selectedCells,
-            inputMode: inputMode,
+            restrictedDigit: restrictedDigit,
         });
     }
 
@@ -218,13 +224,30 @@ class Game extends React.Component<any, GameState> {
     }
 
     handleKeyDown(event: React.KeyboardEvent) {
-        const digit = parseInt(event.key);
+        if (event.key === "Backspace") {
+            this.clearSelection();
+        }
 
-        if (isNaN(digit) || digit == 0) {
+
+        const digit = parseDigit(event.key);
+        if (digit === undefined) {
             return;
         }
 
-        this.inputDigit(digit);
+        switch (this.state.inputMode) {
+            case InputMode.DIGIT:
+                this.inputDigit(digit);
+                break;
+            case InputMode.NOTE:
+                this.inputNote(digit, NoteType.BASIC);
+                break;
+            case InputMode.ACCENT:
+                this.inputNote(digit, NoteType.ACCENT);
+                break;
+            case InputMode.STRIKE:
+                this.inputNote(digit, NoteType.STRIKE);
+                break;
+        }
     }
 
     updateInputMode(inputMode: InputMode) {
@@ -241,41 +264,54 @@ class Game extends React.Component<any, GameState> {
     }
 
     inputDigit(digit: Digit) {
-        const cells = new Map(this.state.cells);
-        const selectedCells = new Set(this.state.selectedCells);
+        const board = new Board(this.state.board);
+        const selectedCells = this.state.selectedCells;
 
         for (const id of selectedCells) {
-            let cellData = cells.get(id);
+            board.inputDigit(id, digit);
+        }
 
-            if (cellData === undefined) {
-                continue;
-            }
+        board.reviseNotes();
 
-            switch (this.state.inputMode) {
-                case InputMode.DIGIT:
-                    cellData.value = digit;
-                    break;
-                case InputMode.NOTE:
-                    cellData.notes.set(digit, NoteType.BASIC);
-                    break;
-                case InputMode.ACCENT:
-                    cellData.notes.set(digit, NoteType.ACCENT);
-                    break;
-                case InputMode.STRIKE:
-                    cellData.notes.set(digit, NoteType.STRIKE);
-                    break;
-            }
+        this.setState({
+            board: board,
+            selectedCells: new Set(),
+        });
+    }
+
+    inputNote(digit: Digit, noteType: NoteType) {
+        const board = new Board(this.state.board);
+        const selectedCells = this.state.selectedCells;
+
+        for (const id of selectedCells) {
+            board.inputNote(id, digit, noteType);
         }
 
         this.setState({
-            cells: cells,
-            selectedCells: new Set,
+            board: board,
+            selectedCells: new Set(),
+            inputMode: InputMode.DIGIT,
+        })
+    }
+
+    clearSelection() {
+        const board = new Board(this.state.board);
+        const selectedCells = this.state.selectedCells;
+
+        for (const id of selectedCells) {
+            board.clearCell(id);
+        }
+
+        this.setState({
+            board: board,
+            selectedCells: new Set(),
         })
     }
 
     render() {
-        const cells = new Map(this.state.cells);
+        const cells = new Map(this.state.board.cells);
         const selectedCells = new Set(this.state.selectedCells);
+        const highlightDigit = this.state.restrictedDigit;
 
 
         const status = "Sudoku";
@@ -286,9 +322,10 @@ class Game extends React.Component<any, GameState> {
                 onKeyDown={(event) => this.handleKeyDown(event)}
             >
                 <div className="game-board">
-                    <Board
+                    <Grid
                         cells={cells}
                         selectedCells={selectedCells}
+                        restrictedDigit={highlightDigit}
                         onClick={(id) => this.handleClick(id)}
                         onMouseMove={(id) => this.handleMouseMove(id)}
                     />
@@ -299,6 +336,9 @@ class Game extends React.Component<any, GameState> {
                         inputMode={this.state.inputMode}
                         onClick={(inputMode) => this.updateInputMode(inputMode)}
                     />
+                    <button onClick={() => this.setState({
+                        board: new Board(undefined, "310004069000000200008005040000000005006000017807030000590700006600003050000100002"),
+                    })}>reset</button>
                 </div>
             </div>
         );
