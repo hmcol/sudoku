@@ -5,16 +5,11 @@
 	--border-color: #0A0908;
 
 	--other-color: #5E503F;
-
-	--cell-color: #fff;
-	--cell-hover-color: #ddd;
-	--cell-highlight-color: #ccc;
-	--cell-selected-hover-color: #bbb;
 }
 
 body {
-	font: 14px "Century Gothic", Futura, sans-serif;
 	margin: 20px;
+	font: 14px "Century Gothic", Futura, sans-serif;
 	background-color: var(--base-color);
 }
 
@@ -32,42 +27,42 @@ body {
 }
 
 .game-info {
-	margin-left: 20px;
 	width: 100px;
+	margin-left: 20px;
 }
 
 .grid {
-	background: var(--border-color);
+	aspect-ratio: 1/1;
+	width: 100%;
 	display: grid;
-	width: 300px;
-	height: 300px;
-	grid-template-columns: repeat(3, 1fr);
-	grid-template-rows: repeat(3, 1fr);
+	grid-template: repeat(3, 1fr) / repeat(3, 1fr);
 	gap: 2px;
 	padding: 1px;
+	background-color: var(--border-color);
 }
 
 .box {
-	background: var(--border-color);
 	display: grid;
-	grid-template-columns: repeat(3, 1fr);
-	grid-template-rows: repeat(3, 1fr);
+	grid-template: repeat(3, 1fr) / repeat(3, 1fr);
 	gap: 1px;
+	background-color: var(--border-color);
 }
 
 .cell {
-	background-color: var(--base-color);
-	color: var(--other-color);
+	aspect-ratio: 1/1;
+	overflow: hidden;
 	display: flex;
-	font-size: 18px;
 	justify-content: center;
 	align-items: center;
+	font-size: 150%;
+	color: var(--other-color);
+	background-color: var(--base-color);
 }
 
 .cell.given {
-	background-color: var(--dark-color);
-	color: var(--light-color);
 	font-weight: bold;
+	color: var(--light-color);
+	background-color: var(--dark-color);
 }
 
 .cell.restricted {
@@ -75,24 +70,27 @@ body {
 }
 
 .cell.selected {
-	background: #540B0E;
+	background-color: var(--light-color);
+}
+
+.cell.focus {
+	background-color: #540B0E;
 }
 
 .cell.notes {
-	font-size: 65%;
 	display: grid;
-	grid-template-columns: repeat(3, 1fr);
-	grid-template-rows: repeat(3, 1fr);
+	grid-template: repeat(3, 1fr) / repeat(3, 1fr);
 }
 
-
-
 .note {
-	opacity: 0%;
-	height: 100%;
+	aspect-ratio: 1/1;
+	overflow: hidden;
 	display: flex;
 	justify-content: center;
 	align-items: center;
+	opacity: 0%;
+	font-size: 40%;
+	font-weight: bold;
 }
 
 .note.basic {
@@ -116,10 +114,14 @@ body {
 
 .cell,
 .note-option {
-	-webkit-user-select: none; 	/* Safari */
-	-moz-user-select: none; 	/* Firefox */
-	-ms-user-select: none;		/* IE10+/Edge */
-	user-select: none;			/* Standard */
+	-webkit-user-select: none;
+	/* Safari */
+	-moz-user-select: none;
+	/* Firefox */
+	-ms-user-select: none;
+	/* IE10+/Edge */
+	user-select: none;
+	/* Standard */
 }
 
 

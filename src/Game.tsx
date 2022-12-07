@@ -23,8 +23,9 @@ enum InputMode {
 type CellProps = {
     cell: Cell,
     selected: boolean,
-    restricted: boolean,
+    focus?: Digit,
     onClick: MouseEventHandler,
+    onClickDigit: MouseEventHandler,
     onMouseMove: MouseEventHandler,
 }
 
@@ -45,16 +46,18 @@ class CellComponent extends React.Component<CellProps> {
     render() {
         const cell = this.props.cell;
 
-        const given = cell.given ? " given" : "";
-        const selected = this.props.selected ? " selected" : "";
-        const restricted = this.props.restricted ? " restricted" : "";
-        
+        const selected = this.props.selected ? "selected" : "";
+        const restricted = cell.restricts(this.props.focus) ? "restricted" : "";
 
-        if (cell.digit !== undefined) {
+
+        if (cell.hasDigit) {
+            const given = cell.given ? "given" : "";
+            const focus = this.props.focus === cell.digit ? "focus" : "";
+
             return (
                 <div
-                    className={`cell ${given} ${selected} ${restricted}`}
-                    onClick={this.props.onClick}
+                    className={`cell ${given} ${selected} ${focus} ${restricted}`}
+                    onClick={this.props.onClickDigit}
                 >
                     {cell.digit}
                 </div>
@@ -77,24 +80,22 @@ class CellComponent extends React.Component<CellProps> {
 type GridProps = {
     cells: Map<CellId, Cell>,
     selectedCells: Set<CellId>,
-    restrictedDigit?: Digit, 
+    focus?: Digit,
     onClick: (id: CellId) => void,
+    onClickDigit: (cellId: CellId) => void,
     onMouseMove: (id: CellId) => void,
 }
 
 class Grid extends React.Component<GridProps> {
     renderCell(id: CellId) {
-        const cell = this.props.cells.get(id)!;
-
-        const selected = this.props.selectedCells.has(id) || (cell.digit !== undefined && cell.digit == this.props.restrictedDigit);
-
         return (
             <CellComponent
                 key={id}
-                cell={cell}
-                selected={selected}
-                restricted={cell.restricted(this.props.restrictedDigit)}
+                cell={this.props.cells.get(id)!}
+                selected={this.props.selectedCells.has(id)}
+                focus={this.props.focus}
                 onClick={() => this.props.onClick(id)}
+                onClickDigit={() => this.props.onClickDigit(id)}
                 onMouseMove={(event) => event.buttons === 1 && this.props.onMouseMove(id)}
             />
         );
@@ -165,7 +166,7 @@ type GameState = {
     selectedCells: Set<CellId>,
     selectionMode: SelectionMode,
     inputMode: InputMode,
-    restrictedDigit?: Digit,
+    focus?: Digit,
 }
 
 class Game extends React.Component<any, GameState> {
@@ -180,35 +181,37 @@ class Game extends React.Component<any, GameState> {
         };
     }
 
-    handleClick(id: CellId) {
-        const cells = new Map(this.state.board.cells);
-        const selectedCells = new Set(this.state.selectedCells);
-        const selectionMode = this.state.selectionMode;
+    handleClickDigit(id: CellId) {
+        const cell = this.state.board.cells.get(id)!;
+        const digit = cell.digit!;
+        const selectedCells = new Set<CellId>();
 
-        let restrictedDigit = cells.get(id)?.digit;
-        if (restrictedDigit === this.state.restrictedDigit) {
-            restrictedDigit = undefined;
-        }
-
-        switch (selectionMode) {
-            case SelectionMode.SINGLE:
-                if (selectedCells.has(id) && selectedCells.size == 1) {
-                    selectedCells.delete(id);
-                } else {
-                    selectedCells.clear();
-                    selectedCells.add(id);
-                }
-                break;
-            case SelectionMode.MULTI:
-                if (!selectedCells.delete(id)) {
-                    selectedCells.add(id);
-                }
-                break;
+        if (!cell.given) {
+            selectedCells.add(id);
         }
 
         this.setState({
             selectedCells: selectedCells,
-            restrictedDigit: restrictedDigit,
+            focus: digit !== this.state.focus ? digit : undefined,
+        });
+    }
+
+    handleClickCell(id: CellId) {
+        const selectedCells = new Set(this.state.selectedCells);
+        let inputMode = this.state.inputMode;
+
+        if (selectedCells.has(id)) {
+            selectedCells.delete(id);
+        } else {
+            selectedCells.clear();
+            selectedCells.add(id);
+            inputMode = InputMode.DIGIT;
+        }
+
+        this.setState({
+            selectedCells: selectedCells,
+            focus: undefined,
+            inputMode: inputMode,
         });
     }
 
@@ -311,7 +314,7 @@ class Game extends React.Component<any, GameState> {
     render() {
         const cells = new Map(this.state.board.cells);
         const selectedCells = new Set(this.state.selectedCells);
-        const highlightDigit = this.state.restrictedDigit;
+        const focus = this.state.focus;
 
 
         const status = "Sudoku";
@@ -321,15 +324,14 @@ class Game extends React.Component<any, GameState> {
                 tabIndex={-1}
                 onKeyDown={(event) => this.handleKeyDown(event)}
             >
-                <div className="game-board">
-                    <Grid
-                        cells={cells}
-                        selectedCells={selectedCells}
-                        restrictedDigit={highlightDigit}
-                        onClick={(id) => this.handleClick(id)}
-                        onMouseMove={(id) => this.handleMouseMove(id)}
-                    />
-                </div>
+                <Grid
+                    cells={cells}
+                    selectedCells={selectedCells}
+                    focus={focus}
+                    onClick={(id) => this.handleClickCell(id)}
+                    onClickDigit={(digit) => this.handleClickDigit(digit)}
+                    onMouseMove={(id) => this.handleMouseMove(id)}
+                />
                 <div className="game-info">
                     <div>{status}</div>
                     <NoteSelector

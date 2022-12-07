@@ -28,7 +28,7 @@ export const enum NoteType {
     BASIC = "basic",
     ACCENT = "accent",
     STRIKE = "strike",
-    IGNORE = "ignore",
+    ELIMINATED = "eliminated",
 }
 
 export const CELLS: CellId[] = [
@@ -111,27 +111,25 @@ export class Cell {
         this.notes = new Map;
     }
 
-    mayContain(digit?: Digit) : boolean {
-        if (digit === undefined) {
-            return true;
-        }
-
-        const note = this.notes.get(digit)!;
-
-        return note !== NoteType.STRIKE && note !== NoteType.IGNORE;
+    get hasDigit(): boolean {
+        return this.digit !== undefined;
     }
 
-    restricted(digit?: Digit): boolean {
+    restricts(digit?: Digit): boolean {
         if (digit === undefined) {
             return false;
         }
 
-        if (this.digit !== undefined && this.digit !== digit) {
+        if (this.digit === undefined) {
+            const note = this.notes.get(digit)!;
+            return note === NoteType.STRIKE || note === NoteType.ELIMINATED;
+        }
+
+        if (this.digit !== digit) {
             return true;
         }
 
-        const note = this.notes.get(digit)!;
-        return note === NoteType.STRIKE || note === NoteType.IGNORE;
+        return false;
     }
 }
 
@@ -164,7 +162,7 @@ export class Board {
             for (const unit of UNITS) {
                 if (unit.includes(id)) {
                     for (const otherId of unit) {
-                        this.cells.get(otherId)?.notes.set(digit, NoteType.IGNORE);
+                        this.cells.get(otherId)?.notes.set(digit, NoteType.ELIMINATED);
                     }
                 }
             }
