@@ -338,9 +338,7 @@ export const reviseNotes: Strategy = (board: Board) => {
 };
 
 export const hiddenSingles: Strategy = (board: Board) => {
-    const cells = board.cells;
     const solutions = new Array<[CellId, Digit]>();
-
 
     for (const digit of DIGITS) {
         for (const unit of UNITS) {
@@ -361,11 +359,10 @@ export const hiddenSingles: Strategy = (board: Board) => {
 };
 
 export const nakedSingles: Strategy = (board: Board) => {
-    const cells = board.cells;
     const solutions = new Array<[CellId, Digit]>();
 
     for (const id of CELLS) {
-        const candidates = cells.get(id)!.candidates;
+        const candidates = board.cell(id).candidates;
 
         if (candidates.length === 1) {
             solutions.push([id, candidates[0]]);
