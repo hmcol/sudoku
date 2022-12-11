@@ -82,6 +82,7 @@ export const COLUMNS: CellId[][] = [
 ];
 
 export const UNITS: CellId[][] = BOXES.concat(ROWS).concat(COLUMNS);
+export const LINES: CellId[][] = ROWS.concat(COLUMNS);
 
 
 function pairsOf<T>(unit: T[]): [T, T][] {
@@ -122,6 +123,10 @@ function triplesOf<T>(arr: T[]): [T, T, T][] {
 
 function notIn<T>(arr: T[]): (item: T) => boolean {
     return (item: T) => !arr.includes(item);
+}
+
+function isSubset<T>(arr1: T[], arr2: T[]): boolean {
+    return arr1.every((item) => arr2.includes(item));
 }
 
 
@@ -612,9 +617,6 @@ export const hiddenTriple: Strategy = (board: Board) => {
                 continue;
             }
 
-            console.log(triple);
-            console.log(candidateCells);
-
             return {
                 applies: true,
                 eliminations: eliminations,
@@ -628,6 +630,52 @@ export const hiddenTriple: Strategy = (board: Board) => {
 };
 
 
+export const boxLineReduction: Strategy = (board: Board) => {
+
+    for (const digit of DIGITS) {
+        const lines = LINES.filter((line) =>
+            line.every((id) =>
+                board.cell(id).digit !== digit
+            )
+        );
+
+        for (const line of lines) {
+            const candidateCells = line.filter((id) =>
+                board.cell(id).hasCandidate(digit)
+            );
+
+            for (const box of BOXES) {
+                if (!isSubset(candidateCells, box)) {
+                    continue;
+                }
+
+                const eliminations = new Array<[CellId, Digit]>();
+
+                for (const id of box.filter(notIn(candidateCells))) {
+                    if (board.cell(id).hasCandidate(digit)) {
+                        eliminations.push([id, digit]);
+                    }
+                }
+
+                if (eliminations.length === 0) {
+                    continue;
+                }
+
+
+                return {
+                    applies: true,
+                    eliminations: eliminations,
+                };
+
+            }
+        }
+    }
+
+    return {
+        applies: false,
+    };
+};
+
 export const STRATEGIES = [
     reviseNotes,
     hiddenSingles,
@@ -637,4 +685,5 @@ export const STRATEGIES = [
     nakedTriple,
     hiddenPair,
     hiddenTriple,
+    boxLineReduction,
 ];

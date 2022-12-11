@@ -369,27 +369,11 @@ class Game extends React.Component<any, GameState> {
     }
 
     takeStep() {
-        if (this.applyStrategy(reviseNotes)) {
-            return;
+        for (const strategy of STRATEGIES) {
+            if (this.applyStrategy(strategy)) {
+                return;
+            }
         }
-
-        if (this.applyStrategy(hiddenSingles)) {
-            return;
-        }
-
-        if (this.applyStrategy(nakedSingles)) {
-            return;
-        }
-
-        if (this.applyStrategy(pointingPairTriple)) {
-            return;
-        }
-
-        if (this.applyStrategy(nakedPair)) {
-            return;
-        }
-
-
 
         console.log("no strategy found");
     }
@@ -422,7 +406,7 @@ class Game extends React.Component<any, GameState> {
                         onClick={(inputMode) => this.updateInputMode(inputMode)}
                     />
                     <button onClick={() => this.setState({
-                        board: new Board(undefined, "000001030231090000065003100678924300103050006000136700009360570006019843300000000"),
+                        board: new Board(undefined, "020943715904000600750000040500480000200000453400352000042000081005004260090208504"),
                     })}>reset</button>
                     <button onClick={() => this.initializeNotes()}>Init Notes</button>
                     <button onClick={() => this.takeStep()}>step</button>
