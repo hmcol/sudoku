@@ -318,7 +318,7 @@ export const reviseNotes: Strategy = (board: Board) => {
             }
 
             for (const otherId of unit) {
-                const digit = cells.get(otherId)!.digit;
+                const digit = board.cell(otherId).digit;
 
                 if (digit === undefined) {
                     continue;
@@ -343,26 +343,13 @@ export const hiddenSingles: Strategy = (board: Board) => {
 
 
     for (const digit of DIGITS) {
-        unitLoop:
         for (const unit of UNITS) {
-            let count = 0;
-            let lastSeen: CellId;
+            const candidateCells = unit.filter((id) =>
+                board.cell(id).hasCandidate(digit)
+            );
 
-            for (const id of unit) {
-                const cell = cells.get(id)!;
-
-                if (cell.digit === digit) {
-                    continue unitLoop;
-                }
-
-                if (cell.hasCandidate(digit)) {
-                    count++;
-                    lastSeen = id;
-                }
-            }
-
-            if (count === 1) {
-                solutions.push([lastSeen!, digit]);
+            if (candidateCells.length === 1) {
+                solutions.push([candidateCells[0], digit]);
             }
         }
     }
@@ -797,24 +784,24 @@ export const xWing: Strategy = (board: Board) => {
                 const candidateCells = lines1Pair.flat().filter((id) =>
                     board.cell(id).hasCandidate(digit)
                 );
-    
+
                 for (const line2Pair of pairsOf(axis2)) {
                     if (!isSubset(candidateCells, line2Pair.flat())) {
                         continue;
                     }
-    
+
                     const eliminations = new Array<[CellId, Digit]>();
-    
+
                     for (const id of line2Pair.flat().filter(notIn(candidateCells))) {
                         if (board.cell(id).hasCandidate(digit)) {
                             eliminations.push([id, digit]);
                         }
                     }
-    
+
                     if (eliminations.length === 0) {
                         continue;
                     }
-    
+
                     return {
                         applies: true,
                         eliminations: eliminations,
