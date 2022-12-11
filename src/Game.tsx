@@ -2,7 +2,7 @@ import { render } from '@testing-library/react';
 import React from "react";
 import { MouseEventHandler } from 'react';
 import "./Game.css";
-import { Board, BOXES, Cell, CellId, Digit, hiddenSingles, nakedPair, nakedSingles, NoteType, parseDigit, pointingPairTriple, reviseNotes, STRATEGIES, Strategy, StrategyResult } from './sudoku';
+import { Board, BOXES, Cell, CellId, Digit, hiddenSingles, nakedPairs, nakedSingles, NoteType, parseDigit, pointingPairTriple, reviseNotes, STRATEGIES, Strategy, StrategyResult } from './sudoku';
 
 
 
@@ -406,7 +406,7 @@ class Game extends React.Component<any, GameState> {
                         onClick={(inputMode) => this.updateInputMode(inputMode)}
                     />
                     <button onClick={() => this.setState({
-                        board: new Board(undefined, "720096003000205000080004020000000060106503807040000000030800090000702000200430018"),
+                        board: new Board(undefined, "400000938032094100095300240370609004529001673604703090957008300003900400240030709"),
                     })}>reset</button>
                     <button onClick={() => this.initializeNotes()}>Init Notes</button>
                     <button onClick={() => this.takeStep()}>step</button>
