@@ -2,7 +2,7 @@ import { render } from '@testing-library/react';
 import React from "react";
 import { MouseEventHandler } from 'react';
 import "./Game.css";
-import { Board, BOXES, Cell, CellId, Digit, hiddenSingle, NoteType, parseDigit, pointingPair, reviseNotes, Strategy, StrategyResult } from './sudoku';
+import { Board, BOXES, Cell, CellId, Digit, hiddenSingles, nakedSingles, NoteType, parseDigit, pointingPair, reviseNotes, Strategy, StrategyResult } from './sudoku';
 
 
 
@@ -165,7 +165,7 @@ class StrategyList extends React.Component<StrategyListProps> {
         return (
             <>
                 <button onClick={() => this.props.onClick(reviseNotes)}>Revise Notes</button>
-                <button onClick={() => this.props.onClick(hiddenSingle)}>Hidden Single</button>
+                <button onClick={() => this.props.onClick(hiddenSingles)}>Hidden Single</button>
             </>
 
         );
@@ -334,15 +334,17 @@ class Game extends React.Component<any, GameState> {
     applyStrategy(strat: Strategy): boolean {
         const result = strat(this.state.board);
 
-        console.log(result);
+        if (result.applies) {
+            console.log(strat.name);
+            console.log(result);
 
-        if (!result.applies) {
-            return false;
+            this.applyResult(result);
+            
+            return true;
         }
 
-        this.applyResult(result);
 
-        return true;
+        return false;
     }
 
     applyResult(result: StrategyResult) {
@@ -361,7 +363,7 @@ class Game extends React.Component<any, GameState> {
                 board.inputNote(id, digit, NoteType.ELIMINATED);
             }
         }
-        
+
 
         this.setState({
             board: board
@@ -373,12 +375,15 @@ class Game extends React.Component<any, GameState> {
             return;
         }
 
-        if (this.applyStrategy(hiddenSingle)) {
+        if (this.applyStrategy(hiddenSingles)) {
+            return;
+        }
+
+        if (this.applyStrategy(nakedSingles)) {
             return;
         }
 
         if (this.applyStrategy(pointingPair)) {
-            console.log("pointing found");
             return;
         }
     }
@@ -415,7 +420,7 @@ class Game extends React.Component<any, GameState> {
                     })}>reset</button>
                     <button onClick={() => this.initializeNotes()}>Init Notes</button>
                     <button onClick={() => this.takeStep()}>step</button>
-                    <StrategyList onClick={(strat) => this.applyStrategy(strat)}/>
+                    <StrategyList onClick={(strat) => this.applyStrategy(strat)} />
                 </div>
             </div>
         );

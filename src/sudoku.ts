@@ -273,7 +273,7 @@ export const reviseNotes: Strategy = (board: Board) => {
 };
 
 
-export const hiddenSingle: Strategy = (board: Board) => {
+export const hiddenSingles: Strategy = (board: Board) => {
     const cells = board.cells;
     const solutions = new Array<[CellId, Digit]>();
 
@@ -300,6 +300,34 @@ export const hiddenSingle: Strategy = (board: Board) => {
             if (count === 1) {
                 solutions.push([lastSeen!, digit]);
             }
+        }
+    }
+
+    return {
+        applies: solutions.length !== 0,
+        solutions: solutions,
+    };
+};
+
+export const nakedSingles: Strategy = (board: Board) => {
+    const cells = board.cells;
+    const solutions = new Array<[CellId, Digit]>();
+
+    for (const id of CELLS) {
+        const cell = cells.get(id)!;
+
+        let count = 0;
+        let lastDigit: Digit;
+
+        for (const digit of DIGITS) {
+            if (cell.hasCandidate(digit)) {
+                count++;
+                lastDigit = digit;
+            }
+        }
+
+        if (count === 1) {
+            solutions.push([id, lastDigit!]);
         }
     }
 
