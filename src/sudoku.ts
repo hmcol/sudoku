@@ -147,9 +147,15 @@ function notIn<T>(arr: T[]): (item: T) => boolean {
     return (item: T) => !arr.includes(item);
 }
 
+function contains<T>(item: T): (arr: T[]) => boolean {
+    return (arr: T[]) => arr.includes(item);
+}
+
 function isSubset<T>(arr1: T[], arr2: T[]): boolean {
     return arr1.every((item) => arr2.includes(item));
 }
+
+
 
 
 export class Cell {
@@ -303,29 +309,17 @@ export type Strategy = (board: Board) => StrategyResult;
 export const reviseNotes: Strategy = (board: Board) => {
     const eliminations = new Array<[CellId, Digit]>();
 
-    const cells = board.cells;
-
-    for (const id of CELLS) {
-        const cell = cells.get(id)!;
-
+    for (const [id, cell] of board.cells) {
         if (cell.hasDigit) {
             continue;
         }
 
-        for (const unit of UNITS) {
-            if (!unit.includes(id)) {
-                continue;
-            }
+        for (const unit of UNITS.filter(contains(id))) {
+            for (const id2 of unit) {
+                const digit = board.cell(id2).digit;
 
-            for (const otherId of unit) {
-                const digit = board.cell(otherId).digit;
-
-                if (digit === undefined) {
-                    continue;
-                }
-
-                if (cell.notes.get(digit) !== NoteType.ELIMINATED) {
-                    eliminations.push([id, digit]);
+                if (digit !== undefined && cell.hasCandidate(digit)) {
+                    eliminations.push([id, digit!]);
                 }
             }
         }
