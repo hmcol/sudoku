@@ -83,18 +83,6 @@ export const UNITS: CellId[][] = BOXES.concat(ROWS).concat(COLUMNS);
 
 
 
-function canSee(x: CellId, y: CellId): boolean {
-    for (const unit of UNITS) {
-        if (unit.includes(x) && unit.includes(y)) {
-            return true;
-        }
-    }
-
-    return false;
-}
-
-
-
 export class Cell {
     digit?: Digit;
     given: boolean;
@@ -131,6 +119,16 @@ export class Cell {
 
         return false;
     }
+
+    hasCandidate(digit: Digit): boolean {
+        if (this.digit !== undefined) {
+            return false;
+        }
+
+        const note = this.notes.get(digit);
+
+        return note !== NoteType.STRIKE && note !== NoteType.ELIMINATED;
+    }
 }
 
 export class Board {
@@ -139,7 +137,7 @@ export class Board {
     constructor(board?: Board, boardString?: string) {
         if (board !== undefined) {
             this.cells = new Map(board.cells);
-            return
+            return;
         }
 
         const cells = new Map;
@@ -150,27 +148,6 @@ export class Board {
 
         this.cells = cells;
     }
-
-    reviseNotes() {
-        for (const id of CELLS) {
-            const digit = this.cells.get(id)?.digit;
-
-            if (digit === undefined) {
-                continue;
-            }
-
-            for (const unit of UNITS) {
-                if (unit.includes(id)) {
-                    for (const otherId of unit) {
-                        this.cells.get(otherId)?.notes.set(digit, NoteType.ELIMINATED);
-                    }
-                }
-            }
-        }
-    }
-
-    
-
 
     inputDigit(id: CellId, digit: Digit) {
         const cell = this.cells.get(id)!;
@@ -211,4 +188,122 @@ export class Board {
         this.deleteDigit(id);
         this.deleteAllNotes(id);
     }
+
+    initializeNotes() {
+        const notes = new Map<Digit, NoteType>();
+        for (const digit of DIGITS) {
+            notes.set(digit, NoteType.BASIC);
+        }
+
+        for (const [id, cell] of this.cells) {
+            if (cell.hasDigit) {
+                continue;
+            }
+
+            cell.notes = new Map(notes);
+        }
+    }
+
+    // reviseNotes() {
+    //     for (const id of CELLS) {
+    //         const digit = this.cells.get(id)?.digit;
+
+    //         if (digit === undefined) {
+    //             continue;
+    //         }
+
+    //         for (const unit of UNITS) {
+    //             if (unit.includes(id)) {
+    //                 for (const otherId of unit) {
+    //                     this.cells.get(otherId)?.notes.set(digit, NoteType.ELIMINATED);
+    //                 }
+    //             }
+    //         }
+    //     }
+    // }
+
+
 }
+
+export type StrategyResult = {
+    applies: boolean,
+    solutions?: Array<[CellId, Digit]>,
+    eliminations?: Array<[CellId, Digit]>,
+};
+
+export type Strategy = (board: Board) => StrategyResult;
+
+export const reviseNotes: Strategy = (board: Board) => {
+    const eliminations = new Array<[CellId, Digit]>();
+
+    const cells = board.cells;
+
+    for (const id of CELLS) {
+        const cell = cells.get(id)!;
+
+        if (cell.hasDigit) {
+            continue;
+        }
+
+        for (const unit of UNITS) {
+            if (!unit.includes(id)) {
+                continue;
+            }
+
+            for (const otherId of unit) {
+                const digit = cells.get(otherId)!.digit;
+
+                if (digit === undefined) {
+                    continue;
+                }
+
+                if (cell.notes.get(digit) !== NoteType.ELIMINATED) {
+                    eliminations.push([id, digit]);
+                }
+            }
+        }
+    }
+
+    return {
+        applies: eliminations.length !== 0,
+        eliminations: eliminations,
+    };
+};
+
+
+export const hiddenSingle: Strategy = (board: Board) => {
+    const cells = board.cells;
+
+
+    for (const digit of DIGITS) {
+        unitLoop:
+        for (const unit of UNITS) {
+            let count = 0;
+            let lastSeen: CellId;
+
+            for (const id of unit) {
+                const cell = cells.get(id)!;
+
+                if (cell.digit === digit) {
+                    continue unitLoop;
+                }
+
+                if (cell.hasCandidate(digit)) {
+                    count++;
+                    lastSeen = id;
+                }
+            }
+
+            if (count === 1) {
+                return {
+                    applies: true,
+                    solutions: [[lastSeen!, digit]],
+                };
+            }
+        }
+    }
+
+    return {
+        applies: false,
+    };
+};

@@ -1,15 +1,10 @@
+import { render } from '@testing-library/react';
 import React from "react";
 import { MouseEventHandler } from 'react';
 import "./Game.css";
-import { Board, BOXES, Cell, CellId, CELLS, Digit, NoteType, parseDigit } from './sudoku';
+import { Board, BOXES, Cell, CellId, Digit, hiddenSingle, NoteType, parseDigit, reviseNotes, Strategy, StrategyResult } from './sudoku';
 
 
-
-enum SelectionMode {
-    SINGLE,
-    MULTI,
-    DESELECT,
-}
 
 enum InputMode {
     DIGIT,
@@ -27,7 +22,7 @@ type CellProps = {
     onClick: MouseEventHandler,
     onClickDigit: MouseEventHandler,
     onMouseMove: MouseEventHandler,
-}
+};
 
 class CellComponent extends React.Component<CellProps> {
     renderNote(digit: Digit) {
@@ -84,7 +79,7 @@ type GridProps = {
     onClick: (id: CellId) => void,
     onClickDigit: (cellId: CellId) => void,
     onMouseMove: (id: CellId) => void,
-}
+};
 
 class Grid extends React.Component<GridProps> {
     renderCell(id: CellId) {
@@ -119,7 +114,7 @@ class Grid extends React.Component<GridProps> {
 type NoteSelectorProps = {
     inputMode: InputMode,
     onClick: (inputMode: InputMode) => void,
-}
+};
 
 class NoteSelector extends React.Component<NoteSelectorProps> {
     renderOption(inputMode: InputMode) {
@@ -144,7 +139,7 @@ class NoteSelector extends React.Component<NoteSelectorProps> {
             >
                 {label}
             </div>
-        )
+        );
 
     }
 
@@ -157,17 +152,33 @@ class NoteSelector extends React.Component<NoteSelectorProps> {
                     {this.renderOption(InputMode.STRIKE)}
                 </div>
             </div>
-        )
+        );
     }
 }
+
+type StrategyListProps = {
+    onClick: (strat: Strategy) => void;
+};
+
+class StrategyList extends React.Component<StrategyListProps> {
+    render() {
+        return (
+            <>
+                <button onClick={() => this.props.onClick(reviseNotes)}>Revise Notes</button>
+                <button onClick={() => this.props.onClick(hiddenSingle)}>Hidden Single</button>
+            </>
+
+        );
+    }
+}
+
 
 type GameState = {
     board: Board,
     selectedCells: Set<CellId>,
-    selectionMode: SelectionMode,
     inputMode: InputMode,
     focus?: Digit,
-}
+};
 
 class Game extends React.Component<any, GameState> {
     constructor(props: any) {
@@ -176,7 +187,6 @@ class Game extends React.Component<any, GameState> {
         this.state = {
             board: new Board(),
             selectedCells: new Set(),
-            selectionMode: SelectionMode.SINGLE,
             inputMode: InputMode.DIGIT,
         };
     }
@@ -263,7 +273,7 @@ class Game extends React.Component<any, GameState> {
 
         this.setState({
             inputMode: newInputMode,
-        })
+        });
     }
 
     inputDigit(digit: Digit) {
@@ -274,7 +284,7 @@ class Game extends React.Component<any, GameState> {
             board.inputDigit(id, digit);
         }
 
-        board.reviseNotes();
+        // board.reviseNotes();
 
         this.setState({
             board: board,
@@ -294,7 +304,7 @@ class Game extends React.Component<any, GameState> {
             board: board,
             selectedCells: new Set(),
             inputMode: InputMode.DIGIT,
-        })
+        });
     }
 
     clearSelection() {
@@ -308,7 +318,48 @@ class Game extends React.Component<any, GameState> {
         this.setState({
             board: board,
             selectedCells: new Set(),
-        })
+        });
+    }
+
+    initializeNotes() {
+        const board = new Board(this.state.board);
+
+        board.initializeNotes();
+
+        this.setState({
+            board: board,
+        });
+    }
+
+    applyStrategy(strat: Strategy) {
+        const result = strat(this.state.board);
+
+        console.log(result);
+
+        this.applyResult(result);
+    }
+
+    applyResult(result: StrategyResult) {
+        const board = new Board(this.state.board);
+
+        const solutions = result.solutions;
+        if (solutions !== undefined) {
+            for (const [id, digit] of solutions) {
+                board.inputDigit(id, digit);
+            }
+        }
+
+        const eliminations = result.eliminations;
+        if (eliminations !== undefined) {
+            for (const [id, digit] of eliminations) {
+                board.inputNote(id, digit, NoteType.ELIMINATED);
+            }
+        }
+        
+
+        this.setState({
+            board: board
+        });
     }
 
     render() {
@@ -339,8 +390,10 @@ class Game extends React.Component<any, GameState> {
                         onClick={(inputMode) => this.updateInputMode(inputMode)}
                     />
                     <button onClick={() => this.setState({
-                        board: new Board(undefined, "310004069000000200008005040000000005006000017807030000590700006600003050000100002"),
+                        board: new Board(undefined, "000004028406000005100030600000301000087000140000709000002010003900000507670400000"),
                     })}>reset</button>
+                    <button onClick={() => this.initializeNotes()}>Init Notes</button>
+                    <StrategyList onClick={(strat) => this.applyStrategy(strat)}/>
                 </div>
             </div>
         );

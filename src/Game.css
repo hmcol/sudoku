@@ -27,7 +27,7 @@ body {
 }
 
 .game-info {
-	width: 100px;
+	width: 30%;
 	margin-left: 20px;
 }
 
@@ -106,6 +106,7 @@ body {
 .note.strike {
 	opacity: 25%;
 	color: red;
+	text-decoration: line-through;
 }
 
 .note.ignore {
@@ -149,3 +150,4 @@ body {
 	background: var(--light-color);
 	border-width: 2px;
 }
+
