@@ -6,6 +6,8 @@ export type Digit = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
 
 const DIGITS: Digit[] = [1, 2, 3, 4, 5, 6, 7, 8, 9];
 
+
+
 export function parseDigit(str?: string): Digit | undefined {
     if (str === undefined) {
         return;
@@ -273,6 +275,7 @@ export const reviseNotes: Strategy = (board: Board) => {
 
 export const hiddenSingle: Strategy = (board: Board) => {
     const cells = board.cells;
+    const solutions = new Array<[CellId, Digit]>();
 
 
     for (const digit of DIGITS) {
@@ -295,13 +298,49 @@ export const hiddenSingle: Strategy = (board: Board) => {
             }
 
             if (count === 1) {
-                return {
-                    applies: true,
-                    solutions: [[lastSeen!, digit]],
-                };
+                solutions.push([lastSeen!, digit]);
             }
         }
     }
+
+    return {
+        applies: solutions.length !== 0,
+        solutions: solutions,
+    };
+};
+
+export const pointingPair: Strategy = (board: Board) => {
+    const eliminations = new Array<[CellId, Digit]>();
+
+    for (const digit of DIGITS) {
+        for (const box of BOXES) {
+            const candidateCells = box.filter((id) => board.cells.get(id)!.hasCandidate(digit));
+
+            if (candidateCells.length < 2) {
+                continue;
+            }
+
+            for (const rowOrColumn of ROWS.concat(COLUMNS)) {
+                if (!candidateCells.every((id) => rowOrColumn.includes(id))) {
+                    continue;
+                }
+
+                const targets = rowOrColumn.filter((id) =>
+                    !candidateCells.includes(id)
+                    && board.cells.get(id)!.hasCandidate(digit)
+                );
+
+                if (targets.length !== 0) {
+                    return {
+                        applies: true,
+                        eliminations: targets.map((id) => [id, digit]),
+                    };
+                }
+            }
+
+        }
+    }
+
 
     return {
         applies: false,

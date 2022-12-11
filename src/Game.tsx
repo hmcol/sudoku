@@ -2,7 +2,7 @@ import { render } from '@testing-library/react';
 import React from "react";
 import { MouseEventHandler } from 'react';
 import "./Game.css";
-import { Board, BOXES, Cell, CellId, Digit, hiddenSingle, NoteType, parseDigit, reviseNotes, Strategy, StrategyResult } from './sudoku';
+import { Board, BOXES, Cell, CellId, Digit, hiddenSingle, NoteType, parseDigit, pointingPair, reviseNotes, Strategy, StrategyResult } from './sudoku';
 
 
 
@@ -331,12 +331,18 @@ class Game extends React.Component<any, GameState> {
         });
     }
 
-    applyStrategy(strat: Strategy) {
+    applyStrategy(strat: Strategy): boolean {
         const result = strat(this.state.board);
 
         console.log(result);
 
+        if (!result.applies) {
+            return false;
+        }
+
         this.applyResult(result);
+
+        return true;
     }
 
     applyResult(result: StrategyResult) {
@@ -360,6 +366,21 @@ class Game extends React.Component<any, GameState> {
         this.setState({
             board: board
         });
+    }
+
+    takeStep() {
+        if (this.applyStrategy(reviseNotes)) {
+            return;
+        }
+
+        if (this.applyStrategy(hiddenSingle)) {
+            return;
+        }
+
+        if (this.applyStrategy(pointingPair)) {
+            console.log("pointing found");
+            return;
+        }
     }
 
     render() {
@@ -390,9 +411,10 @@ class Game extends React.Component<any, GameState> {
                         onClick={(inputMode) => this.updateInputMode(inputMode)}
                     />
                     <button onClick={() => this.setState({
-                        board: new Board(undefined, "000004028406000005100030600000301000087000140000709000002010003900000507670400000"),
+                        board: new Board(undefined, "309000400200709000087000000750060230600904008028050041000000590000106007006000104"),
                     })}>reset</button>
                     <button onClick={() => this.initializeNotes()}>Init Notes</button>
+                    <button onClick={() => this.takeStep()}>step</button>
                     <StrategyList onClick={(strat) => this.applyStrategy(strat)}/>
                 </div>
             </div>
