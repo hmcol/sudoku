@@ -287,7 +287,7 @@ export class Board {
             DIGITS.map((digit) => [digit, NoteType.BASIC])
         );
 
-        for (const cell of CELLS.map(this.cell)) {
+        for (const cell of CELLS.map((id) => this.cell(id))) {
             if (cell.hasDigit) {
                 continue;
             }
@@ -373,14 +373,16 @@ export const pointingPairsTriples: Strategy = (board: Board) => {
 
     for (const digit of DIGITS) {
         for (const box of BOXES) {
-            const candidateCells = box.filter((id) => board.cell(id).hasCandidate(digit));
+            const candidateCells = box.filter((id) =>
+                board.cell(id).hasCandidate(digit)
+            );
 
             if (candidateCells.length < 2) {
                 continue;
             }
 
             for (const line of LINES) {
-                if (candidateCells.some(notIn(line))) {
+                if (!isSubset(candidateCells, line)) {
                     continue;
                 }
 
@@ -616,6 +618,7 @@ export const hiddenQuads: Strategy = (board: Board) => {
 };
 
 export const boxLineReduction: Strategy = (board: Board) => {
+    const eliminations = new Array<[CellId, Digit]>();
 
     for (const digit of DIGITS) {
         const lines = LINES.filter((line) =>
@@ -634,30 +637,18 @@ export const boxLineReduction: Strategy = (board: Board) => {
                     continue;
                 }
 
-                const eliminations = new Array<[CellId, Digit]>();
-
                 for (const id of box.filter(notIn(candidateCells))) {
                     if (board.cell(id).hasCandidate(digit)) {
                         eliminations.push([id, digit]);
                     }
                 }
-
-                if (eliminations.length === 0) {
-                    continue;
-                }
-
-
-                return {
-                    applies: true,
-                    eliminations: eliminations,
-                };
-
             }
         }
     }
 
     return {
-        applies: false,
+        applies: eliminations.length !== 0,
+        eliminations: eliminations
     };
 };
 
