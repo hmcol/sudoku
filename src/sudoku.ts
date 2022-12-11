@@ -131,7 +131,7 @@ function quadsOf<T>(arr: T[]): [T, T, T, T][] {
 
     for (let i = 0; i < len - 3; i++) {
         for (let j = i + 1; j < len - 2; j++) {
-            for (let k = j + 1; k < len- 1; k++) {
+            for (let k = j + 1; k < len - 1; k++) {
                 for (let l = k + 1; l < len; l++) {
                     quads.push([arr[i], arr[j], arr[k], arr[l]]);
                 }
@@ -784,6 +784,52 @@ export const boxLineReduction: Strategy = (board: Board) => {
     };
 };
 
+export const xWing: Strategy = (board: Board) => {
+    for (const digit of DIGITS) {
+        for (const [axis1, axis2] of [[COLUMNS, ROWS], [ROWS, COLUMNS]]) {
+            const lines1 = axis1.filter((line) =>
+                line.every((id) =>
+                    board.cell(id).digit !== digit
+                )
+            );
+
+            for (const lines1Pair of pairsOf(lines1)) {
+                const candidateCells = lines1Pair.flat().filter((id) =>
+                    board.cell(id).hasCandidate(digit)
+                );
+    
+                for (const line2Pair of pairsOf(axis2)) {
+                    if (!isSubset(candidateCells, line2Pair.flat())) {
+                        continue;
+                    }
+    
+                    const eliminations = new Array<[CellId, Digit]>();
+    
+                    for (const id of line2Pair.flat().filter(notIn(candidateCells))) {
+                        if (board.cell(id).hasCandidate(digit)) {
+                            eliminations.push([id, digit]);
+                        }
+                    }
+    
+                    if (eliminations.length === 0) {
+                        continue;
+                    }
+    
+                    return {
+                        applies: true,
+                        eliminations: eliminations,
+                    };
+                }
+            }
+
+        }
+    }
+
+    return {
+        applies: false,
+    };
+};
+
 export const STRATEGIES = [
     reviseNotes,
     hiddenSingles,
@@ -796,4 +842,5 @@ export const STRATEGIES = [
     hiddenTriple,
     hiddenQuad,
     boxLineReduction,
+    xWing,
 ];
