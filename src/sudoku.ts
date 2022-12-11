@@ -368,41 +368,34 @@ export const nakedSingles: Strategy = (board: Board) => {
     };
 };
 
-export const pointingPairTriple: Strategy = (board: Board) => {
+export const pointingPairsTriples: Strategy = (board: Board) => {
     const eliminations = new Array<[CellId, Digit]>();
 
     for (const digit of DIGITS) {
         for (const box of BOXES) {
-            const candidateCells = box.filter((id) => board.cells.get(id)!.hasCandidate(digit));
+            const candidateCells = box.filter((id) => board.cell(id).hasCandidate(digit));
 
             if (candidateCells.length < 2) {
                 continue;
             }
 
-            for (const rowOrColumn of ROWS.concat(COLUMNS)) {
-                if (!candidateCells.every((id) => rowOrColumn.includes(id))) {
+            for (const line of LINES) {
+                if (candidateCells.some(notIn(line))) {
                     continue;
                 }
 
-                const targets = rowOrColumn.filter((id) =>
-                    !candidateCells.includes(id)
-                    && board.cells.get(id)!.hasCandidate(digit)
-                );
-
-                if (targets.length > 0) {
-                    return {
-                        applies: true,
-                        eliminations: targets.map((id) => [id, digit]),
-                    };
+                for (const id of line.filter(notIn(candidateCells))) {
+                    if (board.cell(id).hasCandidate(digit)) {
+                        eliminations.push([id, digit]);
+                    }
                 }
             }
-
         }
     }
 
-
     return {
-        applies: false,
+        applies: eliminations.length !== 0,
+        eliminations: eliminations
     };
 };
 
@@ -546,7 +539,7 @@ export const hiddenPairs: Strategy = (board: Board) => {
     };
 };
 
-export const hiddenTriple: Strategy = (board: Board) => {
+export const hiddenTriples: Strategy = (board: Board) => {
     const eliminations = new Array<[CellId, Digit]>();
 
     for (const unit of UNITS) {
@@ -584,7 +577,7 @@ export const hiddenTriple: Strategy = (board: Board) => {
     };
 };
 
-export const hiddenQuad: Strategy = (board: Board) => {
+export const hiddenQuads: Strategy = (board: Board) => {
     const eliminations = new Array<[CellId, Digit]>();
 
     for (const unit of UNITS) {
@@ -718,13 +711,13 @@ export const STRATEGIES = [
     reviseNotes,
     hiddenSingles,
     nakedSingles,
-    pointingPairTriple,
+    pointingPairsTriples,
     nakedPairs,
     nakedTriples,
     nakedQuads,
     hiddenPairs,
-    hiddenTriple,
-    hiddenQuad,
+    hiddenTriples,
+    hiddenQuads,
     boxLineReduction,
     xWing,
 ];

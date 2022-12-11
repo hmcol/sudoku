@@ -2,7 +2,7 @@ import { render } from '@testing-library/react';
 import React from "react";
 import { MouseEventHandler } from 'react';
 import "./Game.css";
-import { Board, BOXES, Cell, CellId, Digit, hiddenSingles, nakedPairs, nakedSingles, NoteType, parseDigit, pointingPairTriple, reviseNotes, STRATEGIES, Strategy, StrategyResult } from './sudoku';
+import { Board, BOXES, Cell, CellId, Digit, hiddenSingles, nakedPairs, nakedSingles, NoteType, parseDigit, pointingPairsTriples, reviseNotes, STRATEGIES, Strategy, StrategyResult } from './sudoku';
 
 
 
