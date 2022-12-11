@@ -93,7 +93,7 @@ function pairsOf<T>(unit: T[]): [T, T][] {
     }
 
     for (let i = 0; i < len - 1; i++) {
-        for (let j = i; j < len; j++) {
+        for (let j = i + 1; j < len; j++) {
             pairs.push([unit[i], unit[j]]);
         }
     }
@@ -118,6 +118,10 @@ function triplesOf<T>(arr: T[]): [T, T, T][] {
     }
 
     return triples;
+}
+
+function notIn<T>(arr: T[]): (item: T) => boolean {
+    return (item: T) => !arr.includes(item);
 }
 
 
@@ -199,6 +203,10 @@ export class Board {
         );
 
         this.cells = cells;
+    }
+
+    cell(id: CellId): Cell {
+        return this.cells.get(id)!;
     }
 
     inputDigit(id: CellId, digit: Digit) {
@@ -518,6 +526,57 @@ export const nakedTriple: Strategy = (board: Board) => {
     };
 };
 
+export const hiddenPair: Strategy = (board: Board) => {
+
+    for (const unit of UNITS) {
+        const digits = DIGITS.filter((digit) =>
+            unit.every((id) =>
+                board.cell(id).digit !== digit
+            )
+        );
+
+        for (const pair of pairsOf(digits)) {
+
+            const candidateCells = unit.filter((id) =>
+                board.cell(id).hasCandidate(pair[0])
+                || board.cell(id).hasCandidate(pair[1])
+            );
+
+            if (candidateCells.length !== 2) {
+                continue;
+            }
+
+
+
+            const eliminations = new Array<[CellId, Digit]>();
+
+            for (const digit of DIGITS.filter(notIn(pair))) {
+                if (board.cells.get(candidateCells[0])!.hasCandidate(digit)) {
+                    eliminations.push([candidateCells[0], digit]);
+                }
+
+                if (board.cells.get(candidateCells[1])!.hasCandidate(digit)) {
+                    eliminations.push([candidateCells[1], digit]);
+                }
+
+            }
+
+            if (eliminations.length === 0) {
+                continue;
+            }
+
+            return {
+                applies: true,
+                eliminations: eliminations,
+            };
+        }
+    }
+
+    return {
+        applies: false,
+    };
+};
+
 
 export const STRATEGIES = [
     reviseNotes,
@@ -526,4 +585,5 @@ export const STRATEGIES = [
     pointingPairTriple,
     nakedPair,
     nakedTriple,
+    hiddenPair,
 ];
