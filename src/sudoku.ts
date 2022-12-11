@@ -84,6 +84,42 @@ export const COLUMNS: CellId[][] = [
 export const UNITS: CellId[][] = BOXES.concat(ROWS).concat(COLUMNS);
 
 
+function pairsOf<T>(unit: T[]): [T, T][] {
+    const len = unit.length;
+    const pairs = new Array<[T, T]>();
+
+    if (len < 2) {
+        return [];
+    }
+
+    for (let i = 0; i < len - 1; i++) {
+        for (let j = i; j < len; j++) {
+            pairs.push([unit[i], unit[j]]);
+        }
+    }
+
+    return pairs;
+}
+
+function triplesOf<T>(arr: T[]): [T, T, T][] {
+    const len = arr.length;
+    const triples = new Array<[T, T, T]>();
+
+    if (len < 3) {
+        return [];
+    }
+
+    for (let i = 0; i < len - 2; i++) {
+        for (let j = i + 1; j < len - 1; j++) {
+            for (let k = j + 1; k < len; k++) {
+                triples.push([arr[i], arr[j], arr[k]]);
+            }
+        }
+    }
+
+    return triples;
+}
+
 
 export class Cell {
     digit?: Digit;
@@ -421,10 +457,73 @@ export const nakedPair: Strategy = (board: Board) => {
     };
 };
 
+
+export const nakedTriple: Strategy = (board: Board) => {
+    const cells = board.cells;
+
+    for (const unit of UNITS) {
+        for (const triple of triplesOf(unit)) {
+            if (triple.some((id) => board.cells.get(id)!.hasDigit)) {
+                continue;
+            }
+
+            const candidates = DIGITS.filter((digit) =>
+                triple.some((id) =>
+                    cells.get(id)!.hasCandidate(digit)
+                )
+            );
+
+            if (candidates.length !== 3) {
+                continue;
+            }
+
+            const targets = unit.filter((id) =>
+                !triple.includes(id)
+                && candidates.some((digit) => cells.get(id)!.hasCandidate(digit))
+            );
+
+            if (targets.length === 0) {
+                continue;
+            }
+
+            const eliminations = new Array<[CellId, Digit]>();
+
+            for (const target of targets) {
+                const cell = board.cells.get(target)!;
+
+                if (cell.hasCandidate(candidates[0])) {
+                    eliminations.push([target, candidates[0]]);
+                }
+
+                if (cell.hasCandidate(candidates[1])) {
+                    eliminations.push([target, candidates[1]]);
+                }
+
+                if (cell.hasCandidate(candidates[2])) {
+                    eliminations.push([target, candidates[2]]);
+                }
+            }
+
+            console.log(triple);
+
+            return {
+                applies: true,
+                eliminations: eliminations,
+            };
+        }
+    }
+
+    return {
+        applies: false,
+    };
+};
+
+
 export const STRATEGIES = [
     reviseNotes,
     hiddenSingles,
     nakedSingles,
     pointingPairTriple,
     nakedPair,
-]
+    nakedTriple,
+];
