@@ -105,6 +105,18 @@ export class Cell {
         return this.digit !== undefined;
     }
 
+    get candidates(): Digit[] {
+        const candidates = new Array<Digit>();
+
+        for (const digit of DIGITS) {
+            if (this.hasCandidate(digit)) {
+                candidates.push(digit);
+            }
+        }
+
+        return candidates;
+    }
+
     restricts(digit?: Digit): boolean {
         if (digit === undefined) {
             return false;
@@ -131,6 +143,8 @@ export class Cell {
 
         return note !== NoteType.STRIKE && note !== NoteType.ELIMINATED;
     }
+
+
 }
 
 export class Board {
@@ -205,26 +219,6 @@ export class Board {
             cell.notes = new Map(notes);
         }
     }
-
-    // reviseNotes() {
-    //     for (const id of CELLS) {
-    //         const digit = this.cells.get(id)?.digit;
-
-    //         if (digit === undefined) {
-    //             continue;
-    //         }
-
-    //         for (const unit of UNITS) {
-    //             if (unit.includes(id)) {
-    //                 for (const otherId of unit) {
-    //                     this.cells.get(otherId)?.notes.set(digit, NoteType.ELIMINATED);
-    //                 }
-    //             }
-    //         }
-    //     }
-    // }
-
-
 }
 
 export type StrategyResult = {
@@ -314,20 +308,10 @@ export const nakedSingles: Strategy = (board: Board) => {
     const solutions = new Array<[CellId, Digit]>();
 
     for (const id of CELLS) {
-        const cell = cells.get(id)!;
+        const candidates = cells.get(id)!.candidates;
 
-        let count = 0;
-        let lastDigit: Digit;
-
-        for (const digit of DIGITS) {
-            if (cell.hasCandidate(digit)) {
-                count++;
-                lastDigit = digit;
-            }
-        }
-
-        if (count === 1) {
-            solutions.push([id, lastDigit!]);
+        if (candidates.length === 1) {
+            solutions.push([id, candidates[0]]);
         }
     }
 
@@ -337,7 +321,7 @@ export const nakedSingles: Strategy = (board: Board) => {
     };
 };
 
-export const pointingPair: Strategy = (board: Board) => {
+export const pointingPairTriple: Strategy = (board: Board) => {
     const eliminations = new Array<[CellId, Digit]>();
 
     for (const digit of DIGITS) {
@@ -358,7 +342,7 @@ export const pointingPair: Strategy = (board: Board) => {
                     && board.cells.get(id)!.hasCandidate(digit)
                 );
 
-                if (targets.length !== 0) {
+                if (targets.length > 0) {
                     return {
                         applies: true,
                         eliminations: targets.map((id) => [id, digit]),
@@ -374,3 +358,73 @@ export const pointingPair: Strategy = (board: Board) => {
         applies: false,
     };
 };
+
+export const nakedPair: Strategy = (board: Board) => {
+
+    for (const unit of UNITS) {
+        for (const id1 of unit) {
+            const candidates = board.cells.get(id1)!.candidates;
+
+            if (candidates.length !== 2) {
+                continue;
+            }
+
+            for (const id2 of unit) {
+
+                if (id1 === id2) {
+                    continue;
+                }
+
+                const cell2 = board.cells.get(id2)!;
+
+                if (!(cell2.candidates.length === 2
+                    && cell2.hasCandidate(candidates[0])
+                    && cell2.hasCandidate(candidates[1]))
+                ) {
+                    continue;
+                }
+
+
+                const targets = unit.filter((id) =>
+                    id !== id1 && id !== id2
+                    && (board.cells.get(id)!.hasCandidate(candidates[0])
+                        || board.cells.get(id)!.hasCandidate(candidates[1]))
+                );
+
+                if (targets.length > 0) {
+                    const eliminations = new Array<[CellId, Digit]>();
+
+                    for (const target of targets) {
+                        const cell = board.cells.get(target)!;
+
+                        if (cell.hasCandidate(candidates[0])) {
+                            eliminations.push([target, candidates[0]]);
+                        }
+
+                        if (cell.hasCandidate(candidates[1])) {
+                            eliminations.push([target, candidates[1]]);
+                        }
+                    }
+
+
+                    return {
+                        applies: true,
+                        eliminations: eliminations,
+                    };
+                }
+            }
+        }
+    }
+
+    return {
+        applies: false,
+    };
+};
+
+export const STRATEGIES = [
+    reviseNotes,
+    hiddenSingles,
+    nakedSingles,
+    pointingPairTriple,
+    nakedPair,
+]

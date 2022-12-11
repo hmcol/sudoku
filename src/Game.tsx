@@ -2,7 +2,7 @@ import { render } from '@testing-library/react';
 import React from "react";
 import { MouseEventHandler } from 'react';
 import "./Game.css";
-import { Board, BOXES, Cell, CellId, Digit, hiddenSingles, nakedSingles, NoteType, parseDigit, pointingPair, reviseNotes, Strategy, StrategyResult } from './sudoku';
+import { Board, BOXES, Cell, CellId, Digit, hiddenSingles, nakedPair, nakedSingles, NoteType, parseDigit, pointingPairTriple, reviseNotes, STRATEGIES, Strategy, StrategyResult } from './sudoku';
 
 
 
@@ -164,8 +164,9 @@ class StrategyList extends React.Component<StrategyListProps> {
     render() {
         return (
             <>
-                <button onClick={() => this.props.onClick(reviseNotes)}>Revise Notes</button>
-                <button onClick={() => this.props.onClick(hiddenSingles)}>Hidden Single</button>
+                {STRATEGIES.map((strat) =>
+                    <button key={strat.name} onClick={() => this.props.onClick(strat)}>{strat.name}</button>
+                )}
             </>
 
         );
@@ -284,8 +285,6 @@ class Game extends React.Component<any, GameState> {
             board.inputDigit(id, digit);
         }
 
-        // board.reviseNotes();
-
         this.setState({
             board: board,
             selectedCells: new Set(),
@@ -335,11 +334,10 @@ class Game extends React.Component<any, GameState> {
         const result = strat(this.state.board);
 
         if (result.applies) {
-            console.log(strat.name);
-            console.log(result);
+            console.log(strat.name, result);
 
             this.applyResult(result);
-            
+
             return true;
         }
 
@@ -383,9 +381,17 @@ class Game extends React.Component<any, GameState> {
             return;
         }
 
-        if (this.applyStrategy(pointingPair)) {
+        if (this.applyStrategy(pointingPairTriple)) {
             return;
         }
+
+        if (this.applyStrategy(nakedPair)) {
+            return;
+        }
+
+
+
+        console.log("no strategy found");
     }
 
     render() {
