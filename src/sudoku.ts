@@ -121,6 +121,28 @@ function triplesOf<T>(arr: T[]): [T, T, T][] {
     return triples;
 }
 
+function quadsOf<T>(arr: T[]): [T, T, T, T][] {
+    const len = arr.length;
+    const quads = new Array<[T, T, T, T]>();
+
+    if (len < 4) {
+        return [];
+    }
+
+    for (let i = 0; i < len - 3; i++) {
+        for (let j = i + 1; j < len - 2; j++) {
+            for (let k = j + 1; k < len- 1; k++) {
+                for (let l = k + 1; l < len; l++) {
+                    quads.push([arr[i], arr[j], arr[k], arr[l]]);
+                }
+            }
+        }
+    }
+
+    return quads;
+}
+
+
 function notIn<T>(arr: T[]): (item: T) => boolean {
     return (item: T) => !arr.includes(item);
 }
@@ -315,7 +337,6 @@ export const reviseNotes: Strategy = (board: Board) => {
     };
 };
 
-
 export const hiddenSingles: Strategy = (board: Board) => {
     const cells = board.cells;
     const solutions = new Array<[CellId, Digit]>();
@@ -470,7 +491,6 @@ export const nakedPair: Strategy = (board: Board) => {
     };
 };
 
-
 export const nakedTriple: Strategy = (board: Board) => {
     const cells = board.cells;
 
@@ -502,22 +522,64 @@ export const nakedTriple: Strategy = (board: Board) => {
             const eliminations = new Array<[CellId, Digit]>();
 
             for (const target of targets) {
-                const cell = board.cells.get(target)!;
-
-                if (cell.hasCandidate(candidates[0])) {
-                    eliminations.push([target, candidates[0]]);
-                }
-
-                if (cell.hasCandidate(candidates[1])) {
-                    eliminations.push([target, candidates[1]]);
-                }
-
-                if (cell.hasCandidate(candidates[2])) {
-                    eliminations.push([target, candidates[2]]);
+                for (const digit of candidates) {
+                    if (board.cell(target).hasCandidate(digit)) {
+                        eliminations.push([target, digit]);
+                    }
                 }
             }
 
-            console.log(triple);
+
+            return {
+                applies: true,
+                eliminations: eliminations,
+            };
+        }
+    }
+
+    return {
+        applies: false,
+    };
+};
+
+export const nakedQuad: Strategy = (board: Board) => {
+    const cells = board.cells;
+
+    for (const unit of UNITS) {
+        for (const quad of quadsOf(unit)) {
+            if (quad.some((id) => board.cells.get(id)!.hasDigit)) {
+                continue;
+            }
+
+            const candidates = DIGITS.filter((digit) =>
+                quad.some((id) =>
+                    cells.get(id)!.hasCandidate(digit)
+                )
+            );
+
+            if (candidates.length !== 4) {
+                continue;
+            }
+
+            const targets = unit.filter((id) =>
+                !quad.includes(id)
+                && candidates.some((digit) => cells.get(id)!.hasCandidate(digit))
+            );
+
+            if (targets.length === 0) {
+                continue;
+            }
+
+            const eliminations = new Array<[CellId, Digit]>();
+
+            for (const target of targets) {
+                for (const digit of candidates) {
+                    if (board.cell(target).hasCandidate(digit)) {
+                        eliminations.push([target, digit]);
+                    }
+                }
+            }
+
 
             return {
                 applies: true,
@@ -629,6 +691,52 @@ export const hiddenTriple: Strategy = (board: Board) => {
     };
 };
 
+export const hiddenQuad: Strategy = (board: Board) => {
+
+    for (const unit of UNITS) {
+        const digits = DIGITS.filter((digit) =>
+            unit.every((id) =>
+                board.cell(id).digit !== digit
+            )
+        );
+
+        for (const quad of quadsOf(digits)) {
+
+            const candidateCells = unit.filter((id) =>
+                quad.some((digit) =>
+                    board.cell(id).hasCandidate(digit)
+                )
+            );
+
+            if (candidateCells.length !== 4) {
+                continue;
+            }
+
+            const eliminations = new Array<[CellId, Digit]>();
+
+            for (const id of candidateCells) {
+                for (const digit of DIGITS.filter(notIn(quad))) {
+                    if (board.cell(id).hasCandidate(digit)) {
+                        eliminations.push([id, digit]);
+                    }
+                }
+            }
+
+            if (eliminations.length === 0) {
+                continue;
+            }
+
+            return {
+                applies: true,
+                eliminations: eliminations,
+            };
+        }
+    }
+
+    return {
+        applies: false,
+    };
+};
 
 export const boxLineReduction: Strategy = (board: Board) => {
 
@@ -683,7 +791,9 @@ export const STRATEGIES = [
     pointingPairTriple,
     nakedPair,
     nakedTriple,
+    nakedQuad,
     hiddenPair,
     hiddenTriple,
+    hiddenQuad,
     boxLineReduction,
 ];
