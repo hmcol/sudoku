@@ -551,11 +551,11 @@ export const hiddenPair: Strategy = (board: Board) => {
             const eliminations = new Array<[CellId, Digit]>();
 
             for (const digit of DIGITS.filter(notIn(pair))) {
-                if (board.cells.get(candidateCells[0])!.hasCandidate(digit)) {
+                if (board.cell(candidateCells[0]).hasCandidate(digit)) {
                     eliminations.push([candidateCells[0], digit]);
                 }
 
-                if (board.cells.get(candidateCells[1])!.hasCandidate(digit)) {
+                if (board.cell(candidateCells[1]).hasCandidate(digit)) {
                     eliminations.push([candidateCells[1], digit]);
                 }
 
@@ -564,6 +564,56 @@ export const hiddenPair: Strategy = (board: Board) => {
             if (eliminations.length === 0) {
                 continue;
             }
+
+            return {
+                applies: true,
+                eliminations: eliminations,
+            };
+        }
+    }
+
+    return {
+        applies: false,
+    };
+};
+
+export const hiddenTriple: Strategy = (board: Board) => {
+
+    for (const unit of UNITS) {
+        const digits = DIGITS.filter((digit) =>
+            unit.every((id) =>
+                board.cell(id).digit !== digit
+            )
+        );
+
+        for (const triple of triplesOf(digits)) {
+
+            const candidateCells = unit.filter((id) =>
+                triple.some((digit) =>
+                    board.cell(id).hasCandidate(digit)
+                )
+            );
+
+            if (candidateCells.length !== 3) {
+                continue;
+            }
+
+            const eliminations = new Array<[CellId, Digit]>();
+
+            for (const id of candidateCells) {
+                for (const digit of DIGITS.filter(notIn(triple))) {
+                    if (board.cell(id).hasCandidate(digit)) {
+                        eliminations.push([id, digit]);
+                    }
+                }
+            }
+
+            if (eliminations.length === 0) {
+                continue;
+            }
+
+            console.log(triple);
+            console.log(candidateCells);
 
             return {
                 applies: true,
@@ -586,4 +636,5 @@ export const STRATEGIES = [
     nakedPair,
     nakedTriple,
     hiddenPair,
+    hiddenTriple,
 ];
