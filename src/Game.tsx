@@ -1,8 +1,7 @@
-import { render } from '@testing-library/react';
 import React from "react";
 import { MouseEventHandler } from 'react';
 import "./Game.css";
-import { Board, BOXES, Cell, CellId, Digit, hiddenSingles, nakedPairs, nakedSingles, NoteType, parseDigit, pointingPairsTriples, reviseNotes, STRATEGIES, Strategy, StrategyResult } from './sudoku';
+import { Board, BOXES, Cell, CellId, Digit, NoteType, parseDigit, STRATEGIES, Strategy, StrategyResult } from './sudoku';
 
 
 
@@ -165,7 +164,12 @@ class StrategyList extends React.Component<StrategyListProps> {
         return (
             <>
                 {STRATEGIES.map((strat) =>
-                    <button key={strat.name} onClick={() => this.props.onClick(strat)}>{strat.name}</button>
+                    <button
+                        key={strat.name}
+                        onClick={() => this.props.onClick(strat)}
+                    >
+                        {strat.name}
+                    </button>
                 )}
             </>
 
@@ -181,7 +185,7 @@ type GameState = {
     focus?: Digit,
 };
 
-class Game extends React.Component<any, GameState> {
+export default class Game extends React.Component<any, GameState> {
     constructor(props: any) {
         super(props);
 
@@ -406,7 +410,7 @@ class Game extends React.Component<any, GameState> {
                         onClick={(inputMode) => this.updateInputMode(inputMode)}
                     />
                     <button onClick={() => this.setState({
-                        board: new Board(undefined, "007083600039706800826419753640190387080367000073048060390870026764900138208630970"),
+                        board: new Board(undefined, "123000587005817239987000164051008473390750618708100925076000891530081746810070352"),
                     })}>reset</button>
                     <button onClick={() => this.initializeNotes()}>Init Notes</button>
                     <button onClick={() => this.takeStep()}>step</button>
@@ -416,5 +420,3 @@ class Game extends React.Component<any, GameState> {
         );
     }
 }
-
-export default Game;

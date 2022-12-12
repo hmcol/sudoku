@@ -1,11 +1,9 @@
-## note types
-- None: 
-- Basic
-- Accent
-- Strike
-- Impossible
 
-## moves
-- place digit in cell
-- set note(s) in cell(s)
-- 
+
+simpleColoring:
+    for each bivalue pair:
+        keep track of it
+    
+    for each component:
+        bicolor the component
+        check for eliminations

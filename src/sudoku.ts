@@ -5,7 +5,6 @@ export type Column = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
 export type CellId = `${Row}${Column}`;
 
 export type Digit = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
-
 const DIGITS: Digit[] = [1, 2, 3, 4, 5, 6, 7, 8, 9];
 
 
@@ -719,7 +718,7 @@ export const simpleColoring: Strategy = (board: Board) => {
 
     for (const digit of DIGITS) {
         const biLocusPairs = new Array<[CellId, CellId]>();
-        const components = new UnionFind(CELLS.filter((id) => board.cell(id).hasCandidate(digit)));
+        const uf = new UnionFind(CELLS.filter((id) => board.cell(id).hasCandidate(digit)));
 
         for (const unit of UNITS) {
             const candidateCells = unit.filter((id) =>
@@ -734,42 +733,79 @@ export const simpleColoring: Strategy = (board: Board) => {
 
             biLocusPairs.push([id1, id2]);
 
-            components.union(id1, id2);
+            uf.union(id1, id2);
         }
 
-        
-        console.log(digit, components);
+
+        // console.log(digit, uf.components);
+
+        for (const rootId of uf.componentNames) {
+            const partition = [new Array<CellId>(), new Array<CellId>()];
+
+            const stack = new Array<[CellId, number]>();
+            stack.push([rootId, 0]);
+
+            while (stack.length > 0) {
+                const [id, color] = stack.pop()!;
+
+                if (partition.some(contains(id))) {
+                    continue;
+                }
+
+                partition[color].push(id);
+
+                for (const pair of biLocusPairs.filter(contains(id))) {
+                    const nextId = pair[0] !== id ? pair[0] : pair[1];
+
+                    stack.push([nextId, 1 - color]);
+                }
+            }
 
 
+            for (const [color, part] of partition.entries()) {
+                for (const unit of UNITS) {
+                    const cells = part.filter(In(unit));
 
-        const colors = new Map<CellId, string>();
-        const stack = new Array<[CellId, string, string]>();
+                    if (cells.length <= 1) {
+                        continue;
+                    }
 
-        for (const id of CELLS) {
-            if (board.cell(id).hasCandidate(digit)) {
-                stack.push([id, id, "A"]);
+                    const eliminations = new Array<[CellId, Digit]>();
+
+                    for (const id of part) {
+                        eliminations.push([id, digit]);
+                    }
+
+                    return {
+                        applies: true,
+                        eliminations: eliminations,
+                    };
+                }
+            }
+
+
+            const splitTargets = partition.map((part) =>
+                UNITS.filter((unit) => part.some(In(unit)))
+                    .flat()
+                    .filter(notIn(part))
+                    .filter((id) => board.cell(id).hasCandidate(digit))
+            );
+
+            const targets = splitTargets[0].filter(In(splitTargets[1]));
+
+            if (targets.length > 0) {
+                const eliminations = new Array<[CellId, Digit]>();
+
+                for (const target of targets) {
+                    eliminations.push([target, digit]);
+                }
+
+                return {
+                    applies: true,
+                    eliminations: eliminations,
+                };
             }
         }
-
-        while (stack.length > 0) {
-            const [id, component, color] = stack.pop()!;
-
-            if (colors.get(id) !== undefined) {
-                continue;
-            }
-
-            colors.set(id, component + "." + color);
-
-            const nextColor = color === "A" ? "B" : "A";
-
-            for (const pair of biLocusPairs.filter(contains(id))) {
-                const nextId = pair[0] !== id ? pair[0] : pair[1];
-
-                stack.push([nextId, component, nextColor]);
-            }
-        }
-
-        console.log(digit, biLocusPairs, colors);
     }
 
     return {
@@ -784,9 +820,9 @@ export const STRATEGIES = [
     pointingPairsTriples,
     nakedPairs,
     nakedTriples,
-    nakedQuads,
     hiddenPairs,
     hiddenTriples,
+    nakedQuads,
     hiddenQuads,
     boxLineReduction,
     xWing,
