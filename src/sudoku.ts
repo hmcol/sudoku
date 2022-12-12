@@ -170,25 +170,25 @@ export class Cell {
 }
 
 export class Board {
-    cells: Map<CellId, Cell>;
+    cells: Record<CellId, Cell>;
 
     constructor(board?: Board, boardString?: string) {
         if (board !== undefined) {
-            this.cells = new Map(board.cells);
+            this.cells = board.cells;
             return;
         }
 
-        const cells = new Map;
+        const cells: any = {};
 
-        CELLS.forEach((id, index) =>
-            cells.set(id, new Cell(parseDigit(boardString?.charAt(index))))
-        );
+        for (const [index, id] of CELLS.entries()) {
+            cells[id] = new Cell(parseDigit(boardString?.charAt(index)));
+        }
 
-        this.cells = cells;
+        this.cells = cells as Record<CellId, Cell>;
     }
 
     cell(id: CellId): Cell {
-        return this.cells.get(id)!;
+        return this.cells[id];
     }
 
     inputDigit(id: CellId, digit: Digit) {
@@ -257,7 +257,9 @@ export type Strategy = (board: Board) => StrategyResult;
 export const reviseNotes: Strategy = (board: Board) => {
     const eliminations = new Array<[CellId, Digit]>();
 
-    for (const [id, cell] of board.cells) {
+    for (const id of CELLS) {
+        const cell = board.cell(id);
+
         if (cell.hasDigit) {
             continue;
         }
@@ -301,7 +303,8 @@ export const hiddenSingles: Strategy = (board: Board) => {
 export const nakedSingles: Strategy = (board: Board) => {
     const solutions = new Array<[CellId, Digit]>();
 
-    for (const [id, cell] of board.cells) {
+    for (const id of CELLS) {
+        const cell = board.cell(id);
         const candidates = cell.candidates;
 
         if (candidates.length === 1) {
