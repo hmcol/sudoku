@@ -1,3 +1,5 @@
+import { link } from 'fs';
+
 export type Row = "A" | "B" | "C" | "D" | "E" | "F" | "G" | "H" | "I";
 export type Column = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
 export type CellId = `${Row}${Column}`;
@@ -142,6 +144,9 @@ function quadsOf<T>(arr: T[]): [T, T, T, T][] {
     return quads;
 }
 
+function In<T>(arr: T[]): (item: T) => boolean {
+    return (item: T) => arr.includes(item);
+}
 
 function notIn<T>(arr: T[]): (item: T) => boolean {
     return (item: T) => !arr.includes(item);
@@ -208,7 +213,7 @@ export class Cell {
     }
 
     hasCandidate(digit: Digit): boolean {
-        if (this.digit !== undefined) {
+        if (this.hasDigit) {
             return false;
         }
 
@@ -313,13 +318,11 @@ export const reviseNotes: Strategy = (board: Board) => {
             continue;
         }
 
-        for (const unit of UNITS.filter(contains(id))) {
-            for (const id2 of unit) {
-                const digit = board.cell(id2).digit;
+        for (const id2 of UNITS.filter(contains(id)).flat()) {
+            const digit = board.cell(id2).digit;
 
-                if (digit !== undefined && cell.hasCandidate(digit)) {
-                    eliminations.push([id, digit!]);
-                }
+            if (digit !== undefined && cell.hasCandidate(digit)) {
+                eliminations.push([id, digit!]);
             }
         }
     }
@@ -698,6 +701,75 @@ export const xWing: Strategy = (board: Board) => {
     };
 };
 
+export const yWing: Strategy = (board: Board) => {
+    const biValuePairs = new Array<[Digit, CellId, Digit, CellId, Digit]>();
+
+    for (const unit of UNITS) {
+        for (const [left, right] of pairsOf(unit)) {
+            const leftCandidates = board.cell(left).candidates;
+            const rightCandidates = board.cell(right).candidates;
+
+            if (leftCandidates.length !== 2 || rightCandidates.length !== 2) {
+                continue;
+            }
+
+            const shared = leftCandidates.filter(In(rightCandidates));
+
+            if (shared.length !== 1) {
+                continue;
+            }
+
+            const linkDigit = shared[0];
+
+            const leftDigit = leftCandidates.filter(notIn(shared))[0];
+            const rightDigit = rightCandidates.filter(notIn(shared))[0];
+
+            biValuePairs.push([leftDigit, left, linkDigit, right, rightDigit]);
+            biValuePairs.push([rightDigit, right, linkDigit, left, leftDigit]);
+
+        }
+    }
+
+    for (const [pair1, pair2] of pairsOf(biValuePairs)) {
+        if (!(pair1[2] == pair2[0] && pair1[3] == pair2[1] && pair1[4] == pair2[2] && pair1[0] == pair2[4])) {
+            continue;
+        }
+
+        const x = pair1[2];
+        const y = pair2[2];
+        const z = pair1[0];
+
+
+        const left = pair1[1];
+        const right = pair2[3];
+
+        const leftNeighbors = UNITS.filter(contains(left)).flat().filter((id) => id !== left);
+        const rightNeighbors = UNITS.filter(contains(right)).flat().filter((id) => id !== right);
+
+        const targets = leftNeighbors.filter(In(rightNeighbors)).filter((id) => board.cell(id).hasCandidate(z));
+
+        // console.log(left, `[${z}${x}]`, pair1[3], `[${x}${y}]`, right, `[${y}${z}]`, targets, `-[${z}]`);
+
+        if (targets.length > 0) {
+            const eliminations = new Array<[CellId, Digit]>();
+
+            for (const target of targets) {
+                eliminations.push([target, z]);
+            }
+
+            return {
+                applies: true,
+                eliminations: eliminations,
+            }
+        }
+
+    }
+
+    return {
+        applies: false,
+    };
+};
+
 export const STRATEGIES = [
     reviseNotes,
     hiddenSingles,
@@ -711,4 +783,5 @@ export const STRATEGIES = [
     hiddenQuads,
     boxLineReduction,
     xWing,
+    yWing,
 ];
