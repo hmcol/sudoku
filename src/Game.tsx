@@ -406,7 +406,7 @@ class Game extends React.Component<any, GameState> {
                         onClick={(inputMode) => this.updateInputMode(inputMode)}
                     />
                     <button onClick={() => this.setState({
-                        board: new Board(undefined, "900240000050690231020050090090700320002935607070002900069020073510079062207086009"),
+                        board: new Board(undefined, "007083600039706800826419753640190387080367000073048060390870026764900138208630970"),
                     })}>reset</button>
                     <button onClick={() => this.initializeNotes()}>Init Notes</button>
                     <button onClick={() => this.takeStep()}>step</button>

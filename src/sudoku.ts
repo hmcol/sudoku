@@ -1,4 +1,4 @@
-import { link } from 'fs';
+import { pairsOf, quadsOf, triplesOf, UnionFind } from "./combinatorics";
 
 export type Row = "A" | "B" | "C" | "D" | "E" | "F" | "G" | "H" | "I";
 export type Column = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
@@ -87,62 +87,7 @@ export const UNITS: CellId[][] = BOXES.concat(ROWS).concat(COLUMNS);
 export const LINES: CellId[][] = ROWS.concat(COLUMNS);
 
 
-function pairsOf<T>(unit: T[]): [T, T][] {
-    const len = unit.length;
-    const pairs = new Array<[T, T]>();
 
-    if (len < 2) {
-        return [];
-    }
-
-    for (let i = 0; i < len - 1; i++) {
-        for (let j = i + 1; j < len; j++) {
-            pairs.push([unit[i], unit[j]]);
-        }
-    }
-
-    return pairs;
-}
-
-function triplesOf<T>(arr: T[]): [T, T, T][] {
-    const len = arr.length;
-    const triples = new Array<[T, T, T]>();
-
-    if (len < 3) {
-        return [];
-    }
-
-    for (let i = 0; i < len - 2; i++) {
-        for (let j = i + 1; j < len - 1; j++) {
-            for (let k = j + 1; k < len; k++) {
-                triples.push([arr[i], arr[j], arr[k]]);
-            }
-        }
-    }
-
-    return triples;
-}
-
-function quadsOf<T>(arr: T[]): [T, T, T, T][] {
-    const len = arr.length;
-    const quads = new Array<[T, T, T, T]>();
-
-    if (len < 4) {
-        return [];
-    }
-
-    for (let i = 0; i < len - 3; i++) {
-        for (let j = i + 1; j < len - 2; j++) {
-            for (let k = j + 1; k < len - 1; k++) {
-                for (let l = k + 1; l < len; l++) {
-                    quads.push([arr[i], arr[j], arr[k], arr[l]]);
-                }
-            }
-        }
-    }
-
-    return quads;
-}
 
 function In<T>(arr: T[]): (item: T) => boolean {
     return (item: T) => arr.includes(item);
@@ -760,9 +705,71 @@ export const yWing: Strategy = (board: Board) => {
             return {
                 applies: true,
                 eliminations: eliminations,
+            };
+        }
+
+    }
+
+    return {
+        applies: false,
+    };
+};
+
+export const simpleColoring: Strategy = (board: Board) => {
+
+    for (const digit of DIGITS) {
+        const biLocusPairs = new Array<[CellId, CellId]>();
+        const components = new UnionFind(CELLS.filter((id) => board.cell(id).hasCandidate(digit)));
+
+        for (const unit of UNITS) {
+            const candidateCells = unit.filter((id) =>
+                board.cell(id).hasCandidate(digit)
+            );
+
+            if (candidateCells.length !== 2) {
+                continue;
+            }
+
+            const [id1, id2] = candidateCells;
+
+            biLocusPairs.push([id1, id2]);
+
+            components.union(id1, id2);
+        }
+
+        
+        console.log(digit, components);
+
+
+
+        const colors = new Map<CellId, string>();
+        const stack = new Array<[CellId, string, string]>();
+
+        for (const id of CELLS) {
+            if (board.cell(id).hasCandidate(digit)) {
+                stack.push([id, id, "A"]);
             }
         }
 
+        while (stack.length > 0) {
+            const [id, component, color] = stack.pop()!;
+
+            if (colors.get(id) !== undefined) {
+                continue;
+            }
+
+            colors.set(id, component + "." + color);
+
+            const nextColor = color === "A" ? "B" : "A";
+
+            for (const pair of biLocusPairs.filter(contains(id))) {
+                const nextId = pair[0] !== id ? pair[0] : pair[1];
+
+                stack.push([nextId, component, nextColor]);
+            }
+        }
+
+        console.log(digit, biLocusPairs, colors);
     }
 
     return {
@@ -784,4 +791,5 @@ export const STRATEGIES = [
     boxLineReduction,
     xWing,
     yWing,
+    simpleColoring,
 ];
