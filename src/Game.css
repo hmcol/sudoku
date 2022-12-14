@@ -20,6 +20,7 @@ body {
 .game {
 	display: flex;
 	flex-direction: row;
+	align-items: flex-start;
 }
 
 .game:focus {
@@ -27,13 +28,16 @@ body {
 }
 
 .game-info {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
 	width: 30%;
 	margin-left: 20px;
 }
 
 .grid {
-	aspect-ratio: 1/1;
-	width: 100%;
+	/* aspect-ratio: 1/1; */
+	/* width: 100%; */
 	display: grid;
 	grid-template: repeat(3, 1fr) / repeat(3, 1fr);
 	gap: 2px;
@@ -49,7 +53,9 @@ body {
 }
 
 .cell {
-	aspect-ratio: 1/1;
+	/* aspect-ratio: 1/1; */
+	height: 1.5em;
+	width: 1.5em;
 	overflow: hidden;
 	display: flex;
 	justify-content: center;
@@ -83,34 +89,26 @@ body {
 }
 
 .note {
-	aspect-ratio: 1/1;
-	overflow: hidden;
+	height: 100%;
 	display: flex;
 	justify-content: center;
 	align-items: center;
-	opacity: 0%;
+	overflow: hidden;
 	font-size: 40%;
 	font-weight: bold;
+	/* background-color: var(--base-color); */
 }
 
-.note.basic {
-	opacity: 100%;
-	color: grey;
+.note.eliminated {
+	background-color: #b47e7f;
 }
 
-.note.accent {
-	opacity: 100%;
-	color: gold;
+.note.solved {
+	background-color: #b3c7d1;
 }
 
-.note.strike {
-	opacity: 25%;
-	color: red;
-	text-decoration: line-through;
-}
-
-.note.ignore {
-	opacity: 0%;
+.note.highlighted {
+	background-color: #a8d3b1;
 }
 
 .cell,
@@ -125,29 +123,55 @@ body {
 	/* Standard */
 }
 
-
 .note-selector {
-	display: grid;
-	width: 100%;
-	grid-template-columns: repeat(3, 1fr);
-	grid-template-rows: 1fr;
-	gap: 3px;
-	padding: 3px;
+	display: flex;
+	flex-direction: left;
+	/* padding: 3px; */
 }
 
 .note-option {
-	background-color: var(--other-color);
-	aspect-ratio: 1/1;
+	width: 1.5em;
+	height: 1.5em;
+	margin: 2px;
 	font-size: 18px;
 	display: flex;
 	justify-content: center;
 	align-items: center;
 	border-style: solid;
+	background-color: var(--other-color);
 
 }
 
 .note-option.selected {
-	background: var(--light-color);
 	border-width: 2px;
+	background: var(--light-color);
 }
 
+.strategy-list {
+	width: 25ch;
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	font-size: 75%;
+}
+
+.strategy-item {
+	width: 100%;
+	margin-bottom: 0.25ex;
+	display: flex;
+	flex-direction: left;
+}
+
+.strategy-number {
+	width: 2.5ch;
+	padding: 1px;
+	margin-right: 0.5ch;
+	text-align: right;
+}
+
+.strategy-name {
+	width: 18ch;
+	padding: 1px;
+	color: var(--light-color);
+	background-color: var(--other-color);
+}

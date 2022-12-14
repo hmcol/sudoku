@@ -1,3 +1,38 @@
+import { Type } from "typescript";
+
+// iterator helpers and set operations ----------------------------------------
+
+export function In<T>(arr: T[]): (item: T) => boolean {
+    return (item: T) => arr.includes(item);
+}
+
+export function notIn<T>(arr: T[]): (item: T) => boolean {
+    return (item: T) => !arr.includes(item);
+}
+
+export function contains<T>(item: T): (arr: T[]) => boolean {
+    return (arr: T[]) => arr.includes(item);
+}
+
+export function isSubset<T>(arr1: T[], arr2: T[]): boolean {
+    return arr1.every((item) => arr2.includes(item));
+}
+
+export function isSome<T>(item: T): boolean {
+    return item !== undefined;
+}
+
+export function isEqual<T>(value: T): (item: T) => boolean {
+    return (item) => item == value;
+}
+
+export function intersection<T>(arr1: T[], arr2: T[]): T[] {
+    return arr1.filter(In(arr2));
+}
+
+
+// subset generators ----------------------------------------------------------
+
 export function pairsOf<T>(unit: T[]): [T, T][] {
     const len = unit.length;
     const pairs = new Array<[T, T]>();
@@ -56,15 +91,26 @@ export function quadsOf<T>(arr: T[]): [T, T, T, T][] {
 }
 
 
+// graph stuff ----------------------------------------------------------------
 
+interface UnionFind<T, Find = T> {
+    add(item: T): void;
+    find(item: T): Find | undefined;
+    union(x: T, y: T): void;
+}
 
-export class UnionFind<T> {
+export class UnionFindGood<T> implements UnionFind<T> {
     name: Map<T, T>;
     rank: Map<T, number>;
 
     constructor(items: T[]) {
         this.name = new Map(items.map((item) => [item, item]));
         this.rank = new Map(items.map((item) => [item, 0]));
+    }
+
+    add(item: T) {
+        this.name.set(item, item);
+        this.rank.set(item, 0);
     }
 
     get components() {
@@ -126,26 +172,141 @@ export class UnionFind<T> {
     }
 }
 
-export class Tree<T> {
-    root: T;
-    children: Map<T, T[]>;
+class UnionFindBad<T> implements UnionFind<T> {
+    name: Map<T, T>;
 
-    constructor(root: T) {
-        this.root = root;
-        this.children = new Map([[root, []]]);
+    constructor(items?: T[]) {
+        this.name = new Map(items?.map((item) => [item, item]));
     }
 
-    addNode(node: T, parent: T) {
-        const children = this.children.get(parent);
+    add(item: T) {
+        this.name.set(item, item);
+    }
 
-        if (children !== undefined) {
-            children.push(node);
+    find(item: T): T {
+        if (this.name.get(item) !== item) {
+            this.name.set(item, this.find(this.name.get(item)!));
         }
 
-        this.children.set(node, []);
+        return this.name.get(item)!;
     }
 
-    hasNode(item: T): boolean {
-        return this.children.has(item);
+    union(x: T, y: T) {
+        x = this.find(x);
+        y = this.find(y);
+
+        if (x === y) {
+            return;
+        }
+
+        this.name.set(y, x);
     }
+
+    get componentRoots() {
+        const roots = new Array<T>();
+
+        for (const item of this.name.keys()) {
+            const root = this.find(item);
+
+            if (!roots.includes(root)) {
+                roots.push(root);
+            }
+        }
+
+        return roots;
+    }
+}
+
+class Partition<T> {
+    parts: T[][];
+
+    constructor(items?: T[]) {
+        this.parts = items?.map((item) => [item]) ?? [];
+    }
+
+    add(item: T) {
+        this.parts.push([item]);
+    }
+
+    find(item: T): T[] | undefined {
+        return this.parts.find(contains(item));
+    }
+
+    findIndex(item: T): number | undefined {
+        return this.parts.findIndex(contains(item));
+    }
+
+    union(x: T, y: T) {
+        const xIndex = this.findIndex(x);
+        const yIndex = this.findIndex(y);
+
+        if (xIndex === yIndex || xIndex === undefined || yIndex === undefined) {
+            return;
+        }
+
+        const yPart = this.parts.splice(yIndex, 1)[0];
+        
+        this.find(x)?.push(...yPart);
+    }
+}
+
+export class VertexData<V> {
+    neighbors: V[];
+
+    constructor() {
+        this.neighbors = [];
+    }
+}
+
+export class Graph<V> {
+    private vertices: Map<V, VertexData<V>>;
+    private componentUF: Partition<V>;
+
+    constructor(edges?: [V, V][]) {
+        this.vertices = new Map();
+        this.componentUF = new Partition();
+
+        edges?.forEach((e) => this.addEdge(...e));
+    }
+
+    hasVertex(vertex: V): boolean {
+        return this.vertices.has(vertex);
+    }
+
+    addVertex(vertex: V) {
+        if (this.hasVertex(vertex)) {
+            return;
+        }
+
+        this.vertices.set(vertex, new VertexData);
+        this.componentUF.add(vertex);
+    }
+
+    getNeighbors(vertex: V): V[] | undefined {
+        return this.vertices.get(vertex)?.neighbors;
+    }
+
+    hasEdge(u: V, v: V): boolean {
+        return this.getNeighbors(u)?.includes(v) ?? false;
+    }
+
+    addEdge(u: V, v: V) {
+        if (this.hasEdge(u, v)) {
+            return;
+        }
+
+        this.addVertex(u);
+        this.addVertex(v);
+
+        this.getNeighbors(u)?.push(v);
+        this.getNeighbors(v)?.push(u);
+
+        this.componentUF.union(u, v);
+    }
+
+    get components() {
+        return this.componentUF.parts
+    }
+
+
 }

@@ -1,11 +1,11 @@
-import { pairsOf, quadsOf, triplesOf, UnionFind } from "./combinatorics";
+import { contains, Graph, In, intersection, isSome, isSubset, notIn, pairsOf, quadsOf, triplesOf, UnionFindGood } from "./combinatorics";
 
 export type Row = "A" | "B" | "C" | "D" | "E" | "F" | "G" | "H" | "I";
 export type Column = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
 export type CellId = `${Row}${Column}`;
 
 export type Digit = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
-const DIGITS: Digit[] = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+export const DIGITS: Digit[] = [1, 2, 3, 4, 5, 6, 7, 8, 9];
 
 
 
@@ -25,13 +25,6 @@ export function parseDigit(str?: string): Digit | undefined {
     }
 
     return num as Digit;
-}
-
-export const enum NoteType {
-    BASIC = "basic",
-    ACCENT = "accent",
-    STRIKE = "strike",
-    ELIMINATED = "eliminated",
 }
 
 export const CELLS: CellId[] = [
@@ -88,21 +81,7 @@ export const LINES: CellId[][] = ROWS.concat(COLUMNS);
 
 
 
-function In<T>(arr: T[]): (item: T) => boolean {
-    return (item: T) => arr.includes(item);
-}
 
-function notIn<T>(arr: T[]): (item: T) => boolean {
-    return (item: T) => !arr.includes(item);
-}
-
-function contains<T>(item: T): (arr: T[]) => boolean {
-    return (arr: T[]) => arr.includes(item);
-}
-
-function isSubset<T>(arr1: T[], arr2: T[]): boolean {
-    return arr1.every((item) => arr2.includes(item));
-}
 
 
 
@@ -110,63 +89,39 @@ function isSubset<T>(arr1: T[], arr2: T[]): boolean {
 export class Cell {
     digit?: Digit;
     given: boolean;
-    notes: Map<Digit, NoteType>;
+    candidateSet: Set<Digit>; 
 
     constructor(givenDigit?: Digit) {
         if (givenDigit !== undefined) {
             this.digit = givenDigit;
             this.given = true;
+            this.candidateSet = new Set();
         } else {
             this.given = false;
+            this.candidateSet = new Set(DIGITS);
         }
-
-        this.notes = new Map;
-    }
-
-    get hasDigit(): boolean {
-        return this.digit !== undefined;
     }
 
     get candidates(): Digit[] {
-        const candidates = new Array<Digit>();
-
-        for (const digit of DIGITS) {
-            if (this.hasCandidate(digit)) {
-                candidates.push(digit);
-            }
-        }
-
-        return candidates;
+        return DIGITS.filter(digit => this.hasCandidate(digit));
     }
 
-    restricts(digit?: Digit): boolean {
-        if (digit === undefined) {
-            return false;
-        }
+    hasDigit(): boolean {
+        return this.digit !== undefined;
+    }
 
-        if (this.digit === undefined) {
-            const note = this.notes.get(digit)!;
-            return note === NoteType.STRIKE || note === NoteType.ELIMINATED;
-        }
-
-        if (this.digit !== digit) {
-            return true;
-        }
-
-        return false;
+    inputDigit(digit: Digit) {
+        this.digit = digit;
+        this.candidateSet.clear();
     }
 
     hasCandidate(digit: Digit): boolean {
-        if (this.hasDigit) {
-            return false;
-        }
-
-        const note = this.notes.get(digit);
-
-        return note !== NoteType.STRIKE && note !== NoteType.ELIMINATED;
+        return this.candidateSet.has(digit);
     }
 
-
+    eliminateCandidate(digit: Digit) {
+        this.candidateSet.delete(digit);
+    }
 }
 
 export class Board {
@@ -174,17 +129,18 @@ export class Board {
 
     constructor(board?: Board, boardString?: string) {
         if (board !== undefined) {
-            this.cells = board.cells;
+            this.cells = Object.assign({}, board.cells);
             return;
         }
 
-        const cells: any = {};
+        const cells: Partial<Record<CellId, Cell>> = {};
 
         for (const [index, id] of CELLS.entries()) {
             cells[id] = new Cell(parseDigit(boardString?.charAt(index)));
         }
 
         this.cells = cells as Record<CellId, Cell>;
+        
     }
 
     cell(id: CellId): Cell {
@@ -198,8 +154,7 @@ export class Board {
             return;
         }
 
-        cell.digit = digit;
-        cell.notes.clear();
+        cell.inputDigit(digit);
     }
 
     deleteDigit(id: CellId) {
@@ -212,37 +167,18 @@ export class Board {
         cell.digit = undefined;
     }
 
-    inputNote(id: CellId, digit: Digit, note: NoteType) {
-        this.cell(id).notes.set(digit, note);
-    }
-
-    deleteNote(id: CellId, digit: Digit) {
-        this.cell(id).notes.delete(digit);
-    }
-
-    deleteAllNotes(id: CellId) {
-        for (const digit of DIGITS) {
-            this.deleteNote(id, digit);
-        }
-    }
-
     clearCell(id: CellId) {
         this.deleteDigit(id);
-        this.deleteAllNotes(id);
     }
 
-    initializeNotes() {
-        const notes = new Map<Digit, NoteType>(
-            DIGITS.map((digit) => [digit, NoteType.BASIC])
-        );
+    // helper stuff ?
 
-        for (const cell of CELLS.map((id) => this.cell(id))) {
-            if (cell.hasDigit) {
-                continue;
-            }
-
-            cell.notes = new Map(notes);
-        }
+    getVisible(...focus: CellId[]): CellId[] {
+        return UNITS
+            .filter(unit => focus.some(In(unit)))
+            .flat()
+            .filter(id => !this.cell(id).hasDigit())
+            .filter(notIn(focus));
     }
 }
 
@@ -250,17 +186,18 @@ export type StrategyResult = {
     applies: boolean,
     solutions?: Array<[CellId, Digit]>,
     eliminations?: Array<[CellId, Digit]>,
+    highlights?: Array<[CellId, Digit]>,
 };
 
-export type Strategy = (board: Board) => StrategyResult;
+export type StrategyFunction = (board: Board) => StrategyResult;
 
-export const reviseNotes: Strategy = (board: Board) => {
+export const reviseNotes: StrategyFunction = (board: Board) => {
     const eliminations = new Array<[CellId, Digit]>();
 
     for (const id of CELLS) {
         const cell = board.cell(id);
 
-        if (cell.hasDigit) {
+        if (cell.hasDigit()) {
             continue;
         }
 
@@ -279,7 +216,7 @@ export const reviseNotes: Strategy = (board: Board) => {
     };
 };
 
-export const hiddenSingles: Strategy = (board: Board) => {
+export const hiddenSingles: StrategyFunction = (board: Board) => {
     const solutions = new Array<[CellId, Digit]>();
 
     for (const digit of DIGITS) {
@@ -300,7 +237,7 @@ export const hiddenSingles: Strategy = (board: Board) => {
     };
 };
 
-export const nakedSingles: Strategy = (board: Board) => {
+export const nakedSingles: StrategyFunction = (board: Board) => {
     const solutions = new Array<[CellId, Digit]>();
 
     for (const id of CELLS) {
@@ -318,8 +255,9 @@ export const nakedSingles: Strategy = (board: Board) => {
     };
 };
 
-export const pointingPairsTriples: Strategy = (board: Board) => {
+export const intersectionPointing: StrategyFunction = (board: Board) => {
     const eliminations = new Array<[CellId, Digit]>();
+    const highlights = new Array<[CellId, Digit]>();
 
     for (const digit of DIGITS) {
         for (const box of BOXES) {
@@ -336,10 +274,13 @@ export const pointingPairsTriples: Strategy = (board: Board) => {
                     continue;
                 }
 
-                for (const id of line.filter(notIn(candidateCells))) {
-                    if (board.cell(id).hasCandidate(digit)) {
-                        eliminations.push([id, digit]);
-                    }
+                const targets = line
+                    .filter(notIn(candidateCells))
+                    .filter(id => board.cell(id).hasCandidate(digit));
+
+                if (targets.length > 0) {
+                    eliminations.push(...targets.map(id => [id, digit] as [CellId, Digit]))
+                    highlights.push(...candidateCells.map(id => [id, digit] as [CellId, Digit]))
                 }
             }
         }
@@ -347,15 +288,16 @@ export const pointingPairsTriples: Strategy = (board: Board) => {
 
     return {
         applies: eliminations.length !== 0,
-        eliminations: eliminations
+        eliminations,
+        highlights,
     };
 };
 
-export const nakedPairs: Strategy = (board: Board) => {
+export const nakedPairs: StrategyFunction = (board: Board) => {
     const eliminations = new Array<[CellId, Digit]>();
 
     for (const unit of UNITS) {
-        const unknowns = unit.filter((id) => !board.cell(id).hasDigit);
+        const unknowns = unit.filter((id) => !board.cell(id).hasDigit());
 
         for (const pair of pairsOf(unknowns)) {
 
@@ -385,11 +327,11 @@ export const nakedPairs: Strategy = (board: Board) => {
     };
 };
 
-export const nakedTriples: Strategy = (board: Board) => {
+export const nakedTriples: StrategyFunction = (board: Board) => {
     const eliminations = new Array<[CellId, Digit]>();
 
     for (const unit of UNITS) {
-        const unknowns = unit.filter((id) => !board.cell(id).hasDigit);
+        const unknowns = unit.filter((id) => !board.cell(id).hasDigit());
 
         for (const triple of triplesOf(unknowns)) {
 
@@ -419,11 +361,11 @@ export const nakedTriples: Strategy = (board: Board) => {
     };
 };
 
-export const nakedQuads: Strategy = (board: Board) => {
+export const nakedQuads: StrategyFunction = (board: Board) => {
     const eliminations = new Array<[CellId, Digit]>();
 
     for (const unit of UNITS) {
-        const unknowns = unit.filter((id) => !board.cell(id).hasDigit);
+        const unknowns = unit.filter((id) => !board.cell(id).hasDigit());
 
         for (const quad of quadsOf(unknowns)) {
 
@@ -453,7 +395,7 @@ export const nakedQuads: Strategy = (board: Board) => {
     };
 };
 
-export const hiddenPairs: Strategy = (board: Board) => {
+export const hiddenPairs: StrategyFunction = (board: Board) => {
     const eliminations = new Array<[CellId, Digit]>();
 
     for (const unit of UNITS) {
@@ -491,7 +433,7 @@ export const hiddenPairs: Strategy = (board: Board) => {
     };
 };
 
-export const hiddenTriples: Strategy = (board: Board) => {
+export const hiddenTriples: StrategyFunction = (board: Board) => {
     const eliminations = new Array<[CellId, Digit]>();
 
     for (const unit of UNITS) {
@@ -529,7 +471,7 @@ export const hiddenTriples: Strategy = (board: Board) => {
     };
 };
 
-export const hiddenQuads: Strategy = (board: Board) => {
+export const hiddenQuads: StrategyFunction = (board: Board) => {
     const eliminations = new Array<[CellId, Digit]>();
 
     for (const unit of UNITS) {
@@ -567,7 +509,7 @@ export const hiddenQuads: Strategy = (board: Board) => {
     };
 };
 
-export const boxLineReduction: Strategy = (board: Board) => {
+export const intersectionClaiming: StrategyFunction = (board: Board) => {
     const eliminations = new Array<[CellId, Digit]>();
 
     for (const digit of DIGITS) {
@@ -602,7 +544,7 @@ export const boxLineReduction: Strategy = (board: Board) => {
     };
 };
 
-export const xWing: Strategy = (board: Board) => {
+export const xWing: StrategyFunction = (board: Board) => {
     for (const digit of DIGITS) {
         for (const [axis1, axis2] of [[COLUMNS, ROWS], [ROWS, COLUMNS]]) {
             const lines1 = axis1.filter((line) =>
@@ -648,7 +590,7 @@ export const xWing: Strategy = (board: Board) => {
     };
 };
 
-export const yWing: Strategy = (board: Board) => {
+export const yWing: StrategyFunction = (board: Board) => {
     const biValuePairs = new Array<[Digit, CellId, Digit, CellId, Digit]>();
 
     for (const unit of UNITS) {
@@ -717,11 +659,12 @@ export const yWing: Strategy = (board: Board) => {
     };
 };
 
-export const simpleColoring: Strategy = (board: Board) => {
+export const simpleColoring: StrategyFunction = (board: Board) => {
 
     for (const digit of DIGITS) {
-        const biLocusPairs = new Array<[CellId, CellId]>();
-        const uf = new UnionFind(CELLS.filter((id) => board.cell(id).hasCandidate(digit)));
+        const g = new Graph<CellId>();
+
+        // construct graph/components
 
         for (const unit of UNITS) {
             const candidateCells = unit.filter((id) =>
@@ -732,80 +675,71 @@ export const simpleColoring: Strategy = (board: Board) => {
                 continue;
             }
 
-            const [id1, id2] = candidateCells;
-
-            biLocusPairs.push([id1, id2]);
-
-            uf.union(id1, id2);
+            g.addEdge(candidateCells[0], candidateCells[1]);
         }
 
 
         // console.log(digit, uf.components);
 
-        for (const rootId of uf.componentNames) {
-            const partition = [new Array<CellId>(), new Array<CellId>()];
+        for (const component of g.components) {
 
-            const stack = new Array<[CellId, number]>();
-            stack.push([rootId, 0]);
+            // color cells
+
+            const colors = new Map<CellId, 0 | 1>();
+            const stack: [CellId, 0 | 1][] = [[component[0], 0]];
 
             while (stack.length > 0) {
-                const [id, color] = stack.pop()!;
+                const [u, color] = stack.pop()!;
 
-                if (partition.some(contains(id))) {
+                if (colors.has(u)) {
                     continue;
                 }
 
-                partition[color].push(id);
+                colors.set(u, color);
 
-                for (const pair of biLocusPairs.filter(contains(id))) {
-                    const nextId = pair[0] !== id ? pair[0] : pair[1];
+                const oppositeColor = color == 0 ? 1 : 0;
 
-                    stack.push([nextId, 1 - color]);
+                for (const v of g.getNeighbors(u)!) {
+                    stack.push([v, oppositeColor]);
                 }
             }
 
+            // check for color twice in a unit
 
-            for (const [color, part] of partition.entries()) {
-                for (const unit of UNITS) {
-                    const cells = part.filter(In(unit));
+            for (const unit of UNITS) {
+                for (const color of [0, 1]) {
+                    const count = unit.filter(c => colors.get(c) === color).length;
 
-                    if (cells.length <= 1) {
+                    if (count <= 1) {
                         continue;
                     }
 
-                    const eliminations = new Array<[CellId, Digit]>();
-
-                    for (const id of part) {
-                        eliminations.push([id, digit]);
-                    }
+                    const solutions = component.filter(id => colors.get(id) === (1 - color)).map(id => [id, digit] as [CellId, Digit]);
+                    const eliminations = component.filter(id => colors.get(id) === color).map(id => [id, digit] as [CellId, Digit]);
 
                     return {
                         applies: true,
-                        eliminations: eliminations,
+                        solutions,
+                        eliminations,
                     };
                 }
             }
 
+            // check for seeing two colors
 
-            const splitTargets = partition.map((part) =>
-                UNITS.filter((unit) => part.some(In(unit)))
+            const colorTargets = [0, 1].map(color =>
+                UNITS.filter(unit => unit.some(id => colors.get(id) === color))
                     .flat()
-                    .filter(notIn(part))
-                    .filter((id) => board.cell(id).hasCandidate(digit))
+                    .filter(id => !colors.has(id))
+                    .filter(id => board.cell(id).hasCandidate(digit))
             );
 
-            const targets = splitTargets[0].filter(In(splitTargets[1]));
+            const targets = intersection(colorTargets[0], colorTargets[1]);
 
             if (targets.length > 0) {
-                const eliminations = new Array<[CellId, Digit]>();
-
-                for (const target of targets) {
-                    eliminations.push([target, digit]);
-                }
-
                 return {
                     applies: true,
-                    eliminations: eliminations,
+                    eliminations: targets.map(id => [id, digit])
                 };
             }
         }
@@ -816,19 +750,22 @@ export const simpleColoring: Strategy = (board: Board) => {
     };
 };
 
-export const STRATEGIES = [
-    reviseNotes,
-    hiddenSingles,
-    nakedSingles,
-    pointingPairsTriples,
-    nakedPairs,
-    nakedTriples,
-    hiddenPairs,
-    hiddenTriples,
-    nakedQuads,
-    hiddenQuads,
-    boxLineReduction,
-    xWing,
-    yWing,
-    simpleColoring,
+
+export type Strategy = [string, StrategyFunction];
+
+export const STRATEGIES: Strategy[] = [
+    ["revise notes", reviseNotes],
+    ["naked singles", nakedSingles],
+    ["hidden singles", hiddenSingles],
+    ["intersection pointing", intersectionPointing],
+    ["naked pairs", nakedPairs],
+    ["naked triples", nakedTriples],
+    ["hidden pairs", hiddenPairs],
+    ["hidden triples", hiddenTriples],
+    ["naked quads", nakedQuads],
+    ["hidden quads", hiddenQuads],
+    ["intersection claiming", intersectionClaiming],
+    ["x-wing", xWing],
+    ["y-wing", yWing],
+    ["simple coloring", simpleColoring],
 ];
