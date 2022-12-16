@@ -33,8 +33,54 @@ export function intersection<T>(arr1: T[], arr2: T[]): T[] {
 
 // subset generators ----------------------------------------------------------
 
-export function pairsOf<T>(unit: T[]): [T, T][] {
-    const len = unit.length;
+type TupleSize = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
+
+type Tuple<
+    T,
+    N extends TupleSize,
+    A extends T[] = []
+> = N extends A['length']
+    ? A
+    : Tuple<T, N, [...A, T]>;
+
+
+function range(n: number): number[] {
+    return [...Array(n).keys()];
+}
+
+
+function orderedChoose(n: number, k: number): number[][] {
+    if (k === 1) {
+        return range(n).map(i => [i]);
+    }
+
+    if (k === n) {
+        return [range(n)];
+    }
+
+    return orderedChoose(n - 1, k).concat(
+        orderedChoose(n - 1, k - 1).map(s => s.concat([n - 1]))
+    );
+}
+
+const x = orderedChoose(5, 2);
+//    ^?
+
+// function tuples<T, N extends 1 | 2 | 3 | 4>(arr: T[]): 
+
+export function tuplesOf<T>(n: number, arr: T[]): T[][] {
+    if (n > arr.length) {
+        return [];
+    }
+
+    return orderedChoose(arr.length, n)
+        .map(index => index.map(i => arr[i]));
+}
+
+export function pairsOf<T>(arr: T[]): [T, T][] {
+    return tuplesOf(2, arr) as Tuple<T, 2>[];
+
+    const len = arr.length;
     const pairs = new Array<[T, T]>();
 
     if (len < 2) {
@@ -43,7 +89,7 @@ export function pairsOf<T>(unit: T[]): [T, T][] {
 
     for (let i = 0; i < len - 1; i++) {
         for (let j = i + 1; j < len; j++) {
-            pairs.push([unit[i], unit[j]]);
+            pairs.push([arr[i], arr[j]]);
         }
     }
 
@@ -245,7 +291,7 @@ class Partition<T> {
         }
 
         const yPart = this.parts.splice(yIndex, 1)[0];
-        
+
         this.find(x)?.push(...yPart);
     }
 }
@@ -305,7 +351,7 @@ export class Graph<V> {
     }
 
     get components() {
-        return this.componentUF.parts
+        return this.componentUF.parts;
     }
 
 

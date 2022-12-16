@@ -22,10 +22,11 @@ type NoteProps = {
 
 class NoteComponent extends React.Component<NoteProps> {
     render() {
-        const solved = this.props.solved ? "solved" : "";
-        const eliminated = this.props.eliminated ? "eliminated" : "";
-        const highlighted = this.props.highlighted ? "highlighted" : "";
+        const shown = this.props.shown;
 
+        const solved = this.props.solved && shown ? "solved" : "";
+        const eliminated = this.props.eliminated && shown ? "eliminated" : "";
+        const highlighted = this.props.highlighted && shown ? "highlighted" : "";
 
         return (
             <div
@@ -249,7 +250,7 @@ export default class Game extends React.Component<any, GameState> {
 
     resetBoard() {
         this.setState({
-            board: new Board(undefined, "400800003006010409000005000010060092000301000640050080000600000907080100800009004"),
+            board: new Board(undefined, "300000000970010000600583000200000900500621003008000005000435002000090056000000001"),
             result: undefined,
         });
     }

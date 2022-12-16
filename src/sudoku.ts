@@ -1,13 +1,7 @@
-import { contains, Graph, In, intersection, isSome, isSubset, notIn, pairsOf, quadsOf, triplesOf, UnionFindGood } from "./combinatorics";
-
-export type Row = "A" | "B" | "C" | "D" | "E" | "F" | "G" | "H" | "I";
-export type Column = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
-export type CellId = `${Row}${Column}`;
+import { contains, Graph, In, intersection, isSubset, notIn, pairsOf, quadsOf, triplesOf, tuplesOf } from "./combinatorics";
 
 export type Digit = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
 export const DIGITS: Digit[] = [1, 2, 3, 4, 5, 6, 7, 8, 9];
-
-
 
 export function parseDigit(str?: string): Digit | undefined {
     if (str === undefined) {
@@ -26,6 +20,12 @@ export function parseDigit(str?: string): Digit | undefined {
 
     return num as Digit;
 }
+
+
+export type RowId = "A" | "B" | "C" | "D" | "E" | "F" | "G" | "H" | "I";
+export type ColumnId = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
+export type CellId = `${RowId}${ColumnId}`;
+
 
 export const CELLS: CellId[] = [
     "A1", "A2", "A3", "A4", "A5", "A6", "A7", "A8", "A9",
@@ -81,15 +81,10 @@ export const LINES: CellId[][] = ROWS.concat(COLUMNS);
 
 
 
-
-
-
-
-
 export class Cell {
     digit?: Digit;
     given: boolean;
-    candidateSet: Set<Digit>; 
+    candidateSet: Set<Digit>;
 
     constructor(givenDigit?: Digit) {
         if (givenDigit !== undefined) {
@@ -140,7 +135,7 @@ export class Board {
         }
 
         this.cells = cells as Record<CellId, Cell>;
-        
+
     }
 
     cell(id: CellId): Cell {
@@ -255,6 +250,96 @@ export const nakedSingles: StrategyFunction = (board: Board) => {
     };
 };
 
+function makeNakedSubset(n: 2 | 3 | 4): StrategyFunction {
+    return (board: Board) => {
+        for (const unit of UNITS) {
+            const unitFiltered = unit.filter(id => !board.cell(id).hasDigit());
+
+            for (const cells of tuplesOf(n, unitFiltered)) {
+                const candidates = DIGITS.filter((digit) =>
+                    cells.some((id) => board.cell(id).hasCandidate(digit))
+                );
+
+                if (candidates.length !== n) {
+                    continue;
+                }
+
+                const eliminations = UNITS
+                    .filter(unit => isSubset(cells, unit))
+                    .flat()
+                    .filter(notIn(cells))
+                    .map(id =>
+                        candidates.filter(digit => board.cell(id).hasCandidate(digit))
+                            .map(digit => [id, digit] as [CellId, Digit])
+                    )
+                    .flat();
+
+                if (eliminations.length > 0) {
+                    return {
+                        applies: true,
+                        eliminations,
+                        highlights: cells.map(id => candidates.map(digit => [id, digit] as [CellId, Digit])).flat(),
+                    };
+                }
+            }
+        }
+
+        return {
+            applies: false,
+        };
+    };
+}
+
+export const nakedPair = makeNakedSubset(2);
+export const nakedTriple = makeNakedSubset(3);
+export const nakedQuad = makeNakedSubset(4);
+
+function makeHiddenSubset(n: 2 | 3 | 4): StrategyFunction {
+    return (board: Board) => {
+        for (const unit of UNITS) {
+            const digits = DIGITS.filter((digit) =>
+                unit.every((id) =>
+                    board.cell(id).digit !== digit
+                )
+            );
+
+            for (const candidates of tuplesOf(n, digits)) {
+                const candidateCells = unit.filter((id) =>
+                    candidates.some((digit) =>
+                        board.cell(id).hasCandidate(digit)
+                    )
+                );
+
+                if (candidateCells.length !== n) {
+                    continue;
+                }
+
+                const eliminations = candidateCells.map(id =>
+                    DIGITS.filter(notIn(candidates))
+                        .filter(digit => board.cell(id).hasCandidate(digit))
+                        .map(digit => [id, digit] as [CellId, Digit])
+                ).flat();
+
+                if (eliminations.length > 0) {
+                    return {
+                        applies: true,
+                        eliminations,
+                        highlights: candidateCells.map(id => candidates.map(digit => [id, digit] as [CellId, Digit])).flat(),
+                    };
+                }
+            }
+        }
+
+        return {
+            applies: false,
+        };
+    };
+}
+
+export const hiddenPair = makeHiddenSubset(2);
+export const hiddenTriple = makeHiddenSubset(3);
+export const hiddenQuad = makeHiddenSubset(4);
+
 export const intersectionPointing: StrategyFunction = (board: Board) => {
     const eliminations = new Array<[CellId, Digit]>();
     const highlights = new Array<[CellId, Digit]>();
@@ -279,8 +364,8 @@ export const intersectionPointing: StrategyFunction = (board: Board) => {
                     .filter(id => board.cell(id).hasCandidate(digit));
 
                 if (targets.length > 0) {
-                    eliminations.push(...targets.map(id => [id, digit] as [CellId, Digit]))
-                    highlights.push(...candidateCells.map(id => [id, digit] as [CellId, Digit]))
+                    eliminations.push(...targets.map(id => [id, digit] as [CellId, Digit]));
+                    highlights.push(...candidateCells.map(id => [id, digit] as [CellId, Digit]));
                 }
             }
         }
@@ -290,222 +375,6 @@ export const intersectionPointing: StrategyFunction = (board: Board) => {
         applies: eliminations.length !== 0,
         eliminations,
         highlights,
-    };
-};
-
-export const nakedPairs: StrategyFunction = (board: Board) => {
-    const eliminations = new Array<[CellId, Digit]>();
-
-    for (const unit of UNITS) {
-        const unknowns = unit.filter((id) => !board.cell(id).hasDigit());
-
-        for (const pair of pairsOf(unknowns)) {
-
-            const candidates = DIGITS.filter((digit) =>
-                pair.some((id) =>
-                    board.cell(id).hasCandidate(digit)
-                )
-            );
-
-            if (candidates.length !== 2) {
-                continue;
-            }
-
-            for (const id of unit.filter(notIn(pair))) {
-                for (const digit of candidates) {
-                    if (board.cell(id).hasCandidate(digit)) {
-                        eliminations.push([id, digit]);
-                    }
-                }
-            }
-        }
-    }
-
-    return {
-        applies: eliminations.length !== 0,
-        eliminations: eliminations
-    };
-};
-
-export const nakedTriples: StrategyFunction = (board: Board) => {
-    const eliminations = new Array<[CellId, Digit]>();
-
-    for (const unit of UNITS) {
-        const unknowns = unit.filter((id) => !board.cell(id).hasDigit());
-
-        for (const triple of triplesOf(unknowns)) {
-
-            const candidates = DIGITS.filter((digit) =>
-                triple.some((id) =>
-                    board.cell(id).hasCandidate(digit)
-                )
-            );
-
-            if (candidates.length !== 3) {
-                continue;
-            }
-
-            for (const id of unit.filter(notIn(triple))) {
-                for (const digit of candidates) {
-                    if (board.cell(id).hasCandidate(digit)) {
-                        eliminations.push([id, digit]);
-                    }
-                }
-            }
-        }
-    }
-
-    return {
-        applies: eliminations.length !== 0,
-        eliminations: eliminations
-    };
-};
-
-export const nakedQuads: StrategyFunction = (board: Board) => {
-    const eliminations = new Array<[CellId, Digit]>();
-
-    for (const unit of UNITS) {
-        const unknowns = unit.filter((id) => !board.cell(id).hasDigit());
-
-        for (const quad of quadsOf(unknowns)) {
-
-            const candidates = DIGITS.filter((digit) =>
-                quad.some((id) =>
-                    board.cell(id).hasCandidate(digit)
-                )
-            );
-
-            if (candidates.length !== 4) {
-                continue;
-            }
-
-            for (const id of unit.filter(notIn(quad))) {
-                for (const digit of candidates) {
-                    if (board.cell(id).hasCandidate(digit)) {
-                        eliminations.push([id, digit]);
-                    }
-                }
-            }
-        }
-    }
-
-    return {
-        applies: eliminations.length !== 0,
-        eliminations: eliminations
-    };
-};
-
-export const hiddenPairs: StrategyFunction = (board: Board) => {
-    const eliminations = new Array<[CellId, Digit]>();
-
-    for (const unit of UNITS) {
-        const digits = DIGITS.filter((digit) =>
-            unit.every((id) =>
-                board.cell(id).digit !== digit
-            )
-        );
-
-        for (const pair of pairsOf(digits)) {
-
-            const candidateCells = unit.filter((id) =>
-                pair.some((digit) =>
-                    board.cell(id).hasCandidate(digit)
-                )
-            );
-
-            if (candidateCells.length !== 2) {
-                continue;
-            }
-
-            for (const id of candidateCells) {
-                for (const digit of DIGITS.filter(notIn(pair))) {
-                    if (board.cell(id).hasCandidate(digit)) {
-                        eliminations.push([id, digit]);
-                    }
-                }
-            }
-        }
-    }
-
-    return {
-        applies: eliminations.length !== 0,
-        eliminations: eliminations
-    };
-};
-
-export const hiddenTriples: StrategyFunction = (board: Board) => {
-    const eliminations = new Array<[CellId, Digit]>();
-
-    for (const unit of UNITS) {
-        const digits = DIGITS.filter((digit) =>
-            unit.every((id) =>
-                board.cell(id).digit !== digit
-            )
-        );
-
-        for (const triple of triplesOf(digits)) {
-
-            const candidateCells = unit.filter((id) =>
-                triple.some((digit) =>
-                    board.cell(id).hasCandidate(digit)
-                )
-            );
-
-            if (candidateCells.length !== 3) {
-                continue;
-            }
-
-            for (const id of candidateCells) {
-                for (const digit of DIGITS.filter(notIn(triple))) {
-                    if (board.cell(id).hasCandidate(digit)) {
-                        eliminations.push([id, digit]);
-                    }
-                }
-            }
-        }
-    }
-
-    return {
-        applies: eliminations.length !== 0,
-        eliminations: eliminations
-    };
-};
-
-export const hiddenQuads: StrategyFunction = (board: Board) => {
-    const eliminations = new Array<[CellId, Digit]>();
-
-    for (const unit of UNITS) {
-        const digits = DIGITS.filter((digit) =>
-            unit.every((id) =>
-                board.cell(id).digit !== digit
-            )
-        );
-
-        for (const quad of quadsOf(digits)) {
-
-            const candidateCells = unit.filter((id) =>
-                quad.some((digit) =>
-                    board.cell(id).hasCandidate(digit)
-                )
-            );
-
-            if (candidateCells.length !== 4) {
-                continue;
-            }
-
-            for (const id of candidateCells) {
-                for (const digit of DIGITS.filter(notIn(quad))) {
-                    if (board.cell(id).hasCandidate(digit)) {
-                        eliminations.push([id, digit]);
-                    }
-                }
-            }
-        }
-    }
-
-    return {
-        applies: eliminations.length !== 0,
-        eliminations: eliminations
     };
 };
 
@@ -544,51 +413,52 @@ export const intersectionClaiming: StrategyFunction = (board: Board) => {
     };
 };
 
-export const xWing: StrategyFunction = (board: Board) => {
-    for (const digit of DIGITS) {
-        for (const [axis1, axis2] of [[COLUMNS, ROWS], [ROWS, COLUMNS]]) {
-            const lines1 = axis1.filter((line) =>
-                line.every((id) =>
-                    board.cell(id).digit !== digit
-                )
-            );
 
-            for (const lines1Pair of pairsOf(lines1)) {
-                const candidateCells = lines1Pair.flat().filter((id) =>
-                    board.cell(id).hasCandidate(digit)
+function makeBasicFish(n: 2 | 3 | 4): StrategyFunction {
+    return (board: Board) => {
+        for (const digit of DIGITS) {
+            for (const [baseType, coverType] of [[COLUMNS, ROWS], [ROWS, COLUMNS]]) {
+                const baseTypeFiltered = baseType.filter(unit =>
+                    unit.some(id => board.cell(id).hasCandidate(digit))
                 );
 
-                for (const line2Pair of pairsOf(axis2)) {
-                    if (!isSubset(candidateCells, line2Pair.flat())) {
-                        continue;
-                    }
+                for (const baseUnits of tuplesOf(n, baseTypeFiltered)) {
+                    const candidateCells = baseUnits.flat().filter((id) =>
+                        board.cell(id).hasCandidate(digit)
+                    );
 
-                    const eliminations = new Array<[CellId, Digit]>();
+                    for (const coverUnits of tuplesOf(n, coverType)) {
+                        if (!isSubset(candidateCells, coverUnits.flat())) {
+                            continue;
+                        }
 
-                    for (const id of line2Pair.flat().filter(notIn(candidateCells))) {
-                        if (board.cell(id).hasCandidate(digit)) {
-                            eliminations.push([id, digit]);
+                        const targets = coverUnits
+                            .flat()
+                            .filter(notIn(candidateCells))
+                            .filter(id => board.cell(id).hasCandidate(digit));
+
+                        if (targets.length > 0) {
+                            return {
+                                applies: true,
+                                eliminations: targets.map(id => [id, digit] as [CellId, Digit]),
+                                highlights: candidateCells.map(id => [id, digit] as [CellId, Digit]),
+                            };
                         }
                     }
-
-                    if (eliminations.length === 0) {
-                        continue;
-                    }
-
-                    return {
-                        applies: true,
-                        eliminations: eliminations,
-                    };
                 }
             }
-
         }
-    }
 
-    return {
-        applies: false,
+        return {
+            applies: false,
+        };
     };
-};
+}
+
+const xWing = makeBasicFish(2);
+const swordfish = makeBasicFish(3);
+const jellyfish = makeBasicFish(4);
+
 
 export const yWing: StrategyFunction = (board: Board) => {
     const biValuePairs = new Array<[Digit, CellId, Digit, CellId, Digit]>();
@@ -757,15 +627,17 @@ export const STRATEGIES: Strategy[] = [
     ["revise notes", reviseNotes],
     ["naked singles", nakedSingles],
     ["hidden singles", hiddenSingles],
+    ["naked pair", nakedPair],
+    ["hidden pair", hiddenPair],
+    ["naked triple", nakedTriple],
+    ["hidden triple", hiddenTriple],
     ["intersection pointing", intersectionPointing],
-    ["naked pairs", nakedPairs],
-    ["naked triples", nakedTriples],
-    ["hidden pairs", hiddenPairs],
-    ["hidden triples", hiddenTriples],
-    ["naked quads", nakedQuads],
-    ["hidden quads", hiddenQuads],
     ["intersection claiming", intersectionClaiming],
+    ["naked quad", nakedQuad],
+    ["hidden quad", hiddenQuad],
     ["x-wing", xWing],
+    ["swordfish", swordfish],
+    ["jellyfish", jellyfish],
     ["y-wing", yWing],
     ["simple coloring", simpleColoring],
 ];
