@@ -346,21 +346,21 @@ function makeIntersection(baseType: CellId[][], coverType: CellId[][]): Strategy
                 const candidateCells = baseUnit.filter((id) =>
                     board.cell(id).hasCandidate(digit)
                 );
-    
+
                 if (candidateCells.length < 2) {
                     continue;
                 }
-    
+
                 const coverUnit = coverType.find(hasSubset(candidateCells));
-    
+
                 if (coverUnit === undefined) {
                     continue;
                 }
-    
+
                 const targets = coverUnit
                     .filter(notIn(candidateCells))
                     .filter(id => board.cell(id).hasCandidate(digit));
-    
+
                 if (targets.length > 0) {
                     return {
                         applies: true,
@@ -370,11 +370,11 @@ function makeIntersection(baseType: CellId[][], coverType: CellId[][]): Strategy
                 }
             }
         }
-    
+
         return {
             applies: false,
         };
-    }
+    };
 }
 
 export const intersectionPointing = makeIntersection(BOXES, LINES);
@@ -470,6 +470,47 @@ export const yWing: StrategyFunction = (board: Board) => {
                 highlights: [[xzId, x], [xzId, z], [xyId, x], [xyId, y], [yzId, y], [yzId, z]],
             };
         }
+    }
+
+    return {
+        applies: false,
+    };
+};
+
+export const xyzWing: StrategyFunction = (board: Board) => {
+    for (const xyzId of CELLS) {
+        const xyz = board.cell(xyzId).candidates;
+
+        if (xyz.length !== 3) {
+            continue;
+        }
+
+        const bivalueNeighbors = board.getVisible(xyzId)
+            .filter(id => board.cell(id).candidates.length === 2)
+            .filter(id => isSubset(board.cell(id).candidates, xyz));
+
+        for (const [xzId, yzId] of pairsOf(bivalueNeighbors)) {
+            const xz = board.cell(xzId).candidates;
+            const yz = board.cell(yzId).candidates;
+
+            if (isSubset(xz, yz)) {
+                continue;
+            }
+
+            const z = intersection(xz, yz)[0];
+
+            const targets = intersection(board.getVisible(xyzId), intersection(board.getVisible(xzId), board.getVisible(yzId)))
+                .filter(id => board.cell(id).hasCandidate(z));
+
+            if (targets.length > 0) {
+                return {
+                    applies: true,
+                    eliminations: targets.map(id => [id, z] as [CellId, Digit]),
+                    highlights: [[xyzId, z], [xzId, z], [yzId, z]],
+                };
+            }
+        }
+
     }
 
     return {
@@ -579,6 +620,7 @@ export const STRATEGIES: Strategy[] = [
     ["x-wing", xWing],
     ["swordfish", swordfish],
     ["jellyfish", jellyfish],
-    ["y-wing", yWing],
     ["simple coloring", simpleColoring],
+    ["y-wing", yWing],
+    ["xyz-wing", xyzWing],
 ];
