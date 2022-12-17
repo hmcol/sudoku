@@ -104,11 +104,11 @@ body {
 }
 
 .note.solved {
-	background-color: #b3c7d1;
+	background-color: #a8d3b1;
 }
 
 .note.highlighted {
-	background-color: #a8d3b1;
+	background-color: #b3c7d1;
 }
 
 .cell,

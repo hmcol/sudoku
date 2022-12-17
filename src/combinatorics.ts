@@ -23,7 +23,11 @@ export function isSome<T>(item: T): boolean {
 }
 
 export function isEqual<T>(value: T): (item: T) => boolean {
-    return (item) => item == value;
+    return (item) => item === value;
+}
+
+export function notEqual<T>(value: T): (item: T) => boolean {
+    return (item) => item !== value;
 }
 
 export function intersection<T>(arr1: T[], arr2: T[]): T[] {
@@ -35,7 +39,7 @@ export function intersection<T>(arr1: T[], arr2: T[]): T[] {
 
 type TupleSize = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
 
-type Tuple<
+export type Tuple<
     T,
     N extends TupleSize,
     A extends T[] = []
@@ -63,10 +67,7 @@ function orderedChoose(n: number, k: number): number[][] {
     );
 }
 
-const x = orderedChoose(5, 2);
-//    ^?
 
-// function tuples<T, N extends 1 | 2 | 3 | 4>(arr: T[]): 
 
 export function tuplesOf<T>(n: number, arr: T[]): T[][] {
     if (n > arr.length) {
@@ -77,63 +78,17 @@ export function tuplesOf<T>(n: number, arr: T[]): T[][] {
         .map(index => index.map(i => arr[i]));
 }
 
-export function pairsOf<T>(arr: T[]): [T, T][] {
+export function pairsOf<T>(arr: T[]): Tuple<T, 2>[] {
     return tuplesOf(2, arr) as Tuple<T, 2>[];
-
-    const len = arr.length;
-    const pairs = new Array<[T, T]>();
-
-    if (len < 2) {
-        return [];
-    }
-
-    for (let i = 0; i < len - 1; i++) {
-        for (let j = i + 1; j < len; j++) {
-            pairs.push([arr[i], arr[j]]);
-        }
-    }
-
-    return pairs;
 }
 
 export function triplesOf<T>(arr: T[]): [T, T, T][] {
-    const len = arr.length;
-    const triples = new Array<[T, T, T]>();
-
-    if (len < 3) {
-        return [];
-    }
-
-    for (let i = 0; i < len - 2; i++) {
-        for (let j = i + 1; j < len - 1; j++) {
-            for (let k = j + 1; k < len; k++) {
-                triples.push([arr[i], arr[j], arr[k]]);
-            }
-        }
-    }
-
-    return triples;
+    return tuplesOf(3, arr) as Tuple<T, 3>[];
 }
 
 export function quadsOf<T>(arr: T[]): [T, T, T, T][] {
-    const len = arr.length;
-    const quads = new Array<[T, T, T, T]>();
+    return tuplesOf(4, arr) as Tuple<T, 4>[];
 
-    if (len < 4) {
-        return [];
-    }
-
-    for (let i = 0; i < len - 3; i++) {
-        for (let j = i + 1; j < len - 2; j++) {
-            for (let k = j + 1; k < len - 1; k++) {
-                for (let l = k + 1; l < len; l++) {
-                    quads.push([arr[i], arr[j], arr[k], arr[l]]);
-                }
-            }
-        }
-    }
-
-    return quads;
 }
 
 

@@ -1,4 +1,4 @@
-import { contains, Graph, In, intersection, isSubset, notIn, pairsOf, quadsOf, triplesOf, tuplesOf } from "./combinatorics";
+import { contains, Graph, In, intersection, isSubset, notEqual, notIn, pairsOf, tuplesOf } from "./combinatorics";
 
 export type Digit = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
 export const DIGITS: Digit[] = [1, 2, 3, 4, 5, 6, 7, 8, 9];
@@ -464,64 +464,45 @@ export const yWing: StrategyFunction = (board: Board) => {
     const biValuePairs = new Array<[Digit, CellId, Digit, CellId, Digit]>();
 
     for (const unit of UNITS) {
-        for (const [left, right] of pairsOf(unit)) {
+        const bivalueCells = unit.filter(id =>
+            board.cell(id).candidates.length === 2
+        );
+
+        for (const [left, right] of pairsOf(bivalueCells)) {
             const leftCandidates = board.cell(left).candidates;
             const rightCandidates = board.cell(right).candidates;
 
-            if (leftCandidates.length !== 2 || rightCandidates.length !== 2) {
+            const sharedCandidates = leftCandidates.filter(In(rightCandidates));
+
+            if (sharedCandidates.length !== 1) {
                 continue;
             }
 
-            const shared = leftCandidates.filter(In(rightCandidates));
+            const linkDigit = sharedCandidates[0];
 
-            if (shared.length !== 1) {
-                continue;
-            }
-
-            const linkDigit = shared[0];
-
-            const leftDigit = leftCandidates.filter(notIn(shared))[0];
-            const rightDigit = rightCandidates.filter(notIn(shared))[0];
+            const leftDigit = leftCandidates.filter(notEqual(linkDigit))[0];
+            const rightDigit = rightCandidates.filter(notEqual(linkDigit))[0];
 
             biValuePairs.push([leftDigit, left, linkDigit, right, rightDigit]);
             biValuePairs.push([rightDigit, right, linkDigit, left, leftDigit]);
-
         }
     }
 
-    for (const [pair1, pair2] of pairsOf(biValuePairs)) {
-        if (!(pair1[2] == pair2[0] && pair1[3] == pair2[1] && pair1[4] == pair2[2] && pair1[0] == pair2[4])) {
+    for (const [[z, xzId, x, xyId, y], [x2, xyId2, y2, yzId, z2]] of pairsOf(biValuePairs)) {
+        if (!(x === x2 && xyId === xyId2 && y === y2 && z === z2)) {
             continue;
         }
 
-        const x = pair1[2];
-        const y = pair2[2];
-        const z = pair1[0];
-
-
-        const left = pair1[1];
-        const right = pair2[3];
-
-        const leftNeighbors = UNITS.filter(contains(left)).flat().filter((id) => id !== left);
-        const rightNeighbors = UNITS.filter(contains(right)).flat().filter((id) => id !== right);
-
-        const targets = leftNeighbors.filter(In(rightNeighbors)).filter((id) => board.cell(id).hasCandidate(z));
-
-        // console.log(left, `[${z}${x}]`, pair1[3], `[${x}${y}]`, right, `[${y}${z}]`, targets, `-[${z}]`);
+        const targets = intersection(board.getVisible(xzId), board.getVisible(yzId))
+            .filter(id => board.cell(id).hasCandidate(z));
 
         if (targets.length > 0) {
-            const eliminations = new Array<[CellId, Digit]>();
-
-            for (const target of targets) {
-                eliminations.push([target, z]);
-            }
-
             return {
                 applies: true,
-                eliminations: eliminations,
+                eliminations: targets.map(id => [id, z] as [CellId, Digit]),
+                highlights: [[xzId, x], [xzId, z], [xyId, x], [xyId, y], [yzId, y], [yzId, z]],
             };
         }
-
     }
 
     return {
@@ -535,7 +516,6 @@ export const simpleColoring: StrategyFunction = (board: Board) => {
         const g = new Graph<CellId>();
 
         // construct graph/components
-
         for (const unit of UNITS) {
             const candidateCells = unit.filter((id) =>
                 board.cell(id).hasCandidate(digit)
@@ -548,11 +528,7 @@ export const simpleColoring: StrategyFunction = (board: Board) => {
             g.addEdge(candidateCells[0], candidateCells[1]);
         }
 
-
-        // console.log(digit, uf.components);
-
         for (const component of g.components) {
-
             // color cells
 
             const colors = new Map<CellId, 0 | 1>();
@@ -575,7 +551,6 @@ export const simpleColoring: StrategyFunction = (board: Board) => {
             }
 
             // check for color twice in a unit
-
             for (const unit of UNITS) {
                 for (const color of [0, 1]) {
                     const count = unit.filter(c => colors.get(c) === color).length;
@@ -595,8 +570,7 @@ export const simpleColoring: StrategyFunction = (board: Board) => {
                 }
             }
 
-            // check for seeing two colors
-
+            // check for cells seeing two colors
             const colorTargets = [0, 1].map(color =>
                 UNITS.filter(unit => unit.some(id => colors.get(id) === color))
                     .flat()

@@ -250,7 +250,7 @@ export default class Game extends React.Component<any, GameState> {
 
     resetBoard() {
         this.setState({
-            board: new Board(undefined, "300000000970010000600583000200000900500621003008000005000435002000090056000000001"),
+            board: new Board(undefined, "645010893738459621219638745597060184481975000326841579902080010803190000164020908"),
             result: undefined,
         });
     }
