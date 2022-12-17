@@ -18,6 +18,10 @@ export function isSubset<T>(arr1: T[], arr2: T[]): boolean {
     return arr1.every((item) => arr2.includes(item));
 }
 
+export function hasSubset<T>(arr: T[]): (item: T[]) => boolean {
+    return (item: T[]) => isSubset(arr, item)
+}
+
 export function isSome<T>(item: T): boolean {
     return item !== undefined;
 }

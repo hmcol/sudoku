@@ -1,4 +1,4 @@
-import { contains, Graph, In, intersection, isSubset, notEqual, notIn, pairsOf, tuplesOf } from "./combinatorics";
+import { contains, Graph, hasSubset, In, intersection, isSubset, notEqual, notIn, pairsOf, Tuple, tuplesOf } from "./combinatorics";
 
 export type Digit = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
 export const DIGITS: Digit[] = [1, 2, 3, 4, 5, 6, 7, 8, 9];
@@ -25,7 +25,6 @@ export function parseDigit(str?: string): Digit | undefined {
 export type RowId = "A" | "B" | "C" | "D" | "E" | "F" | "G" | "H" | "I";
 export type ColumnId = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
 export type CellId = `${RowId}${ColumnId}`;
-
 
 export const CELLS: CellId[] = [
     "A1", "A2", "A3", "A4", "A5", "A6", "A7", "A8", "A9",
@@ -340,78 +339,46 @@ export const hiddenPair = makeHiddenSubset(2);
 export const hiddenTriple = makeHiddenSubset(3);
 export const hiddenQuad = makeHiddenSubset(4);
 
-export const intersectionPointing: StrategyFunction = (board: Board) => {
-    const eliminations = new Array<[CellId, Digit]>();
-    const highlights = new Array<[CellId, Digit]>();
-
-    for (const digit of DIGITS) {
-        for (const box of BOXES) {
-            const candidateCells = box.filter((id) =>
-                board.cell(id).hasCandidate(digit)
-            );
-
-            if (candidateCells.length < 2) {
-                continue;
-            }
-
-            for (const line of LINES) {
-                if (!isSubset(candidateCells, line)) {
+function makeIntersection(baseType: CellId[][], coverType: CellId[][]): StrategyFunction {
+    return (board: Board) => {
+        for (const digit of DIGITS) {
+            for (const baseUnit of baseType) {
+                const candidateCells = baseUnit.filter((id) =>
+                    board.cell(id).hasCandidate(digit)
+                );
+    
+                if (candidateCells.length < 2) {
                     continue;
                 }
-
-                const targets = line
+    
+                const coverUnit = coverType.find(hasSubset(candidateCells));
+    
+                if (coverUnit === undefined) {
+                    continue;
+                }
+    
+                const targets = coverUnit
                     .filter(notIn(candidateCells))
                     .filter(id => board.cell(id).hasCandidate(digit));
-
+    
                 if (targets.length > 0) {
-                    eliminations.push(...targets.map(id => [id, digit] as [CellId, Digit]));
-                    highlights.push(...candidateCells.map(id => [id, digit] as [CellId, Digit]));
+                    return {
+                        applies: true,
+                        eliminations: targets.map(id => [id, digit] as [CellId, Digit]),
+                        highlights: candidateCells.map(id => [id, digit] as [CellId, Digit]),
+                    };
                 }
             }
         }
+    
+        return {
+            applies: false,
+        };
     }
+}
 
-    return {
-        applies: eliminations.length !== 0,
-        eliminations,
-        highlights,
-    };
-};
-
-export const intersectionClaiming: StrategyFunction = (board: Board) => {
-    const eliminations = new Array<[CellId, Digit]>();
-
-    for (const digit of DIGITS) {
-        const lines = LINES.filter((line) =>
-            line.every((id) =>
-                board.cell(id).digit !== digit
-            )
-        );
-
-        for (const line of lines) {
-            const candidateCells = line.filter((id) =>
-                board.cell(id).hasCandidate(digit)
-            );
-
-            for (const box of BOXES) {
-                if (!isSubset(candidateCells, box)) {
-                    continue;
-                }
-
-                for (const id of box.filter(notIn(candidateCells))) {
-                    if (board.cell(id).hasCandidate(digit)) {
-                        eliminations.push([id, digit]);
-                    }
-                }
-            }
-        }
-    }
-
-    return {
-        applies: eliminations.length !== 0,
-        eliminations: eliminations
-    };
-};
+export const intersectionPointing = makeIntersection(BOXES, LINES);
+export const intersectionClaiming = makeIntersection(LINES, BOXES);
 
 
 function makeBasicFish(n: 2 | 3 | 4): StrategyFunction {
