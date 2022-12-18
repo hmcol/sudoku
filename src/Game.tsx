@@ -205,7 +205,6 @@ class StrategyList extends React.Component<StrategyListProps> {
                     {index}
                 </div>
                 <div
-
                     className={"strategy-name"}
                     onClick={() => this.props.onClick(strat)}
                 >

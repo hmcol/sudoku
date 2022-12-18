@@ -133,7 +133,6 @@ body {
 	width: 1.5em;
 	height: 1.5em;
 	margin: 2px;
-	font-size: 18px;
 	display: flex;
 	justify-content: center;
 	align-items: center;
@@ -143,7 +142,6 @@ body {
 }
 
 .note-option.selected {
-	border-width: 2px;
 	background: var(--light-color);
 }
 

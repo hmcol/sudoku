@@ -503,10 +503,13 @@ export const xyzWing: StrategyFunction = (board: Board) => {
                 .filter(id => board.cell(id).hasCandidate(z));
 
             if (targets.length > 0) {
+                const x = xz.filter(notEqual(z))[0];
+                const y = yz.filter(notEqual(z))[0];
+
                 return {
                     applies: true,
                     eliminations: targets.map(id => [id, z] as [CellId, Digit]),
-                    highlights: [[xyzId, z], [xzId, z], [yzId, z]],
+                    highlights: [[xyzId, x], [xyzId, y], [xyzId, z], [xzId, x], [xzId, z], [yzId, y], [yzId, z]],
                 };
             }
         }
@@ -603,7 +606,7 @@ export const simpleColoring: StrategyFunction = (board: Board) => {
 };
 
 
-export type Strategy = [string, StrategyFunction];
+export type Strategy = [name: string, func: StrategyFunction];
 
 export const STRATEGIES: Strategy[] = [
     ["revise notes", reviseNotes],

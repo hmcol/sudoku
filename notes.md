@@ -6,7 +6,6 @@
   - mutant
 
 wings
-- xyz
 - w
 
 coloring
@@ -15,7 +14,8 @@ coloring
 - 3d medusa
 
 chains
-- xy-chain (subset of x-color)
+- x-chain
+- xy-chain
 
 uniqueness
 - rectangle
