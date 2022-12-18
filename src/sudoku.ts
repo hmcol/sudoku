@@ -177,13 +177,12 @@ export class Board {
 }
 
 export type StrategyResult = {
-    applies: boolean,
     solutions?: Array<[CellId, Digit]>,
     eliminations?: Array<[CellId, Digit]>,
     highlights?: Array<[CellId, Digit]>,
 };
 
-export type StrategyFunction = (board: Board) => StrategyResult;
+export type StrategyFunction = (board: Board) => StrategyResult | undefined;
 
 export const reviseNotes: StrategyFunction = (board: Board) => {
     const eliminations = new Array<[CellId, Digit]>();
@@ -204,10 +203,9 @@ export const reviseNotes: StrategyFunction = (board: Board) => {
         }
     }
 
-    return {
-        applies: eliminations.length !== 0,
-        eliminations: eliminations,
-    };
+    return eliminations.length > 0
+        ? { eliminations }
+        : undefined;
 };
 
 export const hiddenSingles: StrategyFunction = (board: Board) => {
@@ -225,28 +223,25 @@ export const hiddenSingles: StrategyFunction = (board: Board) => {
         }
     }
 
-    return {
-        applies: solutions.length !== 0,
-        solutions: solutions,
-    };
+    return solutions.length > 0
+        ? { solutions }
+        : undefined;
 };
 
 export const nakedSingles: StrategyFunction = (board: Board) => {
     const solutions = new Array<[CellId, Digit]>();
 
     for (const id of CELLS) {
-        const cell = board.cell(id);
-        const candidates = cell.candidates;
+        const candidates = board.cell(id).candidates;
 
         if (candidates.length === 1) {
             solutions.push([id, candidates[0]]);
         }
     }
 
-    return {
-        applies: solutions.length !== 0,
-        solutions: solutions,
-    };
+    return solutions.length > 0
+        ? { solutions }
+        : undefined;
 };
 
 function makeNakedSubset(n: 2 | 3 | 4): StrategyFunction {
@@ -275,7 +270,6 @@ function makeNakedSubset(n: 2 | 3 | 4): StrategyFunction {
 
                 if (eliminations.length > 0) {
                     return {
-                        applies: true,
                         eliminations,
                         highlights: cells.map(id => candidates.map(digit => [id, digit] as [CellId, Digit])).flat(),
                     };
@@ -283,9 +277,7 @@ function makeNakedSubset(n: 2 | 3 | 4): StrategyFunction {
             }
         }
 
-        return {
-            applies: false,
-        };
+        return undefined;
     };
 }
 
@@ -321,7 +313,6 @@ function makeHiddenSubset(n: 2 | 3 | 4): StrategyFunction {
 
                 if (eliminations.length > 0) {
                     return {
-                        applies: true,
                         eliminations,
                         highlights: candidateCells.map(id => candidates.map(digit => [id, digit] as [CellId, Digit])).flat(),
                     };
@@ -329,9 +320,7 @@ function makeHiddenSubset(n: 2 | 3 | 4): StrategyFunction {
             }
         }
 
-        return {
-            applies: false,
-        };
+        return undefined;
     };
 }
 
@@ -363,7 +352,6 @@ function makeIntersection(baseType: CellId[][], coverType: CellId[][]): Strategy
 
                 if (targets.length > 0) {
                     return {
-                        applies: true,
                         eliminations: targets.map(id => [id, digit] as [CellId, Digit]),
                         highlights: candidateCells.map(id => [id, digit] as [CellId, Digit]),
                     };
@@ -371,15 +359,12 @@ function makeIntersection(baseType: CellId[][], coverType: CellId[][]): Strategy
             }
         }
 
-        return {
-            applies: false,
-        };
+        return undefined;
     };
 }
 
 export const intersectionPointing = makeIntersection(BOXES, LINES);
 export const intersectionClaiming = makeIntersection(LINES, BOXES);
-
 
 function makeBasicFish(n: 2 | 3 | 4): StrategyFunction {
     return (board: Board) => {
@@ -406,7 +391,6 @@ function makeBasicFish(n: 2 | 3 | 4): StrategyFunction {
 
                         if (targets.length > 0) {
                             return {
-                                applies: true,
                                 eliminations: targets.map(id => [id, digit] as [CellId, Digit]),
                                 highlights: candidateCells.map(id => [id, digit] as [CellId, Digit]),
                             };
@@ -416,9 +400,7 @@ function makeBasicFish(n: 2 | 3 | 4): StrategyFunction {
             }
         }
 
-        return {
-            applies: false,
-        };
+        return undefined;
     };
 }
 
@@ -465,16 +447,13 @@ export const yWing: StrategyFunction = (board: Board) => {
 
         if (targets.length > 0) {
             return {
-                applies: true,
                 eliminations: targets.map(id => [id, z] as [CellId, Digit]),
                 highlights: [[xzId, x], [xzId, z], [xyId, x], [xyId, y], [yzId, y], [yzId, z]],
             };
         }
     }
 
-    return {
-        applies: false,
-    };
+    return undefined;
 };
 
 export const xyzWing: StrategyFunction = (board: Board) => {
@@ -507,7 +486,6 @@ export const xyzWing: StrategyFunction = (board: Board) => {
                 const y = yz.filter(notEqual(z))[0];
 
                 return {
-                    applies: true,
                     eliminations: targets.map(id => [id, z] as [CellId, Digit]),
                     highlights: [[xyzId, x], [xyzId, y], [xyzId, z], [xzId, x], [xzId, z], [yzId, y], [yzId, z]],
                 };
@@ -516,9 +494,7 @@ export const xyzWing: StrategyFunction = (board: Board) => {
 
     }
 
-    return {
-        applies: false,
-    };
+    return undefined;
 };
 
 export const simpleColoring: StrategyFunction = (board: Board) => {
@@ -574,7 +550,6 @@ export const simpleColoring: StrategyFunction = (board: Board) => {
                     const eliminations = component.filter(id => colors.get(id) === color).map(id => [id, digit] as [CellId, Digit]);
 
                     return {
-                        applies: true,
                         solutions,
                         eliminations,
                     };
@@ -593,16 +568,13 @@ export const simpleColoring: StrategyFunction = (board: Board) => {
 
             if (targets.length > 0) {
                 return {
-                    applies: true,
                     eliminations: targets.map(id => [id, digit])
                 };
             }
         }
     }
 
-    return {
-        applies: false,
-    };
+    return undefined;
 };
 
 

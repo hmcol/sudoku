@@ -395,7 +395,7 @@ export default class Game extends React.Component<any, GameState> {
     tryStrategy([name, func]: Strategy): boolean {
         const result = func(this.state.board);
 
-        if (!result.applies) {
+        if (result === undefined) {
             return false;
         }
 
