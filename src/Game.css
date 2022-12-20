@@ -111,6 +111,10 @@ body {
 	background-color: #b3c7d1;
 }
 
+.note.highlighted2 {
+	background-color: #d0d1b3;
+}
+
 .cell,
 .note-option {
 	-webkit-user-select: none;

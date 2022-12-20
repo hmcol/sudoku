@@ -26,6 +26,26 @@ export type RowId = "A" | "B" | "C" | "D" | "E" | "F" | "G" | "H" | "I";
 export type ColumnId = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
 export type CellId = `${RowId}${ColumnId}`;
 
+export type Candidate = [CellId, Digit];
+
+type CandidateId = `${CellId}${Digit}`;
+
+function cidOf(id: CellId, digit: Digit): CandidateId {
+    return `${id}${digit}`;
+}
+
+function cellIdOf(cid: CandidateId): CellId {
+    return cid.slice(0, 2) as CellId;
+}
+
+function digitOf(cid: CandidateId): Digit {
+    return parseInt(cid[2]) as Digit;
+}
+
+function cidToPair(cid: CandidateId): Candidate {
+    return [cellIdOf(cid), digitOf(cid)];
+}
+
 export const CELLS: CellId[] = [
     "A1", "A2", "A3", "A4", "A5", "A6", "A7", "A8", "A9",
     "B1", "B2", "B3", "B4", "B5", "B6", "B7", "B8", "B9",
@@ -177,15 +197,16 @@ export class Board {
 }
 
 export type StrategyResult = {
-    solutions?: Array<[CellId, Digit]>,
-    eliminations?: Array<[CellId, Digit]>,
-    highlights?: Array<[CellId, Digit]>,
+    solutions?: Array<Candidate>,
+    eliminations?: Array<Candidate>,
+    highlights?: Array<Candidate>,
+    highlights2?: Array<Candidate>,
 };
 
 export type StrategyFunction = (board: Board) => StrategyResult | undefined;
 
 export const reviseNotes: StrategyFunction = (board: Board) => {
-    const eliminations = new Array<[CellId, Digit]>();
+    const eliminations = new Array<Candidate>();
 
     for (const id of CELLS) {
         const cell = board.cell(id);
@@ -209,7 +230,7 @@ export const reviseNotes: StrategyFunction = (board: Board) => {
 };
 
 export const hiddenSingles: StrategyFunction = (board: Board) => {
-    const solutions = new Array<[CellId, Digit]>();
+    const solutions = new Array<Candidate>();
 
     for (const digit of DIGITS) {
         for (const unit of UNITS) {
@@ -229,7 +250,7 @@ export const hiddenSingles: StrategyFunction = (board: Board) => {
 };
 
 export const nakedSingles: StrategyFunction = (board: Board) => {
-    const solutions = new Array<[CellId, Digit]>();
+    const solutions = new Array<Candidate>();
 
     for (const id of CELLS) {
         const candidates = board.cell(id).candidates;
@@ -264,14 +285,14 @@ function makeNakedSubset(n: 2 | 3 | 4): StrategyFunction {
                     .filter(notIn(cells))
                     .map(id =>
                         candidates.filter(digit => board.cell(id).hasCandidate(digit))
-                            .map(digit => [id, digit] as [CellId, Digit])
+                            .map(digit => [id, digit] as Candidate)
                     )
                     .flat();
 
                 if (eliminations.length > 0) {
                     return {
                         eliminations,
-                        highlights: cells.map(id => candidates.map(digit => [id, digit] as [CellId, Digit])).flat(),
+                        highlights: cells.map(id => candidates.map(digit => [id, digit] as Candidate)).flat(),
                     };
                 }
             }
@@ -308,13 +329,13 @@ function makeHiddenSubset(n: 2 | 3 | 4): StrategyFunction {
                 const eliminations = candidateCells.map(id =>
                     DIGITS.filter(notIn(candidates))
                         .filter(digit => board.cell(id).hasCandidate(digit))
-                        .map(digit => [id, digit] as [CellId, Digit])
+                        .map(digit => [id, digit] as Candidate)
                 ).flat();
 
                 if (eliminations.length > 0) {
                     return {
                         eliminations,
-                        highlights: candidateCells.map(id => candidates.map(digit => [id, digit] as [CellId, Digit])).flat(),
+                        highlights: candidateCells.map(id => candidates.map(digit => [id, digit] as Candidate)).flat(),
                     };
                 }
             }
@@ -352,8 +373,8 @@ function makeIntersection(baseType: CellId[][], coverType: CellId[][]): Strategy
 
                 if (targets.length > 0) {
                     return {
-                        eliminations: targets.map(id => [id, digit] as [CellId, Digit]),
-                        highlights: candidateCells.map(id => [id, digit] as [CellId, Digit]),
+                        eliminations: targets.map(id => [id, digit] as Candidate),
+                        highlights: candidateCells.map(id => [id, digit] as Candidate),
                     };
                 }
             }
@@ -391,8 +412,8 @@ function makeBasicFish(n: 2 | 3 | 4): StrategyFunction {
 
                         if (targets.length > 0) {
                             return {
-                                eliminations: targets.map(id => [id, digit] as [CellId, Digit]),
-                                highlights: candidateCells.map(id => [id, digit] as [CellId, Digit]),
+                                eliminations: targets.map(id => [id, digit] as Candidate),
+                                highlights: candidateCells.map(id => [id, digit] as Candidate),
                             };
                         }
                     }
@@ -410,34 +431,33 @@ const jellyfish = makeBasicFish(4);
 
 
 export const yWing: StrategyFunction = (board: Board) => {
-    const biValuePairs = new Array<[Digit, CellId, Digit, CellId, Digit]>();
+    const bivaluePairs = new Array<[Digit, CellId, Digit, CellId, Digit]>();
 
     for (const unit of UNITS) {
         const bivalueCells = unit.filter(id =>
             board.cell(id).candidates.length === 2
         );
 
-        for (const [left, right] of pairsOf(bivalueCells)) {
-            const leftCandidates = board.cell(left).candidates;
-            const rightCandidates = board.cell(right).candidates;
+        for (const [xyId, yzId] of pairsOf(bivalueCells)) {
+            const xy = board.cell(xyId).candidates;
+            const yz = board.cell(yzId).candidates;
 
-            const sharedCandidates = leftCandidates.filter(In(rightCandidates));
+            const sharedCandidates = intersection(xy, yz);
 
             if (sharedCandidates.length !== 1) {
                 continue;
             }
 
-            const linkDigit = sharedCandidates[0];
+            const y = sharedCandidates[0];
+            const x = xy.filter(notEqual(y))[0];
+            const z = yz.filter(notEqual(y))[0];
 
-            const leftDigit = leftCandidates.filter(notEqual(linkDigit))[0];
-            const rightDigit = rightCandidates.filter(notEqual(linkDigit))[0];
-
-            biValuePairs.push([leftDigit, left, linkDigit, right, rightDigit]);
-            biValuePairs.push([rightDigit, right, linkDigit, left, leftDigit]);
+            bivaluePairs.push([x, xyId, y, yzId, z]);
+            bivaluePairs.push([z, yzId, y, xyId, x]);
         }
     }
 
-    for (const [[z, xzId, x, xyId, y], [x2, xyId2, y2, yzId, z2]] of pairsOf(biValuePairs)) {
+    for (const [[z, xzId, x, xyId, y], [x2, xyId2, y2, yzId, z2]] of pairsOf(bivaluePairs)) {
         if (!(x === x2 && xyId === xyId2 && y === y2 && z === z2)) {
             continue;
         }
@@ -447,7 +467,7 @@ export const yWing: StrategyFunction = (board: Board) => {
 
         if (targets.length > 0) {
             return {
-                eliminations: targets.map(id => [id, z] as [CellId, Digit]),
+                eliminations: targets.map(id => [id, z] as Candidate),
                 highlights: [[xzId, x], [xzId, z], [xyId, x], [xyId, y], [yzId, y], [yzId, z]],
             };
         }
@@ -486,7 +506,7 @@ export const xyzWing: StrategyFunction = (board: Board) => {
                 const y = yz.filter(notEqual(z))[0];
 
                 return {
-                    eliminations: targets.map(id => [id, z] as [CellId, Digit]),
+                    eliminations: targets.map(id => [id, z] as Candidate),
                     highlights: [[xyzId, x], [xyzId, y], [xyzId, z], [xzId, x], [xzId, z], [yzId, y], [yzId, z]],
                 };
             }
@@ -546,8 +566,8 @@ export const simpleColoring: StrategyFunction = (board: Board) => {
                         continue;
                     }
 
-                    const solutions = component.filter(id => colors.get(id) === (1 - color)).map(id => [id, digit] as [CellId, Digit]);
-                    const eliminations = component.filter(id => colors.get(id) === color).map(id => [id, digit] as [CellId, Digit]);
+                    const solutions = component.filter(id => colors.get(id) === (1 - color)).map(id => [id, digit] as Candidate);
+                    const eliminations = component.filter(id => colors.get(id) === color).map(id => [id, digit] as Candidate);
 
                     return {
                         solutions,
@@ -567,8 +587,13 @@ export const simpleColoring: StrategyFunction = (board: Board) => {
             const targets = intersection(colorTargets[0], colorTargets[1]);
 
             if (targets.length > 0) {
+                const color0 = component.filter(id => colors.get(id) === 0).map(id => [id, digit] as Candidate);
+                const color1 = component.filter(id => colors.get(id) === 1).map(id => [id, digit] as Candidate);
+
                 return {
-                    eliminations: targets.map(id => [id, digit])
+                    eliminations: targets.map(id => [id, digit]),
+                    highlights: color0,
+                    highlights2: color1,
                 };
             }
         }
@@ -577,6 +602,129 @@ export const simpleColoring: StrategyFunction = (board: Board) => {
     return undefined;
 };
 
+
+export const xyChain: StrategyFunction = (board: Board) => {
+    const bivalueCells = CELLS.filter(id => board.cell(id).candidates.length === 2);
+
+    for (const rootId of bivalueCells) {
+        for (const rootDigit of board.cell(rootId).candidates) {
+            const stack: [CellId, Digit][] = [];
+            const visited = new Set<CellId>();
+            const parents = new Map<CellId, CellId>();
+
+            stack.push([rootId, rootDigit]);
+
+            while (stack.length > 0) {
+                const [uId, digit] = stack.pop()!;
+
+                // check if chain
+
+                const otherDigit = board.cell(uId).candidates.filter(notEqual(digit))[0];
+
+                if (otherDigit === rootDigit) {
+                    const targets = intersection(board.getVisible(rootId), board.getVisible(uId))
+                        .filter(id => board.cell(id).hasCandidate(rootDigit));
+
+                    if (targets.length > 0) {
+                        const chain: CellId[] = [];
+
+                        let parent: CellId | undefined = uId;
+                        while (parent !== undefined) {
+                            chain.push(parent);
+                            parent = parents.get(parent);
+                        }
+
+                        const highlights = chain.map(id => [
+                            [id, board.cell(id).candidates[0]],
+                            [id, board.cell(id).candidates[1]],
+                        ] as Candidate[]).flat();
+
+                        return {
+                            eliminations: targets.map(id => [id, rootDigit]),
+                            highlights,
+                        };
+                    }
+                }
+
+                // keep looking
+
+                visited.add(uId);
+
+                const bivalueNeighbors = board.getVisible(uId)
+                    .filter(id => board.cell(id).candidates.length === 2)
+                    .filter(id => board.cell(id).hasCandidate(otherDigit))
+                    .filter(id => !visited.has(id));
+
+                for (const vId of bivalueNeighbors) {
+                    parents.set(vId, uId);
+                    stack.push([vId, otherDigit]);
+                }
+
+            }
+        }
+    }
+
+    return undefined;
+};
+
+export const xyChainIDK: StrategyFunction = (board: Board) => {
+    const g = new Graph<CandidateId>;
+
+    for (const unit of UNITS) {
+        const bivalueCells = unit.filter(id => board.cell(id).candidates.length === 2);
+
+        for (const id of bivalueCells) {
+            const [x, y] = board.cell(id).candidates;
+
+            g.addEdge(cidOf(id, x), cidOf(id, y));
+        }
+
+        for (const [xyId, yzId] of pairsOf(bivalueCells)) {
+            const xy = board.cell(xyId).candidates;
+            const yz = board.cell(yzId).candidates;
+
+            for (const y of intersection(xy, yz)) {
+                g.addEdge(cidOf(xyId, y), cidOf(yzId, y));
+            }
+        }
+    }
+
+    console.log(g);
+
+    for (const component of g.components) {
+        // color Candidates
+
+        const colors = new Map<CandidateId, 0 | 1>();
+        const stack: [CandidateId, 0 | 1][] = [[component[0], 0]];
+
+        while (stack.length > 0) {
+            const [u, color] = stack.pop()!;
+
+            if (colors.has(u)) {
+                continue;
+            }
+
+            colors.set(u, color);
+
+            const oppositeColor = color == 0 ? 1 : 0;
+
+            for (const v of g.getNeighbors(u)!) {
+                stack.push([v, oppositeColor]);
+            }
+        }
+
+        for (const root of component) {
+            const [id, digit] = cidToPair(root);
+
+
+
+        }
+
+
+    }
+
+    return undefined;
+};
 
 export type Strategy = [name: string, func: StrategyFunction];
 
@@ -598,4 +746,5 @@ export const STRATEGIES: Strategy[] = [
     ["simple coloring", simpleColoring],
     ["y-wing", yWing],
     ["xyz-wing", xyzWing],
+    ["xy-chain", xyChain],
 ];

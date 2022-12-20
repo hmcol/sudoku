@@ -255,27 +255,20 @@ class Partition<T> {
     }
 }
 
-export class VertexData<V> {
-    neighbors: V[];
-
-    constructor() {
-        this.neighbors = [];
-    }
-}
 
 export class Graph<V> {
-    private vertices: Map<V, VertexData<V>>;
+    private neighbors: Map<V, V[]>;
     private componentUF: Partition<V>;
 
     constructor(edges?: [V, V][]) {
-        this.vertices = new Map();
+        this.neighbors = new Map();
         this.componentUF = new Partition();
 
         edges?.forEach((e) => this.addEdge(...e));
     }
 
     hasVertex(vertex: V): boolean {
-        return this.vertices.has(vertex);
+        return this.neighbors.has(vertex);
     }
 
     addVertex(vertex: V) {
@@ -283,12 +276,12 @@ export class Graph<V> {
             return;
         }
 
-        this.vertices.set(vertex, new VertexData);
+        this.neighbors.set(vertex, []);
         this.componentUF.add(vertex);
     }
 
     getNeighbors(vertex: V): V[] | undefined {
-        return this.vertices.get(vertex)?.neighbors;
+        return this.neighbors.get(vertex);
     }
 
     hasEdge(u: V, v: V): boolean {
@@ -312,6 +305,4 @@ export class Graph<V> {
     get components() {
         return this.componentUF.parts;
     }
-
-
 }

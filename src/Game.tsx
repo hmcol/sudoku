@@ -18,6 +18,7 @@ type NoteProps = {
     solved: boolean,
     eliminated: boolean,
     highlighted: boolean,
+    highlighted2: boolean,
 };
 
 class NoteComponent extends React.Component<NoteProps> {
@@ -27,10 +28,11 @@ class NoteComponent extends React.Component<NoteProps> {
         const solved = this.props.solved && shown ? "solved" : "";
         const eliminated = this.props.eliminated && shown ? "eliminated" : "";
         const highlighted = this.props.highlighted && shown ? "highlighted" : "";
+        const highlighted2 = this.props.highlighted2 && shown ? "highlighted2" : "";
 
         return (
             <div
-                className={`note ${solved} ${eliminated} ${highlighted}`}
+                className={`note ${solved} ${eliminated} ${highlighted} ${highlighted2}`}
             >
                 {this.props.shown ? this.props.digit : " "}
             </div>
@@ -45,6 +47,7 @@ type CellProps = {
     solution?: Digit,
     eliminations?: Digit[],
     highlights?: Digit[],
+    highlights2?: Digit[],
     focus?: Digit,
     onClick: MouseEventHandler,
     onClickDigit: MouseEventHandler,
@@ -87,6 +90,7 @@ class CellComponent extends React.Component<CellProps> {
                         solved={this.props.solution === digit}
                         eliminated={this.props.eliminations?.includes(digit) ?? false}
                         highlighted={this.props.highlights?.includes(digit) ?? false}
+                        highlighted2={this.props.highlights2?.includes(digit) ?? false}
                     />
                 )}
             </div>
@@ -107,14 +111,13 @@ type GridProps = {
 class Grid extends React.Component<GridProps> {
 
     renderCell(id: CellId) {
+        const result = this.props.result;
         const filterCell = (set?: [CellId, Digit][]) => set?.filter(e => e[0] == id).map(e => e[1]);
 
-
-        const solution = filterCell(this.props.result?.solutions)?.at(0);
-        const eliminations = filterCell(this.props.result?.eliminations);
-        const highlights = filterCell(this.props.result?.highlights);
-
-
+        const solution = filterCell(result?.solutions)?.at(0);
+        const eliminations = filterCell(result?.eliminations);
+        const highlights = filterCell(result?.highlights);
+        const highlights2 = filterCell(result?.highlights2);
 
         return (
             <CellComponent
@@ -124,6 +127,7 @@ class Grid extends React.Component<GridProps> {
                 solution={solution}
                 eliminations={eliminations}
                 highlights={highlights}
+                highlights2={highlights2}
                 focus={this.props.focus}
                 onClick={() => this.props.onClick(id)}
                 onClickDigit={() => this.props.onClickDigit(id)}
@@ -249,7 +253,7 @@ export default class Game extends React.Component<any, GameState> {
 
     resetBoard() {
         this.setState({
-            board: new Board(undefined, "000704005020010070000080002090006250600070008053200010400090000030060090200407000"),
+            board: new Board(undefined, "002090300805000000100000000090060040000000058000000001070000200300500000000100000"),
             result: undefined,
         });
     }
