@@ -177,3 +177,12 @@ body {
 	color: var(--light-color);
 	background-color: var(--other-color);
 }
+
+.strategy-status {
+	width: 3ch;
+	padding: 1px;
+	margin-left: 0.25ex;
+	text-align: center;
+	color: var(--light-color);
+	background-color: var(--other-color);
+}

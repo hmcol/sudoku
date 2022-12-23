@@ -112,7 +112,7 @@ class Grid extends React.Component<GridProps> {
 
     renderCell(id: CellId) {
         const result = this.props.result;
-        const filterCell = (set?: [CellId, Digit][]) => set?.filter(e => e[0] == id).map(e => e[1]);
+        const filterCell = (set?: [CellId, Digit][]) => set?.filter(e => e[0] === id).map(e => e[1]);
 
         const solution = filterCell(result?.solutions)?.at(0);
         const eliminations = filterCell(result?.eliminations);
@@ -174,7 +174,7 @@ class NoteSelector extends React.Component<NoteSelectorProps> {
 
         return (
             <div
-                className={`note-option ${this.props.inputMode == inputMode ? "selected" : ""}`}
+                className={`note-option ${this.props.inputMode === inputMode ? "selected" : ""}`}
                 onClick={() => this.props.onClick(inputMode)}
             >
                 {label}
@@ -199,10 +199,25 @@ class NoteSelector extends React.Component<NoteSelectorProps> {
 
 type StrategyListProps = {
     onClick: (strat: Strategy) => void;
+    strategyFound: Map<string, boolean>;
 };
 
 class StrategyList extends React.Component<StrategyListProps> {
     renderStrategy(strat: Strategy, index: number) {
+        let status: string;
+
+        switch (this.props.strategyFound.get(strat[0])) {
+            case undefined:
+                status = "?";
+                break;
+            case false:
+                status = "no";
+                break;
+            case true:
+                status = "yes";
+                break;
+        }
+
         return (
             <div className="strategy-item" key={index}>
                 <div className="strategy-number">
@@ -214,8 +229,12 @@ class StrategyList extends React.Component<StrategyListProps> {
                 >
                     {strat[0]}
                 </div>
+                <div
+                    className={"strategy-status"}
+                >
+                    {status}
+                </div>
             </div>
-
         );
     }
 
@@ -238,6 +257,7 @@ type GameState = {
     inputMode: InputMode,
     focus?: Digit,
     result?: StrategyResult,
+    strategyFound: Map<string, boolean>;
 };
 
 export default class Game extends React.Component<any, GameState> {
@@ -248,6 +268,7 @@ export default class Game extends React.Component<any, GameState> {
             board: new Board(),
             selectedCells: new Set(),
             inputMode: InputMode.DIGIT,
+            strategyFound: new Map(),
         };
     }
 
@@ -333,7 +354,7 @@ export default class Game extends React.Component<any, GameState> {
     updateInputMode(inputMode: InputMode) {
         let newInputMode = inputMode;
 
-        if (newInputMode == this.state.inputMode) {
+        if (newInputMode === this.state.inputMode) {
             newInputMode = InputMode.DIGIT;
         }
 
@@ -398,15 +419,22 @@ export default class Game extends React.Component<any, GameState> {
 
     tryStrategy([name, func]: Strategy): boolean {
         const result = func(this.state.board);
+        const strategyFound = this.state.strategyFound;
 
         if (result === undefined) {
+            strategyFound.set(name, false);
+            this.setState({ strategyFound });
+
             return false;
         }
 
         console.log(name, result);
 
+        strategyFound.set(name, true);
+
         this.setState({
             result,
+            strategyFound,
         });
 
         return true;
@@ -452,6 +480,12 @@ export default class Game extends React.Component<any, GameState> {
             console.log("no strategy found");
         } else {
             this.applyResult();
+            this.setState({
+                strategyFound: new Map(),
+            });
+
+            
+
         }
     }
 
@@ -481,7 +515,10 @@ export default class Game extends React.Component<any, GameState> {
                     <button onClick={() => this.resetBoard()}>reset</button>
                     {/* <button onClick={() => this.initializeNotes()}>Init Notes</button> */}
                     <button onClick={() => this.takeStep()}>step</button>
-                    <StrategyList onClick={(strat) => this.tryStrategy(strat)} />
+                    <StrategyList
+                        onClick={(strat) => this.tryStrategy(strat)}
+                        strategyFound={this.state.strategyFound}
+                    />
                 </div>
             </div>
         );
