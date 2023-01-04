@@ -42,11 +42,14 @@ export class CandidateLinks {
                 board.cell(id).hasCandidate(digit)
             );
 
-            for (const id1 of candidateCells) {
-                for (const id2 of candidateCells.filter(notEqual(id1))) {
-                    this.add(cidOf(id1, digit), cidOf(id2, digit));
-                }
+            if (candidateCells.length !== 2) {
+                continue;
             }
+
+            const [cid1, cid2] = candidateCells.map(id => cidOf(id, digit));
+
+            this.add(cid1, cid2);
+            this.add(cid2, cid1);
         }
     }
 
@@ -108,9 +111,9 @@ function newStackItem(cid: CandidateId, nextLink: "strong" | "weak"): StackItem 
     };
 }
 
-type ChainResult = [CandidateId[], StrategyResult]
+export type ChainResult = [CandidateId[], StrategyResult]
 
-export function findAlternatingChain(
+export function findAlternatingChains(
     board: Board,
     strongLinks: CandidateLinks,
     weakLinks: CandidateLinks

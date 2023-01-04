@@ -1,4 +1,4 @@
-import { backtrackChain, CandidateLinks, findAlternatingChain } from "./chain";
+import { backtrackChain, CandidateLinks, ChainResult, findAlternatingChains } from "./chain";
 import { contains, Graph, hasSubset, In, intersection, isSubset, notEqual, notIn, pairsOf, Tuple, tuplesOf } from "./combinatorics";
 
 export type Digit = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
@@ -523,87 +523,44 @@ export const xyzWing: StrategyFunction = (board: Board) => {
     return undefined;
 };
 
-export const simpleColoring: StrategyFunction = (board: Board) => {
+export const xChainSimple: StrategyFunction = (board: Board) => {
+    const strongLinks = new CandidateLinks();
+    strongLinks.findStrongBilocalAll(board);
 
-    for (const digit of DIGITS) {
-        const g = new Graph<CellId>();
+    const weakLinks = new CandidateLinks();
+    weakLinks.findStrongBilocalAll(board);
 
-        // construct graph/components
-        for (const unit of UNITS) {
-            const candidateCells = unit.filter(board.cellHasCandidate(digit));
+    const chains = findAlternatingChains(board, strongLinks, weakLinks);
 
-            if (candidateCells.length !== 2) {
-                continue;
-            }
-
-            g.addEdge(candidateCells[0], candidateCells[1]);
-        }
-
-        for (const component of g.components) {
-            // color cells
-
-            const colors = new Map<CellId, 0 | 1>();
-            const stack: [CellId, 0 | 1][] = [[component[0], 0]];
-
-            while (stack.length > 0) {
-                const [u, color] = stack.pop()!;
-
-                if (colors.has(u)) {
-                    continue;
-                }
-
-                colors.set(u, color);
-
-                const oppositeColor = color === 0 ? 1 : 0;
-
-                for (const v of g.getNeighbors(u)!) {
-                    stack.push([v, oppositeColor]);
-                }
-            }
-
-            // check for color twice in a unit
-            for (const unit of UNITS) {
-                for (const color of [0, 1]) {
-                    const count = unit.filter(c => colors.get(c) === color).length;
-
-                    if (count <= 1) {
-                        continue;
-                    }
-
-                    const solutions = component.filter(id => colors.get(id) === (1 - color)).map(id => [id, digit] as Candidate);
-                    const eliminations = component.filter(id => colors.get(id) === color).map(id => [id, digit] as Candidate);
-
-                    return {
-                        solutions,
-                        eliminations,
-                    };
-                }
-            }
-
-            // check for cells seeing two colors
-            const colorTargets = [0, 1].map(color =>
-                UNITS.filter(unit => unit.some(id => colors.get(id) === color))
-                    .flat()
-                    .filter(id => !colors.has(id))
-                    .filter(id => board.cell(id).hasCandidate(digit))
-            );
-
-            const targets = intersection(colorTargets[0], colorTargets[1]);
-
-            if (targets.length > 0) {
-                const color0 = component.filter(id => colors.get(id) === 0).map(id => [id, digit] as Candidate);
-                const color1 = component.filter(id => colors.get(id) === 1).map(id => [id, digit] as Candidate);
-
-                return {
-                    eliminations: targets.map(id => [id, digit]),
-                    highlights: color0,
-                    highlights2: color1,
-                };
-            }
-        }
+    if (chains.length === 0) {
+        return undefined;
     }
 
-    return undefined;
+    const shortest = chains.reduce((acc, cur) =>
+        acc[0].length <= cur[0].length ? acc : cur,
+    );
+
+    return shortest[1];
+};
+
+export const xChainAlternating: StrategyFunction = (board: Board) => {
+    const strongLinks = new CandidateLinks();
+    strongLinks.findStrongBilocalAll(board);
+
+    const weakLinks = new CandidateLinks();
+    weakLinks.findWeakUnitAll(board);
+
+    const chains = findAlternatingChains(board, strongLinks, weakLinks);
+
+    if (chains.length === 0) {
+        return undefined;
+    }
+
+    const shortest = chains.reduce((acc, cur) =>
+        acc[0].length <= cur[0].length ? acc : cur,
+    );
+
+    return shortest[1];
 };
 
 export const xyChain: StrategyFunction = (board: Board) => {
@@ -613,7 +570,7 @@ export const xyChain: StrategyFunction = (board: Board) => {
     const weakLinks = new CandidateLinks();
     weakLinks.findWeakUnitAll(board);
 
-    const chains = findAlternatingChain(board, strongLinks, weakLinks);
+    const chains = findAlternatingChains(board, strongLinks, weakLinks);
     if (chains.length === 0) {
         return undefined;
     }
@@ -639,10 +596,11 @@ export const STRATEGIES: Strategy[] = [
     ["intersection claiming", intersectionClaiming],
     ["naked quad", nakedQuad],
     ["hidden quad", hiddenQuad],
-    ["x-wing", xWing],
-    ["swordfish", swordfish],
-    ["jellyfish", jellyfish],
-    ["simple coloring", simpleColoring],
+    ["x-wing (2-fish)", xWing],
+    ["swordfish (3-fish)", swordfish],
+    ["jellyfish (4-fish)", jellyfish],
+    ["x-chain (simple)", xChainSimple],
+    ["x-chain (alternating)", xChainAlternating],
     ["y-wing", yWing],
     ["xyz-wing", xyzWing],
     ["xy-chain", xyChain],
