@@ -1,11 +1,40 @@
 import { notEqual } from "./combinatorics";
-import { Board, CELLS, Candidate, CandidateId, CellId, DIGITS, Digit, StrategyResult, UNITS, cellIdOf, cidOf, cidToPair, digitOf } from "./sudoku";
+import { Board, CELLS, CandidateId, CellId, DIGITS, Digit, StrategyFunction, StrategyResult, UNITS, cellIdOf, cidOf, cidToPair, digitOf } from "./sudoku";
 
-export class CandidateLinks {
+type LinkClass = "bivalue" | "bilocal" | "weakCell" | "weakUnit";
+
+export function makeChain(strong: LinkClass[], weak: LinkClass[]): StrategyFunction {
+    return (board: Board) => {
+        const strongLinks = new CandidateLinks(board, strong);
+        const weakLinks = new CandidateLinks(board, weak);
+
+        const chains = findAlternatingChains(board, strongLinks, weakLinks);
+
+        return shortestChain(chains);
+    };
+}
+
+class CandidateLinks {
     links: Map<CandidateId, CandidateId[]>;
 
-    constructor() {
+    constructor(board: Board, linkTypes: LinkClass[]) {
         this.links = new Map();
+
+        if (linkTypes.includes("bivalue")) {
+            this.findStrongBivalue(board);
+        }
+
+        if (linkTypes.includes("bilocal")) {
+            this.findStrongBilocal(board);
+        }
+
+        if (linkTypes.includes("weakCell")) {
+            this.findWeakCell(board);
+        }
+
+        if (linkTypes.includes("weakUnit")) {
+            this.findWeakUnit(board);
+        }
     }
 
     get candidates() {
@@ -36,7 +65,13 @@ export class CandidateLinks {
         }
     }
 
-    findStrongBilocal(board: Board, digit: Digit) {
+    findStrongBilocal(board: Board) {
+        for (const digit of DIGITS) {
+            this.findStrongBilocalDigit(board, digit);
+        }
+    }
+
+    findStrongBilocalDigit(board: Board, digit: Digit) {
         for (const unit of UNITS) {
             const candidateCells = unit.filter(id =>
                 board.cell(id).hasCandidate(digit)
@@ -53,11 +88,6 @@ export class CandidateLinks {
         }
     }
 
-    findStrongBilocalAll(board: Board) {
-        for (const digit of DIGITS) {
-            this.findStrongBilocal(board, digit);
-        }
-    }
 
     // weak link finders
 
@@ -73,7 +103,13 @@ export class CandidateLinks {
         }
     }
 
-    findWeakUnit(board: Board, digit: Digit) {
+    findWeakUnit(board: Board) {
+        for (const digit of DIGITS) {
+            this.findWeakUnitDigit(board, digit);
+        }
+    }
+
+    findWeakUnitDigit(board: Board, digit: Digit) {
         for (const unit of UNITS) {
             const candidateCells = unit.filter((id) =>
                 board.cell(id).hasCandidate(digit)
@@ -85,12 +121,6 @@ export class CandidateLinks {
                 }
             }
 
-        }
-    }
-
-    findWeakUnitAll(board: Board) {
-        for (const digit of DIGITS) {
-            this.findWeakUnit(board, digit);
         }
     }
 }
@@ -111,9 +141,9 @@ function newStackItem(cid: CandidateId, nextLink: "strong" | "weak"): StackItem 
     };
 }
 
-export type ChainResult = [CandidateId[], StrategyResult]
+type ChainResult = [CandidateId[], StrategyResult];
 
-export function findAlternatingChains(
+function findAlternatingChains(
     board: Board,
     strongLinks: CandidateLinks,
     weakLinks: CandidateLinks
@@ -178,7 +208,7 @@ export function findAlternatingChains(
     return chains;
 }
 
-export function backtrackChain(end: CandidateId, parents: Map<CandidateId, CandidateId>): CandidateId[] {
+function backtrackChain(end: CandidateId, parents: Map<CandidateId, CandidateId>): CandidateId[] {
     const chain = [end];
 
     let v = end;
@@ -188,4 +218,16 @@ export function backtrackChain(end: CandidateId, parents: Map<CandidateId, Candi
     }
 
     return chain;
+}
+
+function shortestChain(chains: ChainResult[]): StrategyResult | undefined {
+    if (chains.length === 0) {
+        return undefined;
+    }
+
+    const shortest = chains.reduce((acc, cur) =>
+        acc[0].length <= cur[0].length ? acc : cur,
+    );
+
+    return shortest[1];
 }

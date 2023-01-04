@@ -1,7 +1,7 @@
 import React from "react";
 import { MouseEventHandler } from 'react';
 import "./Game.css";
-import { Board, BOXES, Cell, CellId, Digit, DIGITS, parseDigit, STRATEGIES, Strategy, StrategyFunction, StrategyResult } from './sudoku';
+import { Board, BOXES, Cell, CellId, Digit, DIGITS, parseDigit, STRATEGIES, Strategy, StrategyResult } from './lib/sudoku';
 
 
 
@@ -481,7 +481,7 @@ export default class Game extends React.Component<any, GameState> {
                 strategyFound: new Map(),
             });
 
-            
+
 
         }
     }

@@ -1,5 +1,5 @@
-import { backtrackChain, CandidateLinks, ChainResult, findAlternatingChains } from "./chain";
-import { contains, Graph, hasSubset, In, intersection, isSubset, notEqual, notIn, pairsOf, Tuple, tuplesOf } from "./combinatorics";
+import { makeChain } from "./chain";
+import { contains, hasSubset, In, intersection, isSubset, notEqual, notIn, pairsOf, tuplesOf } from "./combinatorics";
 
 export type Digit = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
 export const DIGITS: Digit[] = [1, 2, 3, 4, 5, 6, 7, 8, 9];
@@ -222,7 +222,7 @@ export type StrategyResult = {
 
 export type StrategyFunction = (board: Board) => StrategyResult | undefined;
 
-export const reviseNotes: StrategyFunction = (board: Board) => {
+const reviseNotes: StrategyFunction = (board: Board) => {
     const eliminations = new Array<Candidate>();
 
     for (const id of CELLS) {
@@ -246,7 +246,7 @@ export const reviseNotes: StrategyFunction = (board: Board) => {
         : undefined;
 };
 
-export const hiddenSingles: StrategyFunction = (board: Board) => {
+const hiddenSingles: StrategyFunction = (board: Board) => {
     const solutions = new Array<Candidate>();
 
     for (const digit of DIGITS) {
@@ -266,7 +266,7 @@ export const hiddenSingles: StrategyFunction = (board: Board) => {
         : undefined;
 };
 
-export const nakedSingles: StrategyFunction = (board: Board) => {
+const nakedSingles: StrategyFunction = (board: Board) => {
     const solutions = new Array<Candidate>();
 
     for (const id of CELLS) {
@@ -313,9 +313,9 @@ function makeNakedSubset(n: 2 | 3 | 4): StrategyFunction {
     };
 }
 
-export const nakedPair = makeNakedSubset(2);
-export const nakedTriple = makeNakedSubset(3);
-export const nakedQuad = makeNakedSubset(4);
+const nakedPair = makeNakedSubset(2);
+const nakedTriple = makeNakedSubset(3);
+const nakedQuad = makeNakedSubset(4);
 
 function makeHiddenSubset(n: 2 | 3 | 4): StrategyFunction {
     return (board: Board) => {
@@ -356,9 +356,9 @@ function makeHiddenSubset(n: 2 | 3 | 4): StrategyFunction {
     };
 }
 
-export const hiddenPair = makeHiddenSubset(2);
-export const hiddenTriple = makeHiddenSubset(3);
-export const hiddenQuad = makeHiddenSubset(4);
+const hiddenPair = makeHiddenSubset(2);
+const hiddenTriple = makeHiddenSubset(3);
+const hiddenQuad = makeHiddenSubset(4);
 
 function makeIntersection(baseType: CellId[][], coverType: CellId[][]): StrategyFunction {
     return (board: Board) => {
@@ -395,8 +395,8 @@ function makeIntersection(baseType: CellId[][], coverType: CellId[][]): Strategy
     };
 }
 
-export const intersectionPointing = makeIntersection(BOXES, LINES);
-export const intersectionClaiming = makeIntersection(LINES, BOXES);
+const intersectionPointing = makeIntersection(BOXES, LINES);
+const intersectionClaiming = makeIntersection(LINES, BOXES);
 
 function makeBasicFish(n: 2 | 3 | 4): StrategyFunction {
     return (board: Board) => {
@@ -438,7 +438,7 @@ const xWing = makeBasicFish(2);
 const swordfish = makeBasicFish(3);
 const jellyfish = makeBasicFish(4);
 
-export const yWing: StrategyFunction = (board: Board) => {
+const yWing: StrategyFunction = (board: Board) => {
     const bivaluePairs = new Array<[Digit, CellId, Digit, CellId, Digit]>();
 
     for (const unit of UNITS) {
@@ -483,7 +483,7 @@ export const yWing: StrategyFunction = (board: Board) => {
     return undefined;
 };
 
-export const xyzWing: StrategyFunction = (board: Board) => {
+const xyzWing: StrategyFunction = (board: Board) => {
     for (const xyzId of CELLS) {
         const xyz = board.cell(xyzId).candidates;
 
@@ -523,64 +523,10 @@ export const xyzWing: StrategyFunction = (board: Board) => {
     return undefined;
 };
 
-export const xChainSimple: StrategyFunction = (board: Board) => {
-    const strongLinks = new CandidateLinks();
-    strongLinks.findStrongBilocalAll(board);
 
-    const weakLinks = new CandidateLinks();
-    weakLinks.findStrongBilocalAll(board);
-
-    const chains = findAlternatingChains(board, strongLinks, weakLinks);
-
-    if (chains.length === 0) {
-        return undefined;
-    }
-
-    const shortest = chains.reduce((acc, cur) =>
-        acc[0].length <= cur[0].length ? acc : cur,
-    );
-
-    return shortest[1];
-};
-
-export const xChainAlternating: StrategyFunction = (board: Board) => {
-    const strongLinks = new CandidateLinks();
-    strongLinks.findStrongBilocalAll(board);
-
-    const weakLinks = new CandidateLinks();
-    weakLinks.findWeakUnitAll(board);
-
-    const chains = findAlternatingChains(board, strongLinks, weakLinks);
-
-    if (chains.length === 0) {
-        return undefined;
-    }
-
-    const shortest = chains.reduce((acc, cur) =>
-        acc[0].length <= cur[0].length ? acc : cur,
-    );
-
-    return shortest[1];
-};
-
-export const xyChain: StrategyFunction = (board: Board) => {
-    const strongLinks = new CandidateLinks();
-    strongLinks.findStrongBivalue(board);
-
-    const weakLinks = new CandidateLinks();
-    weakLinks.findWeakUnitAll(board);
-
-    const chains = findAlternatingChains(board, strongLinks, weakLinks);
-    if (chains.length === 0) {
-        return undefined;
-    }
-
-    const shortest = chains.reduce((acc, cur) =>
-        acc[0].length <= cur[0].length ? acc : cur,
-    );
-
-    return shortest[1];
-};
+const xChainSimple = makeChain(["bilocal"], ["bilocal"]);
+const xChainAlternating = makeChain(["bilocal"], ["weakUnit"]);
+const xyChain = makeChain(["bivalue"], ["weakUnit"]);
 
 export type Strategy = [name: string, func: StrategyFunction];
 

@@ -1,4 +1,3 @@
-import { Type } from "typescript";
 
 // iterator helpers and set operations ----------------------------------------
 
@@ -19,7 +18,7 @@ export function isSubset<T>(arr1: T[], arr2: T[]): boolean {
 }
 
 export function hasSubset<T>(arr: T[]): (item: T[]) => boolean {
-    return (item: T[]) => isSubset(arr, item)
+    return (item: T[]) => isSubset(arr, item);
 }
 
 export function isSome<T>(item: T): boolean {
