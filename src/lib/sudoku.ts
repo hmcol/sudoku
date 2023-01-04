@@ -438,50 +438,7 @@ const xWing = makeBasicFish(2);
 const swordfish = makeBasicFish(3);
 const jellyfish = makeBasicFish(4);
 
-const yWing: StrategyFunction = (board: Board) => {
-    const bivaluePairs = new Array<[Digit, CellId, Digit, CellId, Digit]>();
-
-    for (const unit of UNITS) {
-        const bivalueCells = unit.filter(id =>
-            board.cell(id).candidates.length === 2
-        );
-
-        for (const [xyId, yzId] of pairsOf(bivalueCells)) {
-            const xy = board.cell(xyId).candidates;
-            const yz = board.cell(yzId).candidates;
-
-            const sharedCandidates = intersection(xy, yz);
-
-            if (sharedCandidates.length !== 1) {
-                continue;
-            }
-
-            const y = sharedCandidates[0];
-            const x = xy.filter(notEqual(y))[0];
-            const z = yz.filter(notEqual(y))[0];
-
-            bivaluePairs.push([x, xyId, y, yzId, z]);
-            bivaluePairs.push([z, yzId, y, xyId, x]);
-        }
-    }
-
-    for (const [[z, xzId, x, xyId, y], [x2, xyId2, y2, yzId, z2]] of pairsOf(bivaluePairs)) {
-        if (!(x === x2 && xyId === xyId2 && y === y2 && z === z2)) {
-            continue;
-        }
-
-        const eliminations = board.getDigitEliminations(z, [xzId, yzId]);
-
-        if (eliminations.length > 0) {
-            return {
-                eliminations,
-                highlights: [[xzId, x], [xzId, z], [xyId, x], [xyId, y], [yzId, y], [yzId, z]],
-            };
-        }
-    }
-
-    return undefined;
-};
+const yWing = makeChain(["bivalue"], ["weakUnit"], 6);
 
 const xyzWing: StrategyFunction = (board: Board) => {
     for (const xyzId of CELLS) {
@@ -522,7 +479,6 @@ const xyzWing: StrategyFunction = (board: Board) => {
 
     return undefined;
 };
-
 
 const xChainSimple = makeChain(["bilocal"], ["bilocal"]);
 const xChainAlternating = makeChain(["bilocal"], ["weakUnit"]);

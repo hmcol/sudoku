@@ -3,12 +3,18 @@ import { Board, CELLS, CandidateId, CellId, DIGITS, Digit, StrategyFunction, Str
 
 type LinkClass = "bivalue" | "bilocal" | "weakCell" | "weakUnit";
 
-export function makeChain(strong: LinkClass[], weak: LinkClass[]): StrategyFunction {
+export function makeChain(
+    strongClasses: LinkClass[],
+    weakClasses: LinkClass[],
+    maxLength?: number,
+): StrategyFunction {
     return (board: Board) => {
-        const strongLinks = new CandidateLinks(board, strong);
-        const weakLinks = new CandidateLinks(board, weak);
+        const strongLinks = new CandidateLinks(board, strongClasses);
+        const weakLinks = new CandidateLinks(board, weakClasses);
 
-        const chains = findAlternatingChains(board, strongLinks, weakLinks);
+        let x = maxLength;
+
+        const chains = findAlternatingChains(board, strongLinks, weakLinks, maxLength);
 
         return shortestChain(chains);
     };
@@ -125,19 +131,27 @@ class CandidateLinks {
     }
 }
 
+type LinkType = "strong" | "weak";
+
+function oppLink(link: LinkType): LinkType {
+    return link === "strong" ? "weak" : "strong";
+}
+
 type StackItem = {
     cid: CandidateId,
     id: CellId,
     digit: Digit,
-    nextLink: "strong" | "weak",
+    nextLink: LinkType,
+    depth: number,
 };
 
-function newStackItem(cid: CandidateId, nextLink: "strong" | "weak"): StackItem {
+function newStackItem(cid: CandidateId, nextLink: LinkType, depth: number = 1): StackItem {
     return {
         cid: cid,
         id: cellIdOf(cid),
         digit: digitOf(cid),
         nextLink: nextLink,
+        depth,
     };
 }
 
@@ -146,9 +160,15 @@ type ChainResult = [CandidateId[], StrategyResult];
 function findAlternatingChains(
     board: Board,
     strongLinks: CandidateLinks,
-    weakLinks: CandidateLinks
+    weakLinks: CandidateLinks,
+    maxLength?: number,
 ): ChainResult[] {
     const chains = new Array<ChainResult>();
+
+    const links = {
+        "strong": strongLinks,
+        "weak": weakLinks,
+    };
 
     for (const root of strongLinks.candidates) {
         const [rootId, rootDigit] = cidToPair(root);
@@ -173,7 +193,6 @@ function findAlternatingChains(
                     const highlights = chain.filter((_, i) => i % 2 === 0).map(cidToPair);
                     const highlights2 = chain.filter((_, i) => i % 2 === 1).map(cidToPair);
 
-
                     chains.push([
                         chain,
                         {
@@ -189,9 +208,11 @@ function findAlternatingChains(
 
             visited.add(u.cid);
 
-            const links = u.nextLink === "strong" ? strongLinks : weakLinks;
+            if (maxLength !== undefined && u.depth >= maxLength) {
+                continue;
+            }
 
-            for (const vCid of links.get(u.cid)) {
+            for (const vCid of links[u.nextLink].get(u.cid)) {
                 if (visited.has(vCid)) {
                     continue;
                 }
@@ -199,8 +220,9 @@ function findAlternatingChains(
                 parents.set(vCid, u.cid);
                 queue.push(newStackItem(
                     vCid,
-                    u.nextLink === "strong" ? "weak" : "strong")
-                );
+                    oppLink(u.nextLink),
+                    u.depth + 1,
+                ));
             }
         }
     }
