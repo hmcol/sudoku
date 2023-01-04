@@ -1,4 +1,4 @@
-import { backtrackChain, CandidateLinks } from "./chain";
+import { backtrackChain, CandidateLinks, findAlternatingChain } from "./chain";
 import { contains, Graph, hasSubset, In, intersection, isSubset, notEqual, notIn, pairsOf, Tuple, tuplesOf } from "./combinatorics";
 
 export type Digit = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
@@ -438,7 +438,6 @@ const xWing = makeBasicFish(2);
 const swordfish = makeBasicFish(3);
 const jellyfish = makeBasicFish(4);
 
-
 export const yWing: StrategyFunction = (board: Board) => {
     const bivaluePairs = new Array<[Digit, CellId, Digit, CellId, Digit]>();
 
@@ -607,143 +606,23 @@ export const simpleColoring: StrategyFunction = (board: Board) => {
     return undefined;
 };
 
-
 export const xyChain: StrategyFunction = (board: Board) => {
-    const bivalueCells = CELLS.filter(id => board.cell(id).candidates.length === 2);
-
-    for (const rootId of bivalueCells) {
-        for (const rootDigit of board.cell(rootId).candidates) {
-            const stack: Candidate[] = [];
-            const visited = new Set<CellId>();
-            const parents = new Map<CellId, CellId>();
-
-            stack.push([rootId, rootDigit]);
-
-            while (stack.length > 0) {
-                const [uId, digit] = stack.pop()!;
-
-                // check if chain
-
-                const otherDigit = board.cell(uId).candidates.filter(notEqual(digit))[0];
-
-                if (otherDigit === rootDigit) {
-                    const targets = board.getSharedNeighbors(rootId, uId)
-                        .filter(id => board.cell(id).hasCandidate(rootDigit));
-
-                    if (targets.length > 0) {
-                        const chain: CellId[] = [];
-
-                        let parent: CellId | undefined = uId;
-                        while (parent !== undefined) {
-                            chain.push(parent);
-                            parent = parents.get(parent);
-                        }
-
-                        const highlights = chain.map(id => [
-                            [id, board.cell(id).candidates[0]],
-                            [id, board.cell(id).candidates[1]],
-                        ] as Candidate[]).flat();
-
-                        return {
-                            eliminations: targets.map(id => [id, rootDigit]),
-                            highlights,
-                        };
-                    }
-                }
-
-                // keep looking
-
-                visited.add(uId);
-
-                const bivalueNeighbors = board.getVisible(uId)
-                    .filter(id => board.cell(id).candidates.length === 2)
-                    .filter(id => board.cell(id).hasCandidate(otherDigit))
-                    .filter(id => !visited.has(id));
-
-                for (const vId of bivalueNeighbors) {
-                    parents.set(vId, uId);
-                    stack.push([vId, otherDigit]);
-                }
-
-            }
-        }
-    }
-
-    return undefined;
-};
-
-type StackItem = {
-    cid: CandidateId,
-    id: CellId,
-    digit: Digit,
-    nextLink: "strong" | "weak",
-};
-
-export const xyChainOther: StrategyFunction = (board: Board) => {
     const strongLinks = new CandidateLinks();
     strongLinks.findStrongBivalue(board);
 
     const weakLinks = new CandidateLinks();
     weakLinks.findWeakUnitAll(board);
 
-
-    for (const root of strongLinks.candidates) {
-        const rootId = cellIdOf(root);
-        const rootDigit = digitOf(root);
-
-        const stack: StackItem[] = [];
-        const visited = new Set<CandidateId>();
-        const parents = new Map<CandidateId, CandidateId>();
-
-        stack.push({
-            cid: root,
-            id: rootId,
-            digit: rootDigit,
-            nextLink: "strong",
-        });
-
-        while (stack.length > 0) {
-            const u = stack.pop()!;
-
-            // check if chain
-
-            if (u.digit === rootDigit && u.nextLink === "weak") {
-                const eliminations = board.getDigitEliminations(rootDigit, [rootId, u.id]);
-
-                if (eliminations.length > 0) {
-                    const highlights = backtrackChain(u.cid, parents)
-                        .map(cid => [cellIdOf(cid), digitOf(cid)] as Candidate);
-
-                    return {
-                        eliminations,
-                        highlights,
-                    };
-                }
-            }
-
-            // keep looking
-
-            visited.add(u.cid);
-
-            const links = u.nextLink === "strong" ? strongLinks : weakLinks;
-
-            for (const vCid of links.get(u.cid)) {
-                if (visited.has(vCid)) {
-                    continue;
-                }
-
-                parents.set(vCid, u.cid);
-                stack.push({
-                    cid: vCid,
-                    id: cellIdOf(vCid),
-                    digit: digitOf(vCid),
-                    nextLink: u.nextLink === "strong" ? "weak" : "strong",
-                });
-            }
-        }
+    const chains = findAlternatingChain(board, strongLinks, weakLinks);
+    if (chains.length === 0) {
+        return undefined;
     }
 
-    return undefined;
+    const shortest = chains.reduce((acc, cur) =>
+        acc[0].length <= cur[0].length ? acc : cur,
+    );
+
+    return shortest[1];
 };
 
 export type Strategy = [name: string, func: StrategyFunction];
@@ -766,5 +645,5 @@ export const STRATEGIES: Strategy[] = [
     ["simple coloring", simpleColoring],
     ["y-wing", yWing],
     ["xyz-wing", xyzWing],
-    ["xy-chain", xyChainOther],
+    ["xy-chain", xyChain],
 ];

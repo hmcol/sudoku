@@ -1,5 +1,5 @@
 import { notEqual } from "./combinatorics";
-import { Board, CELLS, CandidateId, DIGITS, Digit, StrategyResult, UNITS, cidOf } from "./sudoku";
+import { Board, CELLS, Candidate, CandidateId, CellId, DIGITS, Digit, StrategyResult, UNITS, cellIdOf, cidOf, cidToPair, digitOf } from "./sudoku";
 
 export class CandidateLinks {
     links: Map<CandidateId, CandidateId[]>;
@@ -92,11 +92,88 @@ export class CandidateLinks {
     }
 }
 
-// function findAlternatingChain(board: Board, strongLinks: CandidateLinks, weakLinks: CandidateLinks): StrategyResult | undefined {
+type StackItem = {
+    cid: CandidateId,
+    id: CellId,
+    digit: Digit,
+    nextLink: "strong" | "weak",
+};
+
+function newStackItem(cid: CandidateId, nextLink: "strong" | "weak"): StackItem {
+    return {
+        cid: cid,
+        id: cellIdOf(cid),
+        digit: digitOf(cid),
+        nextLink: nextLink,
+    };
+}
+
+type ChainResult = [CandidateId[], StrategyResult]
+
+export function findAlternatingChain(
+    board: Board,
+    strongLinks: CandidateLinks,
+    weakLinks: CandidateLinks
+): ChainResult[] {
+    const chains = new Array<ChainResult>();
+
+    for (const root of strongLinks.candidates) {
+        const [rootId, rootDigit] = cidToPair(root);
+
+        const queue: StackItem[] = [];
+        const visited = new Set<CandidateId>();
+        const parents = new Map<CandidateId, CandidateId>();
+
+        queue.push(newStackItem(root, "strong"));
+
+        while (queue.length > 0) {
+            const u = queue.shift()!;
+
+            // check if chain
+
+            if (u.digit === rootDigit && u.nextLink === "weak") {
+                const eliminations = board.getDigitEliminations(rootDigit, [rootId, u.id]);
+
+                if (eliminations.length > 0) {
+                    const chain = backtrackChain(u.cid, parents);
+
+                    const highlights = chain.filter((_, i) => i % 2 === 0).map(cidToPair);
+                    const highlights2 = chain.filter((_, i) => i % 2 === 1).map(cidToPair);
 
 
-//     return undefined;
-// }
+                    chains.push([
+                        chain,
+                        {
+                            eliminations,
+                            highlights,
+                            highlights2,
+                        }
+                    ]);
+                }
+            }
+
+            // keep looking
+
+            visited.add(u.cid);
+
+            const links = u.nextLink === "strong" ? strongLinks : weakLinks;
+
+            for (const vCid of links.get(u.cid)) {
+                if (visited.has(vCid)) {
+                    continue;
+                }
+
+                parents.set(vCid, u.cid);
+                queue.push(newStackItem(
+                    vCid,
+                    u.nextLink === "strong" ? "weak" : "strong")
+                );
+            }
+        }
+    }
+
+    return chains;
+}
 
 export function backtrackChain(end: CandidateId, parents: Map<CandidateId, CandidateId>): CandidateId[] {
     const chain = [end];
