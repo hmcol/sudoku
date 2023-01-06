@@ -53,22 +53,12 @@ body {
 }
 
 .cell {
-	/* aspect-ratio: 1/1; */
-	height: 1.5em;
 	width: 1.5em;
+	height: 1.5em;
 	overflow: hidden;
-	display: flex;
-	justify-content: center;
-	align-items: center;
 	font-size: 150%;
 	color: var(--other-color);
 	background-color: var(--base-color);
-}
-
-.cell.given {
-	font-weight: bold;
-	color: var(--light-color);
-	background-color: var(--dark-color);
 }
 
 .cell.restricted {
@@ -79,11 +69,27 @@ body {
 	background-color: var(--light-color);
 }
 
-.cell.focus {
+.cell-digit {
+	width: 100%;
+	height: 100%;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+}
+
+.cell-digit.given {
+	font-weight: bold;
+	color: var(--light-color);
+	background-color: var(--dark-color);
+}
+
+.cell-digit.focus {
 	background-color: #540B0E;
 }
 
-.cell.notes {
+.cell-notes {
+	width: 100%;
+	height: 100%;
 	display: grid;
 	grid-template: repeat(3, 1fr) / repeat(3, 1fr);
 }
@@ -99,25 +105,27 @@ body {
 	/* background-color: var(--base-color); */
 }
 
-.note.eliminated {
+.note.red {
 	background-color: #b47e7f;
 }
 
-.note.solved {
+.note.green {
 	background-color: #a8d3b1;
 }
 
-.note.highlighted {
+.note.blue {
 	background-color: #b3c7d1;
 }
 
-.note.highlighted2 {
+.note.yellow {
 	background-color: #d0d1b3;
 }
 
 .cell,
-.note-option
+.note-option,
 .strategy-status {
+	-webkit-touch-callout: none;
+	/* iOS Safari */
 	-webkit-user-select: none;
 	/* Safari */
 	-moz-user-select: none;

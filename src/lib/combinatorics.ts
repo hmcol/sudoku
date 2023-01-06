@@ -21,8 +21,12 @@ export function hasSubset<T>(arr: T[]): (item: T[]) => boolean {
     return (item: T[]) => isSubset(arr, item);
 }
 
-export function isSome<T>(item: T): boolean {
+export function isSome<T>(item: T | undefined): item is T {
     return item !== undefined;
+}
+
+export function isNone<T>(item: T | undefined): item is undefined {
+    return item === undefined;
 }
 
 export function isEqual<T>(value: T): (item: T) => boolean {
@@ -46,15 +50,14 @@ export type Tuple<
     T,
     N extends TupleSize,
     A extends T[] = []
-> = N extends A['length']
-    ? A
-    : Tuple<T, N, [...A, T]>;
+> = N extends A['length'] ?
+    A :
+    Tuple<T, N, [...A, T]>;
 
 
 function range(n: number): number[] {
     return [...Array(n).keys()];
 }
-
 
 function orderedChoose(n: number, k: number): number[][] {
     if (k === 1) {
@@ -70,8 +73,6 @@ function orderedChoose(n: number, k: number): number[][] {
     );
 }
 
-
-
 export function tuplesOf<T>(n: number, arr: T[]): T[][] {
     if (n > arr.length) {
         return [];
@@ -85,141 +86,17 @@ export function pairsOf<T>(arr: T[]): Tuple<T, 2>[] {
     return tuplesOf(2, arr) as Tuple<T, 2>[];
 }
 
-export function triplesOf<T>(arr: T[]): [T, T, T][] {
+export function triplesOf<T>(arr: T[]): Tuple<T, 3>[] {
     return tuplesOf(3, arr) as Tuple<T, 3>[];
 }
 
-export function quadsOf<T>(arr: T[]): [T, T, T, T][] {
+export function quadsOf<T>(arr: T[]): Tuple<T, 4>[] {
     return tuplesOf(4, arr) as Tuple<T, 4>[];
 
 }
 
 
 // graph stuff ----------------------------------------------------------------
-
-interface UnionFind<T, Find = T> {
-    add(item: T): void;
-    find(item: T): Find | undefined;
-    union(x: T, y: T): void;
-}
-
-export class UnionFindGood<T> implements UnionFind<T> {
-    name: Map<T, T>;
-    rank: Map<T, number>;
-
-    constructor(items: T[]) {
-        this.name = new Map(items.map((item) => [item, item]));
-        this.rank = new Map(items.map((item) => [item, 0]));
-    }
-
-    add(item: T) {
-        this.name.set(item, item);
-        this.rank.set(item, 0);
-    }
-
-    get components() {
-        const components = new Array<T[]>;
-
-        for (const item of this.name.keys()) {
-            const component = components.find((c) => this.find(c[0]) == this.find(item));
-
-            if (component !== undefined) {
-                component.push(item);
-            } else {
-                components.push([item]);
-            }
-        }
-
-        return components;
-    }
-
-    get componentNames() {
-        const names = new Array<T>();
-
-        for (const item of this.name.keys()) {
-            const name = this.find(item);
-
-            if (names.includes(name)) {
-                continue;
-            }
-
-            names.push(name);
-        }
-
-        return names;
-    }
-
-    find(item: T): T {
-        if (this.name.get(item) !== item) {
-            this.name.set(item, this.find(this.name.get(item)!));
-        }
-        return this.name.get(item)!;
-    }
-
-    union(item1: T, item2: T) {
-        let a = this.find(item1);
-        let b = this.find(item2);
-
-        if (a == b) {
-            return;
-        }
-
-        if (this.rank.get(a)! < this.rank.get(b)!) {
-            [a, b] = [b, a];
-        }
-
-        if (this.rank.get(a)! == this.rank.get(b)!) {
-            this.rank.set(a, this.rank.get(a)! + 1);
-        }
-
-        this.name.set(b, a);
-    }
-}
-
-class UnionFindBad<T> implements UnionFind<T> {
-    name: Map<T, T>;
-
-    constructor(items?: T[]) {
-        this.name = new Map(items?.map((item) => [item, item]));
-    }
-
-    add(item: T) {
-        this.name.set(item, item);
-    }
-
-    find(item: T): T {
-        if (this.name.get(item) !== item) {
-            this.name.set(item, this.find(this.name.get(item)!));
-        }
-
-        return this.name.get(item)!;
-    }
-
-    union(x: T, y: T) {
-        x = this.find(x);
-        y = this.find(y);
-
-        if (x === y) {
-            return;
-        }
-
-        this.name.set(y, x);
-    }
-
-    get componentRoots() {
-        const roots = new Array<T>();
-
-        for (const item of this.name.keys()) {
-            const root = this.find(item);
-
-            if (!roots.includes(root)) {
-                roots.push(root);
-            }
-        }
-
-        return roots;
-    }
-}
 
 class Partition<T> {
     parts: T[][];
@@ -244,7 +121,7 @@ class Partition<T> {
         const xIndex = this.findIndex(x);
         const yIndex = this.findIndex(y);
 
-        if (xIndex === yIndex || xIndex === undefined || yIndex === undefined) {
+        if (xIndex === yIndex || isNone(xIndex) || isNone(yIndex)) {
             return;
         }
 
@@ -253,7 +130,6 @@ class Partition<T> {
         this.find(x)?.push(...yPart);
     }
 }
-
 
 export class Graph<V> {
     private neighbors: Map<V, V[]>;

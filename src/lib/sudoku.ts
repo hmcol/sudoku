@@ -1,22 +1,22 @@
 import { makeChain } from "./chain";
-import { contains, hasSubset, In, intersection, isSubset, notEqual, notIn, pairsOf, tuplesOf } from "./combinatorics";
+import { contains, hasSubset, In, intersection, isNone, isSome, isSubset, notEqual, notIn, pairsOf, tuplesOf } from "./combinatorics";
 
 export type Digit = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
 export const DIGITS: Digit[] = [1, 2, 3, 4, 5, 6, 7, 8, 9];
 
 export function parseDigit(str?: string): Digit | undefined {
-    if (str === undefined) {
-        return;
+    if (isNone(str)) {
+        return undefined;
     }
 
     const num = parseInt(str);
 
     if (isNaN(num)) {
-        return;
+        return undefined;
     }
 
     if (![1, 2, 3, 4, 5, 6, 7, 8, 9].includes(num)) {
-        return;
+        return undefined;
     }
 
     return num as Digit;
@@ -100,16 +100,16 @@ export const LINES: CellId[][] = ROWS.concat(COLUMNS);
 
 export class Cell {
     digit?: Digit;
-    given: boolean;
+    isGiven: boolean;
     candidateSet: Set<Digit>;
 
     constructor(givenDigit?: Digit) {
-        if (givenDigit !== undefined) {
+        if (isSome(givenDigit)) {
             this.digit = givenDigit;
-            this.given = true;
+            this.isGiven = true;
             this.candidateSet = new Set();
         } else {
-            this.given = false;
+            this.isGiven = false;
             this.candidateSet = new Set(DIGITS);
         }
     }
@@ -118,13 +118,18 @@ export class Cell {
         return DIGITS.filter(digit => this.hasCandidate(digit));
     }
 
-    hasDigit(): boolean {
-        return this.digit !== undefined;
+    hasDigit(): this is { digit: Digit; } {
+        return isSome(this.digit);
     }
 
     inputDigit(digit: Digit) {
         this.digit = digit;
         this.candidateSet.clear();
+    }
+
+    deleteDigit() {
+        this.digit = undefined;
+        this.candidateSet = new Set(DIGITS);
     }
 
     hasCandidate(digit: Digit): boolean {
@@ -140,7 +145,7 @@ export class Board {
     cells: Record<CellId, Cell>;
 
     constructor(board?: Board, boardString?: string) {
-        if (board !== undefined) {
+        if (isSome(board)) {
             this.cells = Object.assign({}, board.cells);
             return;
         }
@@ -152,7 +157,6 @@ export class Board {
         }
 
         this.cells = cells as Record<CellId, Cell>;
-
     }
 
     cell(id: CellId): Cell {
@@ -162,7 +166,7 @@ export class Board {
     inputDigit(id: CellId, digit: Digit) {
         const cell = this.cell(id);
 
-        if (cell.given) {
+        if (cell.isGiven) {
             return;
         }
 
@@ -172,11 +176,11 @@ export class Board {
     deleteDigit(id: CellId) {
         const cell = this.cell(id);
 
-        if (cell.given) {
+        if (cell.isGiven) {
             return;
         }
 
-        cell.digit = undefined;
+        cell.deleteDigit();
     }
 
     clearCell(id: CellId) {
@@ -235,15 +239,15 @@ const reviseNotes: StrategyFunction = (board: Board) => {
         for (const id2 of UNITS.filter(contains(id)).flat()) {
             const digit = board.cell(id2).digit;
 
-            if (digit !== undefined && cell.hasCandidate(digit)) {
-                eliminations.push([id, digit!]);
+            if (isSome(digit) && cell.hasCandidate(digit)) {
+                eliminations.push([id, digit]);
             }
         }
     }
 
-    return eliminations.length > 0
-        ? { eliminations }
-        : undefined;
+    return eliminations.length > 0 ?
+        { eliminations } :
+        undefined;
 };
 
 const hiddenSingles: StrategyFunction = (board: Board) => {
@@ -261,9 +265,9 @@ const hiddenSingles: StrategyFunction = (board: Board) => {
         }
     }
 
-    return solutions.length > 0
-        ? { solutions }
-        : undefined;
+    return solutions.length > 0 ?
+        { solutions } :
+        undefined;
 };
 
 const nakedSingles: StrategyFunction = (board: Board) => {
@@ -277,9 +281,9 @@ const nakedSingles: StrategyFunction = (board: Board) => {
         }
     }
 
-    return solutions.length > 0
-        ? { solutions }
-        : undefined;
+    return solutions.length > 0 ?
+        { solutions } :
+        undefined;
 };
 
 function makeNakedSubset(n: 2 | 3 | 4): StrategyFunction {
@@ -360,6 +364,7 @@ const hiddenPair = makeHiddenSubset(2);
 const hiddenTriple = makeHiddenSubset(3);
 const hiddenQuad = makeHiddenSubset(4);
 
+
 function makeIntersection(baseType: CellId[][], coverType: CellId[][]): StrategyFunction {
     return (board: Board) => {
         for (const digit of DIGITS) {
@@ -374,7 +379,7 @@ function makeIntersection(baseType: CellId[][], coverType: CellId[][]): Strategy
 
                 const coverUnit = coverType.find(hasSubset(candidateCells));
 
-                if (coverUnit === undefined) {
+                if (isNone(coverUnit)) {
                     continue;
                 }
 
@@ -498,9 +503,9 @@ export const STRATEGIES: Strategy[] = [
     ["intersection claiming", intersectionClaiming],
     ["naked quad", nakedQuad],
     ["hidden quad", hiddenQuad],
-    ["x-wing (2-fish)", xWing],
-    ["swordfish (3-fish)", swordfish],
-    ["jellyfish (4-fish)", jellyfish],
+    ["x-wing", xWing],
+    ["swordfish", swordfish],
+    ["jellyfish", jellyfish],
     ["x-chain (simple)", xChainSimple],
     ["x-chain (alternating)", xChainAlternating],
     ["y-wing", yWing],

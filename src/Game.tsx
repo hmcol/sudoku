@@ -2,251 +2,13 @@ import React from "react";
 import { MouseEventHandler } from 'react';
 import "./Game.css";
 import { Board, BOXES, Cell, CellId, Digit, DIGITS, parseDigit, STRATEGIES, Strategy, StrategyResult } from './lib/sudoku';
+import { isNone, isSome } from "./lib/combinatorics";
 
 
 
-const enum InputMode {
-    DIGIT,
-    NOTE,
-    ACCENT,
-    STRIKE,
-}
-
-type NoteProps = {
-    digit: Digit,
-    shown: boolean,
-    solved: boolean,
-    eliminated: boolean,
-    highlighted: boolean,
-    highlighted2: boolean,
-};
-
-class NoteComponent extends React.Component<NoteProps> {
-    render() {
-        const shown = this.props.shown;
-
-        const solved = this.props.solved && shown ? "solved" : "";
-        const eliminated = this.props.eliminated && shown ? "eliminated" : "";
-        const highlighted = this.props.highlighted && shown ? "highlighted" : "";
-        const highlighted2 = this.props.highlighted2 && shown ? "highlighted2" : "";
-
-        return (
-            <div
-                className={`note ${solved} ${eliminated} ${highlighted} ${highlighted2}`}
-            >
-                {this.props.shown ? this.props.digit : " "}
-            </div>
-        );
-    }
-}
 
 
-type CellProps = {
-    cell: Cell,
-    selected: boolean,
-    solution?: Digit,
-    eliminations?: Digit[],
-    highlights?: Digit[],
-    highlights2?: Digit[],
-    focus?: Digit,
-    onClick: MouseEventHandler,
-    onClickDigit: MouseEventHandler,
-    onMouseMove: MouseEventHandler,
-};
-
-class CellComponent extends React.Component<CellProps> {
-    render() {
-        const cell = this.props.cell;
-
-        const selected = this.props.selected ? "selected" : "";
-        const restricted = this.props.focus !== undefined && !cell.hasCandidate(this.props.focus) ? "restricted" : "";
-
-
-        if (cell.hasDigit()) {
-            const given = cell.given ? "given" : "";
-            const focus = this.props.focus === cell.digit ? "focus" : "";
-
-            return (
-                <div
-                    className={`cell ${given} ${selected} ${focus} ${restricted}`}
-                    onClick={this.props.onClickDigit}
-                >
-                    {cell.digit}
-                </div>
-            );
-        }
-
-        return (
-            <div
-                className={`cell notes ${selected} ${restricted}`}
-                onClick={this.props.onClick}
-                onMouseMove={this.props.onMouseMove}
-            >
-                {DIGITS.map(digit =>
-                    <NoteComponent
-                        key={digit}
-                        digit={digit}
-                        shown={cell.hasCandidate(digit)}
-                        solved={this.props.solution === digit}
-                        eliminated={this.props.eliminations?.includes(digit) ?? false}
-                        highlighted={this.props.highlights?.includes(digit) ?? false}
-                        highlighted2={this.props.highlights2?.includes(digit) ?? false}
-                    />
-                )}
-            </div>
-        );
-    }
-}
-
-type GridProps = {
-    board: Board,
-    selectedCells: Set<CellId>,
-    result?: StrategyResult,
-    focus?: Digit,
-    onClick: (id: CellId) => void,
-    onClickDigit: (cellId: CellId) => void,
-    onMouseMove: (id: CellId) => void,
-};
-
-class Grid extends React.Component<GridProps> {
-
-    renderCell(id: CellId) {
-        const result = this.props.result;
-        const filterCell = (set?: [CellId, Digit][]) => set?.filter(e => e[0] === id).map(e => e[1]);
-
-        const solution = filterCell(result?.solutions)?.at(0);
-        const eliminations = filterCell(result?.eliminations);
-        const highlights = filterCell(result?.highlights);
-        const highlights2 = filterCell(result?.highlights2);
-
-        return (
-            <CellComponent
-                key={id}
-                cell={this.props.board.cell(id)}
-                selected={this.props.selectedCells.has(id)}
-                solution={solution}
-                eliminations={eliminations}
-                highlights={highlights}
-                highlights2={highlights2}
-                focus={this.props.focus}
-                onClick={() => this.props.onClick(id)}
-                onClickDigit={() => this.props.onClickDigit(id)}
-                onMouseMove={(event) => event.buttons === 1 && this.props.onMouseMove(id)}
-            />
-        );
-    }
-
-    render() {
-        return (
-            <div className="grid">
-                {BOXES.map((box, index) =>
-                    <div className="box" key={index}>
-                        {box.map((id) =>
-                            this.renderCell(id)
-                        )}
-                    </div>
-                )}
-            </div>
-        );
-    }
-}
-
-type NoteSelectorProps = {
-    inputMode: InputMode,
-    onClick: (inputMode: InputMode) => void,
-};
-
-class NoteSelector extends React.Component<NoteSelectorProps> {
-    renderOption(inputMode: InputMode) {
-        let label;
-
-        switch (inputMode) {
-            case InputMode.NOTE:
-                label = "N";
-                break;
-            case InputMode.ACCENT:
-                label = "A";
-                break;
-            case InputMode.STRIKE:
-                label = "E";
-                break;
-        }
-
-        return (
-            <div
-                className={`note-option ${this.props.inputMode === inputMode ? "selected" : ""}`}
-                onClick={() => this.props.onClick(inputMode)}
-            >
-                {label}
-            </div>
-        );
-
-    }
-
-    render() {
-        return (
-            <div>
-                User Note Mode
-                <div className="note-selector">
-                    {this.renderOption(InputMode.NOTE)}
-                    {this.renderOption(InputMode.ACCENT)}
-                    {this.renderOption(InputMode.STRIKE)}
-                </div>
-            </div>
-        );
-    }
-}
-
-type StrategyListProps = {
-    onClick: (strat: Strategy) => void;
-    strategyFound: Map<string, boolean>;
-};
-
-class StrategyList extends React.Component<StrategyListProps> {
-    renderStrategy(strat: Strategy, index: number) {
-        let status: string;
-
-        switch (this.props.strategyFound.get(strat[0])) {
-            case undefined:
-                status = "?";
-                break;
-            case false:
-                status = "no";
-                break;
-            case true:
-                status = "yes";
-                break;
-        }
-
-        return (
-            <div className="strategy-item" key={index}>
-                <div className="strategy-number">
-                    {index}
-                </div>
-                <div className={"strategy-name"}>
-                    {strat[0]}
-                </div>
-                <div className={"strategy-status"}
-                    onClick={() => this.props.onClick(strat)}
-                >
-                    {status}
-                </div>
-            </div>
-        );
-    }
-
-    render() {
-        return (
-            <>
-                Strategies
-                <div className="strategy-list">
-                    {STRATEGIES.map((strat, index) => this.renderStrategy(strat, index))}
-                </div>
-            </>
-        );
-    }
-}
-
+type InputMode = "digit" | "note" | "accent" | "strike";
 
 type GameState = {
     board: Board,
@@ -254,7 +16,7 @@ type GameState = {
     inputMode: InputMode,
     focus?: Digit,
     result?: StrategyResult,
-    strategyFound: Map<string, boolean>;
+    strategyStatus: Map<string, "?" | "yes" | "no">;
 };
 
 export default class Game extends React.Component<any, GameState> {
@@ -264,34 +26,71 @@ export default class Game extends React.Component<any, GameState> {
         this.state = {
             board: new Board(),
             selectedCells: new Set(),
-            inputMode: InputMode.DIGIT,
-            strategyFound: new Map(),
+            inputMode: "digit",
+            strategyStatus: new Map(),
         };
+
+        this.resetBoard = this.resetBoard.bind(this);
+        this.takeStep = this.takeStep.bind(this);
+
+        this.handleClickCell = this.handleClickCell.bind(this);
+        this.handleMouseMove = this.handleMouseMove.bind(this);
+
+        this.updateInputMode = this.updateInputMode.bind(this);
+
+        this.checkStrategy = this.checkStrategy.bind(this);
     }
 
     resetBoard() {
         this.setState({
             board: new Board(undefined, "000704005020010070000080002090006250600070008053200010400090000030060090200407000"),
             result: undefined,
+            strategyStatus: new Map(),
+        });
+
+        this.resetSelection();
+    }
+
+    resetSelection() {
+        this.setState({
+            selectedCells: new Set(),
+            focus: undefined,
         });
     }
 
-    handleClickDigit(id: CellId) {
-        const cell = this.state.board.cells[id];
-        const digit = cell.digit!;
-        const selectedCells = new Set<CellId>();
-
-        if (!cell.given) {
-            selectedCells.add(id);
-        }
-
+    resetKnowledge() {
         this.setState({
-            selectedCells: selectedCells,
-            focus: digit !== this.state.focus ? digit : undefined,
+            result: undefined,
+            strategyStatus: new Map(),
         });
     }
 
     handleClickCell(id: CellId) {
+        this.state.board.cells[id].hasDigit() ?
+            this.handleClickCellDigit(id) :
+            this.handleClickCellNotes(id);
+    }
+
+    handleClickCellDigit(id: CellId) {
+        const cell = this.state.board.cells[id];
+        const digit = cell.digit!;
+        const selectedCells = new Set(this.state.selectedCells);
+
+
+        if (selectedCells.has(id)) {
+            selectedCells.delete(id);
+        } else if (!cell.isGiven) {
+            selectedCells.clear();
+            selectedCells.add(id);
+        }
+
+        this.setState({
+            selectedCells,
+            focus: digit !== this.state.focus ? digit : undefined,
+        });
+    }
+
+    handleClickCellNotes(id: CellId) {
         const selectedCells = new Set(this.state.selectedCells);
         let inputMode = this.state.inputMode;
 
@@ -300,70 +99,62 @@ export default class Game extends React.Component<any, GameState> {
         } else {
             selectedCells.clear();
             selectedCells.add(id);
-            inputMode = InputMode.DIGIT;
+            inputMode = "digit";
         }
 
         this.setState({
-            selectedCells: selectedCells,
+            selectedCells,
             focus: undefined,
-            inputMode: inputMode,
+            inputMode,
         });
     }
 
-    handleMouseMove(cellId: CellId) {
+    handleMouseMove(id: CellId) {
         const selectedCells = new Set(this.state.selectedCells);
 
-        selectedCells.add(cellId);
+        selectedCells.add(id);
 
         this.setState({
-            selectedCells: selectedCells,
-            inputMode: InputMode.NOTE
+            selectedCells,
+            inputMode: "note"
         });
     }
 
     handleKeyDown(event: React.KeyboardEvent) {
-        if (event.key === "Backspace") {
+        if (event.key === "Backspace" || event.key === "Delete") {
             this.clearSelection();
         }
 
-
         const digit = parseDigit(event.key);
-        if (digit === undefined) {
+        if (isNone(digit)) {
             return;
         }
 
         switch (this.state.inputMode) {
-            case InputMode.DIGIT:
+            case "digit":
                 this.inputDigit(digit);
                 break;
-            case InputMode.NOTE:
+            case "note":
                 // this.inputNote(digit, NoteType.BASIC);
                 break;
-            case InputMode.ACCENT:
+            case "accent":
                 // this.inputNote(digit, NoteType.ACCENT);
                 break;
-            case InputMode.STRIKE:
+            case "strike":
                 // this.inputNote(digit, NoteType.STRIKE);
                 break;
         }
     }
 
     updateInputMode(inputMode: InputMode) {
-        let newInputMode = inputMode;
-
-        if (newInputMode === this.state.inputMode) {
-            newInputMode = InputMode.DIGIT;
-        }
-
-
         this.setState({
-            inputMode: newInputMode,
+            inputMode: inputMode === this.state.inputMode ? "digit" : inputMode,
         });
     }
 
     inputDigit(digit: Digit) {
         const board = new Board(this.state.board);
-        const selectedCells = this.state.selectedCells;
+        const selectedCells = new Set(this.state.selectedCells);
 
         for (const id of selectedCells) {
             board.inputDigit(id, digit);
@@ -414,81 +205,78 @@ export default class Game extends React.Component<any, GameState> {
     //     });
     // }
 
-    tryStrategy([name, func]: Strategy): boolean {
-        const result = func(this.state.board);
-        const strategyFound = this.state.strategyFound;
-
-        if (result === undefined) {
-            strategyFound.set(name, false);
-            this.setState({ strategyFound });
-
-            return false;
-        }
-
-        console.log(name, result);
-
-        strategyFound.set(name, true);
-
-        this.setState({
-            result,
-            strategyFound,
-        });
-
-        return true;
-    }
-
-    applyResult() {
-        const board = new Board(this.state.board);
-        const result = this.state.result;
-
-        if (result === undefined) {
+    takeStep() {
+        if (isSome(this.state.result)) {
+            this.applyCurrentResult();
+            this.resetKnowledge();
             return;
         }
 
-        const solutions = result.solutions;
-        if (solutions !== undefined) {
-            for (const [id, digit] of solutions) {
-                board.inputDigit(id, digit);
+        for (const strat of STRATEGIES) {
+            if (this.checkStrategy(strat)) {
+                return;
             }
         }
 
-        const eliminations = result.eliminations;
-        if (eliminations !== undefined) {
-            for (const [id, digit] of eliminations) {
-                // board.inputNote(id, digit, NoteType.ELIMINATED);
-                board.cell(id).eliminateCandidate(digit);
-            }
+        console.log("no strategy found");
+    }
+
+    checkStrategy([name, func]: Strategy): boolean {
+        // pre-computation
+        this.setState(prevState => {
+            const strategyStatus = new Map(prevState.strategyStatus);
+            strategyStatus.set(name, "?");
+            return {
+                strategyStatus
+            };
+        });
+
+        // start computation
+        const board = new Board(this.state.board);
+
+        const result = func(board);
+
+        // post-computation
+        const found = isSome(result);
+
+        this.setState(prevState => {
+            const strategyStatus = new Map(prevState.strategyStatus);
+            strategyStatus.set(name, found ? "yes" : "no");
+            return {
+                strategyStatus
+            };
+        });
+
+        if (found) {
+            console.log(name, result);
         }
 
         this.setState({
-            board: board,
-            result: undefined,
+            result,
+        });
+
+        return found;
+    }
+
+    applyCurrentResult() {
+        const board = new Board(this.state.board);
+        const result = this.state.result;
+
+        for (const [id, digit] of result?.solutions ?? []) {
+            board.inputDigit(id, digit);
+        }
+
+        for (const [id, digit] of result?.eliminations ?? []) {
+            // board.inputNote(id, digit, NoteType.ELIMINATED);
+            board.cell(id).eliminateCandidate(digit);
+        }
+
+        this.setState({
+            board,
         });
     }
 
-    takeStep() {
-        if (this.state.result === undefined) {
-            for (const strat of STRATEGIES) {
-                if (this.tryStrategy(strat)) {
-                    return;
-                }
-            }
-
-            console.log("no strategy found");
-        } else {
-            this.applyResult();
-            this.setState({
-                strategyFound: new Map(),
-            });
-
-
-
-        }
-    }
-
     render() {
-        const status = "Sudoku";
-
         return (
             <div className="game"
                 tabIndex={-1}
@@ -499,25 +287,285 @@ export default class Game extends React.Component<any, GameState> {
                     selectedCells={this.state.selectedCells}
                     result={this.state.result}
                     focus={this.state.focus}
-                    onClick={(id) => this.handleClickCell(id)}
-                    onClickDigit={(digit) => this.handleClickDigit(digit)}
-                    onMouseMove={(id) => this.handleMouseMove(id)}
+                    onClickCell={this.handleClickCell}
+                    onMouseMove={this.handleMouseMove}
                 />
                 <div className="game-info">
-                    <div>{status}</div>
+                    <div>Sudoku</div>
                     <NoteSelector
                         inputMode={this.state.inputMode}
-                        onClick={(inputMode) => this.updateInputMode(inputMode)}
+                        onClick={this.updateInputMode}
                     />
-                    <button onClick={() => this.resetBoard()}>reset</button>
+                    <button onClick={this.resetBoard}>reset</button>
                     {/* <button onClick={() => this.initializeNotes()}>Init Notes</button> */}
-                    <button onClick={() => this.takeStep()}>step</button>
+                    <button onClick={this.takeStep}>step</button>
                     <StrategyList
-                        onClick={(strat) => this.tryStrategy(strat)}
-                        strategyFound={this.state.strategyFound}
+                        onClick={this.checkStrategy}
+                        strategyStatus={this.state.strategyStatus}
                     />
                 </div>
             </div>
         );
     }
+}
+
+type GridProps = {
+    board: Board,
+    selectedCells: Set<CellId>,
+    result?: StrategyResult,
+    focus?: Digit,
+    onClickCell: (id: CellId) => void,
+    onMouseMove: (id: CellId) => void,
+};
+
+class Grid extends React.Component<GridProps> {
+
+    renderCell(id: CellId) {
+        const result = this.props.result;
+        const filterCell = (set?: [CellId, Digit][]) => set?.filter(e => e[0] === id).map(e => e[1]);
+
+        const solution = filterCell(result?.solutions)?.at(0);
+        const eliminations = filterCell(result?.eliminations);
+        const highlights = filterCell(result?.highlights);
+        const highlights2 = filterCell(result?.highlights2);
+
+        return (
+            <CellComponent
+                key={id}
+                cell={this.props.board.cell(id)}
+                selected={this.props.selectedCells.has(id)}
+                solution={solution}
+                eliminations={eliminations}
+                highlights={highlights}
+                highlights2={highlights2}
+                focus={this.props.focus}
+                onClick={() => this.props.onClickCell(id)}
+                onMouseMove={(event) => event.buttons === 1 && this.props.onMouseMove(id)}
+            />
+        );
+    }
+
+    render() {
+        return (
+            <div className="grid">
+                {BOXES.map((box, index) =>
+                    <div className="box" key={index}>
+                        {box.map((id) =>
+                            this.renderCell(id)
+                        )}
+                    </div>
+                )}
+            </div>
+        );
+    }
+}
+
+type CellProps = {
+    cell: Cell,
+    selected: boolean,
+    focus?: Digit,
+    solution?: Digit,
+    eliminations?: Digit[],
+    highlights?: Digit[],
+    highlights2?: Digit[],
+    onClick: MouseEventHandler,
+    onMouseMove: MouseEventHandler,
+};
+
+function CellComponent(props: CellProps) {
+    const cell = props.cell;
+
+    const selectors = buildConditionalSelectors({
+        "selected": props.selected,
+        "restricted": isSome(props.focus) && !cell.hasCandidate(props.focus),
+    });
+
+    const content = cell.hasDigit() ? (
+        <CellDigit
+            digit={cell.digit}
+            isGiven={cell.isGiven}
+            isFocus={cell.digit === props.focus}
+        />
+    ) : (
+        <CellNotes
+            candidates={cell.candidates}
+            solution={props.solution}
+            eliminations={props.eliminations}
+            highlights={props.highlights}
+            highlights2={props.highlights2}
+        />
+    );
+
+    return (
+        <div
+            className={"cell" + selectors}
+            onMouseDown={props.onClick}
+            onMouseMove={props.onMouseMove}
+        >
+            {content}
+        </div>
+    );
+};
+
+type CellDigitProps = {
+    digit: Digit,
+    isGiven: boolean,
+    isFocus: boolean,
+};
+
+function CellDigit(props: CellDigitProps) {
+    const selectors = buildConditionalSelectors({
+        "given": props.isGiven,
+        "focus": props.isFocus,
+    });
+
+    return (
+        <div
+            className={"cell-digit" + selectors}
+        >
+            {props.digit}
+        </div>
+    );
+}
+
+type CellNotesProps = {
+    candidates: Digit[],
+    solution?: Digit,
+    eliminations?: Digit[],
+    highlights?: Digit[],
+    highlights2?: Digit[],
+};
+
+function CellNotes(props: CellNotesProps) {
+    function determineHighlightColor(digit: Digit) {
+        if (props.solution === digit) {
+            return "green";
+        }
+        if (props.eliminations?.includes(digit)) {
+            return "red";
+        }
+        if (props.highlights?.includes(digit)) {
+            return "blue";
+        }
+        if (props.highlights2?.includes(digit)) {
+            return "yellow";
+        }
+        return undefined;
+    }
+
+    return (
+        <div className={`cell-notes`}>
+            {DIGITS.map(digit =>
+                <Note
+                    key={digit}
+                    digit={digit}
+                    shown={props.candidates.includes(digit)}
+                    highlight={determineHighlightColor(digit)}
+                />
+            )}
+        </div>
+    );
+}
+
+type NoteProps = {
+    digit: Digit,
+    shown: boolean,
+    highlight?: "red" | "green" | "blue" | "yellow",
+};
+
+function Note(props: NoteProps) {
+    const color = props.highlight ?? "";
+
+    const selectors = buildConditionalSelectors({
+        [color]: isSome(props.highlight) && props.shown,
+    });
+
+    return (
+        <div
+            className={"note" + selectors}
+        >
+            {props.shown ? props.digit : " "}
+        </div>
+    );
+};
+
+type NoteSelectorProps = {
+    inputMode: InputMode,
+    onClick: (inputMode: InputMode) => void,
+};
+
+function NoteSelector(props: NoteSelectorProps) {
+    function renderOption(inputMode: InputMode, label: string) {
+        const selectors = buildConditionalSelectors({
+            "selected": props.inputMode === inputMode,
+        });
+
+        return (
+            <div
+                className={"note-option" + selectors}
+                onClick={() => props.onClick(inputMode)}
+            >
+                {label}
+            </div>
+        );
+
+    }
+
+
+    return (
+        <div>
+            User Note Mode
+            <div className="note-selector">
+                {renderOption("note", "N")}
+                {renderOption("accent", "A")}
+                {renderOption("strike", "E")}
+            </div>
+        </div>
+    );
+
+};
+
+type StrategyListProps = {
+    onClick: (strat: Strategy) => void;
+    strategyStatus: Map<string, "?" | "yes" | "no">;
+};
+
+function StrategyList(props: StrategyListProps) {
+    function renderItem(strat: Strategy, index: number) {
+        return (
+            <div className="strategy-item" key={index}>
+                <div className="strategy-number">
+                    {String(index).padStart(2, "0")}
+                </div>
+                <div className={"strategy-name"}>
+                    {strat[0]}
+                </div>
+                <div className={"strategy-status"}
+                    onClick={() => props.onClick(strat)}
+                >
+                    {props.strategyStatus.get(strat[0]) ?? " "}
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <>
+            Strategies
+            <div className="strategy-list">
+                {STRATEGIES.map(renderItem)}
+            </div>
+        </>
+    );
+};
+
+
+// helper functions -----------------------------------------------------------
+
+function buildConditionalSelectors(args: { [selector: string]: boolean; }) {
+    const selectors = Object.entries(args)
+        .filter(([_, condition]) => condition)
+        .map(([selector, _]) => selector);
+
+    return [""].concat(selectors).join(" ");
 }

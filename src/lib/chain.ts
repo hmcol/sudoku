@@ -1,4 +1,4 @@
-import { notEqual } from "./combinatorics";
+import { isNone, isSome, notEqual } from "./combinatorics";
 import { Board, CELLS, CandidateId, CellId, DIGITS, Digit, StrategyFunction, StrategyResult, UNITS, cellIdOf, cidOf, cidToPair, digitOf } from "./sudoku";
 
 type LinkClass = "bivalue" | "bilocal" | "weakCell" | "weakUnit";
@@ -11,8 +11,6 @@ export function makeChain(
     return (board: Board) => {
         const strongLinks = new CandidateLinks(board, strongClasses);
         const weakLinks = new CandidateLinks(board, weakClasses);
-
-        let x = maxLength;
 
         const chains = findAlternatingChains(board, strongLinks, weakLinks, maxLength);
 
@@ -48,7 +46,7 @@ class CandidateLinks {
     }
 
     add(source: CandidateId, target: CandidateId) {
-        if (this.links.get(source) === undefined) {
+        if (isNone(this.links.get(source))) {
             this.links.set(source, []);
         }
 
@@ -137,7 +135,7 @@ function oppLink(link: LinkType): LinkType {
     return link === "strong" ? "weak" : "strong";
 }
 
-type StackItem = {
+type QueueItem = {
     cid: CandidateId,
     id: CellId,
     digit: Digit,
@@ -145,7 +143,7 @@ type StackItem = {
     depth: number,
 };
 
-function newStackItem(cid: CandidateId, nextLink: LinkType, depth: number = 1): StackItem {
+function newStackItem(cid: CandidateId, nextLink: LinkType, depth: number = 1): QueueItem {
     return {
         cid: cid,
         id: cellIdOf(cid),
@@ -173,7 +171,7 @@ function findAlternatingChains(
     for (const root of strongLinks.candidates) {
         const [rootId, rootDigit] = cidToPair(root);
 
-        const queue: StackItem[] = [];
+        const queue: QueueItem[] = [];
         const visited = new Set<CandidateId>();
         const parents = new Map<CandidateId, CandidateId>();
 
@@ -202,13 +200,18 @@ function findAlternatingChains(
                         }
                     ]);
                 }
+
+
+
+
+
             }
 
             // keep looking
 
             visited.add(u.cid);
 
-            if (maxLength !== undefined && u.depth >= maxLength) {
+            if (isSome(maxLength) && u.depth >= maxLength) {
                 continue;
             }
 
