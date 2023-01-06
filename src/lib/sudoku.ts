@@ -103,15 +103,26 @@ export class Cell {
     isGiven: boolean;
     candidateSet: Set<Digit>;
 
-    constructor(givenDigit?: Digit) {
-        if (isSome(givenDigit)) {
-            this.digit = givenDigit;
-            this.isGiven = true;
-            this.candidateSet = new Set();
-        } else {
-            this.isGiven = false;
-            this.candidateSet = new Set(DIGITS);
+    constructor(cell?: Cell) {
+        if (isSome(cell)) {
+            this.digit = cell.digit;
+            this.isGiven = cell.isGiven;
+            this.candidateSet = new Set(cell.candidateSet);
+            return;
         }
+
+        this.isGiven = false;
+        this.candidateSet = new Set(DIGITS);
+    }
+
+    static withGiven(givenDigit: Digit): Cell {
+        const cell = new Cell();
+
+        cell.digit = givenDigit;
+        cell.isGiven = true;
+        cell.candidateSet.clear();
+
+        return cell;
     }
 
     get candidates(): Digit[] {
@@ -141,22 +152,44 @@ export class Cell {
     }
 }
 
+
 export class Board {
     cells: Record<CellId, Cell>;
 
-    constructor(board?: Board, boardString?: string) {
-        if (isSome(board)) {
-            this.cells = Object.assign({}, board.cells);
-            return;
+    constructor(board?: Board) {
+        const cells: Partial<Record<CellId, Cell>> = {};
+
+        for (const id of CELLS) {
+            cells[id] = new Cell(board?.cells[id]);
+        }
+
+        this.cells = cells as Record<CellId, Cell>;
+    }
+
+    static fromCells(cells: Record<CellId, Cell>): Board {
+        const board = new Board();
+
+        board.cells = { ...cells };
+
+        return board;
+    }
+
+    static fromString(boardString: string): Board | undefined {
+        const str = boardString.trim();
+
+        if (str.length < 81) {
+            return undefined;
         }
 
         const cells: Partial<Record<CellId, Cell>> = {};
 
         for (const [index, id] of CELLS.entries()) {
-            cells[id] = new Cell(parseDigit(boardString?.charAt(index)));
+            const digit = parseDigit(str[index]);
+
+            cells[id] = isSome(digit) ? Cell.withGiven(digit) : new Cell();
         }
 
-        this.cells = cells as Record<CellId, Cell>;
+        return Board.fromCells(cells as Record<CellId, Cell>);
     }
 
     cell(id: CellId): Cell {

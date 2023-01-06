@@ -12,6 +12,7 @@ type InputMode = "digit" | "note" | "accent" | "strike";
 
 type GameState = {
     board: Board,
+    history: Board[],
     selectedCells: Set<CellId>,
     inputMode: InputMode,
     focus?: Digit,
@@ -24,14 +25,19 @@ export default class Game extends React.Component<any, GameState> {
         super(props);
 
         this.state = {
-            board: new Board(),
+            board: Board.fromString(
+                "000704005020010070000080002090006250600070008053200010400090000030060090200407000"
+            )!,
+            history: [],
             selectedCells: new Set(),
             inputMode: "digit",
             strategyStatus: new Map(),
         };
 
         this.resetBoard = this.resetBoard.bind(this);
+        this.loadBoardString = this.loadBoardString.bind(this);
         this.takeStep = this.takeStep.bind(this);
+        this.undoStep = this.undoStep.bind(this);
 
         this.handleClickCell = this.handleClickCell.bind(this);
         this.handleMouseMove = this.handleMouseMove.bind(this);
@@ -41,14 +47,39 @@ export default class Game extends React.Component<any, GameState> {
         this.checkStrategy = this.checkStrategy.bind(this);
     }
 
+    updateBoard(board: Board) {
+        this.setState(prevState => ({
+            board,
+            history: prevState.history.concat(prevState.board),
+        }));
+    }
+
     resetBoard() {
+        const board = this.state.history.length > 0 ?
+            this.state.history[0] :
+            this.state.board;
+
         this.setState({
-            board: new Board(undefined, "000704005020010070000080002090006250600070008053200010400090000030060090200407000"),
-            result: undefined,
-            strategyStatus: new Map(),
+            board,
+            history: [],
         });
 
         this.resetSelection();
+        this.resetKnowledge();
+    }
+
+    loadBoardString() {
+        const str = prompt("Enter a string of at least 81 characters. The digits 1-9 are used to represent the given values. All other intermediate characters are interpreted as blanks. leading and trailing whitespace is ignored.");
+
+        const board = Board.fromString(str ?? "");
+
+        if (isNone(board)) {
+            return;
+        }
+
+        this.setState({
+            history: [board],
+        });
     }
 
     resetSelection() {
@@ -66,16 +97,15 @@ export default class Game extends React.Component<any, GameState> {
     }
 
     handleClickCell(id: CellId) {
-        this.state.board.cells[id].hasDigit() ?
+        this.state.board.cell(id).hasDigit() ?
             this.handleClickCellDigit(id) :
             this.handleClickCellNotes(id);
     }
 
     handleClickCellDigit(id: CellId) {
-        const cell = this.state.board.cells[id];
+        const cell = this.state.board.cell(id);
         const digit = cell.digit!;
         const selectedCells = new Set(this.state.selectedCells);
-
 
         if (selectedCells.has(id)) {
             selectedCells.delete(id);
@@ -160,8 +190,9 @@ export default class Game extends React.Component<any, GameState> {
             board.inputDigit(id, digit);
         }
 
+        this.updateBoard(board);
+
         this.setState({
-            board: board,
             selectedCells: new Set(),
         });
     }
@@ -189,8 +220,9 @@ export default class Game extends React.Component<any, GameState> {
             board.clearCell(id);
         }
 
+        this.updateBoard(board);
+
         this.setState({
-            board: board,
             selectedCells: new Set(),
         });
     }
@@ -205,15 +237,18 @@ export default class Game extends React.Component<any, GameState> {
     //     });
     // }
 
-    takeStep() {
+    async takeStep() {
         if (isSome(this.state.result)) {
             this.applyCurrentResult();
             this.resetKnowledge();
+            this.resetSelection();
             return;
         }
 
         for (const strat of STRATEGIES) {
-            if (this.checkStrategy(strat)) {
+
+
+            if (await this.checkStrategy(strat)) {
                 return;
             }
         }
@@ -221,7 +256,29 @@ export default class Game extends React.Component<any, GameState> {
         console.log("no strategy found");
     }
 
-    checkStrategy([name, func]: Strategy): boolean {
+    undoStep() {
+        this.setState(prevState => {
+            const history = prevState.history;
+
+            if (history.length === 0) {
+                return {
+                    board: prevState.board,
+                    history: history,
+                };
+            }
+
+
+            return {
+                board: history[history.length - 1],
+                history: history.slice(0, -1),
+            };
+        });
+
+        this.resetKnowledge();
+        this.resetSelection();
+    }
+
+    async checkStrategy([name, func]: Strategy): Promise<boolean> {
         // pre-computation
         this.setState(prevState => {
             const strategyStatus = new Map(prevState.strategyStatus);
@@ -234,7 +291,13 @@ export default class Game extends React.Component<any, GameState> {
         // start computation
         const board = new Board(this.state.board);
 
-        const result = func(board);
+        const promise = new Promise<StrategyResult | undefined>((resolve, _) => {
+            setTimeout(() => {
+                resolve(func(board));
+            }, 0);
+        });
+
+        const result = await promise;
 
         // post-computation
         const found = isSome(result);
@@ -271,9 +334,7 @@ export default class Game extends React.Component<any, GameState> {
             board.cell(id).eliminateCandidate(digit);
         }
 
-        this.setState({
-            board,
-        });
+        this.updateBoard(board);
     }
 
     render() {
@@ -296,9 +357,12 @@ export default class Game extends React.Component<any, GameState> {
                         inputMode={this.state.inputMode}
                         onClick={this.updateInputMode}
                     />
-                    <button onClick={this.resetBoard}>reset</button>
-                    {/* <button onClick={() => this.initializeNotes()}>Init Notes</button> */}
-                    <button onClick={this.takeStep}>step</button>
+                    <SolverControls
+                        onReset={this.resetBoard}
+                        onLoadString={this.loadBoardString}
+                        onStep={this.takeStep}
+                        onUndo={this.undoStep}
+                    />
                     <StrategyList
                         onClick={this.checkStrategy}
                         strategyStatus={this.state.strategyStatus}
@@ -307,6 +371,26 @@ export default class Game extends React.Component<any, GameState> {
             </div>
         );
     }
+}
+
+type SolverControlsProps = {
+    onLoadString: () => void,
+    onReset: () => void,
+    onStep: () => void,
+    onUndo: () => void,
+};
+
+function SolverControls(props: SolverControlsProps) {
+    return (
+        <div
+            className="solver-controls"
+        >
+            <button onClick={props.onLoadString}>load</button>
+            <button onClick={props.onReset}>reset</button>
+            <button onClick={props.onStep}>step</button>
+            <button onClick={props.onUndo}>undo</button>
+        </div>
+    );
 }
 
 type GridProps = {
