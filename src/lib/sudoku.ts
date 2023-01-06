@@ -518,6 +518,48 @@ const xyzWing: StrategyFunction = (board: Board) => {
     return undefined;
 };
 
+const wWing: StrategyFunction = (board: Board) => {
+    for (const x of DIGITS) {
+        for (const baseUnit of UNITS) {
+            const xCells = baseUnit.filter(board.cellHasCandidate(x));
+
+            if (xCells.length !== 2) {
+                continue;
+            }
+
+            const wxCells = xCells.map(xId =>
+                board.getVisible(xId)
+                    .filter(notIn(baseUnit))
+                    .filter(wxId => {
+                        const wx = board.cell(wxId).candidates;
+                        return wx.length === 2 && wx.includes(x);
+                    })
+            );
+
+            for (const wx1Id of wxCells[0]) {
+                const w = board.cell(wx1Id).candidates.find(notEqual(x))!;
+
+                for (const wx2Id of wxCells[1].filter(board.cellHasCandidate(w))) {
+                    
+                    const eliminations = board.getDigitEliminations(w, [wx1Id, wx2Id]);
+
+                    if (eliminations.length > 0) {
+                        const [x1Id, x2Id] = xCells;
+
+                        return {
+                            eliminations,
+                            highlights: [[wx1Id, w], [wx2Id, w]],
+                            highlights2: [[x1Id, x], [x2Id, x], [wx1Id, x], [wx2Id, x]],
+                        };
+                    }
+                }
+            }
+        }
+    }
+
+    return undefined;
+};
+
 const bug: StrategyFunction = (board: Board) => {
     const nonBivalueCells = CELLS
         .filter(id => !board.cell(id).hasDigit())
@@ -558,6 +600,8 @@ const xChainSimple = makeChain(["bilocal"], ["bilocal"]);
 const xChainAlternating = makeChain(["bilocal"], ["weakUnit"]);
 const xyChain = makeChain(["bivalue"], ["weakUnit"]);
 
+const aic = makeChain(["bivalue", "bilocal"], ["weakUnit", "weakCell"]);
+
 export type Strategy = [name: string, func: StrategyFunction];
 
 export const STRATEGIES: Strategy[] = [
@@ -579,6 +623,8 @@ export const STRATEGIES: Strategy[] = [
     ["x-chain (alternating)", xChainAlternating],
     ["y-wing", yWing],
     ["xyz-wing", xyzWing],
+    ["w-wing", wWing],
     ["bug", bug],
     ["xy-chain", xyChain],
+    ["aic", aic],
 ];

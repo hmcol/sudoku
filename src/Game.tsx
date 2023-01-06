@@ -26,7 +26,7 @@ export default class Game extends React.Component<any, GameState> {
 
         this.state = {
             board: Board.fromString(
-                "000704005020010070000080002090006250600070008053200010400090000030060090200407000"
+                "800070500090050040000900700401003020900000004070400306006009000020080030004030007"
             )!,
             history: [],
             selectedCells: new Set(),
@@ -38,6 +38,7 @@ export default class Game extends React.Component<any, GameState> {
         this.loadBoardString = this.loadBoardString.bind(this);
         this.takeStep = this.takeStep.bind(this);
         this.undoStep = this.undoStep.bind(this);
+        this.tryComplete = this.tryComplete.bind(this);
 
         this.handleClickCell = this.handleClickCell.bind(this);
         this.handleMouseMove = this.handleMouseMove.bind(this);
@@ -241,21 +242,30 @@ export default class Game extends React.Component<any, GameState> {
     //     });
     // }
 
+    async tryComplete() {
+        // console.log("try complete");
+
+        if (await this.takeStep()) {
+            setTimeout(this.tryComplete, 300);
+        }
+    }
+
     async takeStep() {
         if (isSome(this.state.result)) {
             this.applyCurrentResult();
             this.resetKnowledge();
             this.resetSelection();
-            return;
+            return true;
         }
 
         for (const strat of STRATEGIES) {
             if (await this.checkStrategy(strat)) {
-                return;
+                return true;
             }
         }
 
         console.log("no strategy found");
+        return false;
     }
 
     undoStep() {
@@ -363,6 +373,7 @@ export default class Game extends React.Component<any, GameState> {
                         onLoadString={this.loadBoardString}
                         onStep={this.takeStep}
                         onUndo={this.undoStep}
+                        onComplete={this.tryComplete}
                     />
                     <StrategyList
                         onClick={this.checkStrategy}
@@ -379,6 +390,7 @@ type SolverControlsProps = {
     onReset: () => void,
     onStep: () => void,
     onUndo: () => void,
+    onComplete: () => void,
 };
 
 function SolverControls(props: SolverControlsProps) {
@@ -388,8 +400,9 @@ function SolverControls(props: SolverControlsProps) {
         >
             <button onClick={props.onLoadString}>load</button>
             <button onClick={props.onReset}>reset</button>
-            <button onClick={props.onStep}>step</button>
             <button onClick={props.onUndo}>undo</button>
+            <button onClick={props.onStep}>step</button>
+            <button onClick={props.onComplete}>complete</button>
         </div>
     );
 }

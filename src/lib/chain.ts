@@ -1,5 +1,5 @@
 import { isNone, isSome, notEqual } from "./combinatorics";
-import { Board, CELLS, CandidateId, CellId, DIGITS, Digit, StrategyFunction, StrategyResult, UNITS, cellIdOf, cidOf, cidToPair, digitOf } from "./sudoku";
+import { Board, CELLS, Candidate, CandidateId, CellId, DIGITS, Digit, StrategyFunction, StrategyResult, UNITS, cellIdOf, cidOf, cidToPair, digitOf } from "./sudoku";
 
 type LinkClass = "bivalue" | "bilocal" | "weakCell" | "weakUnit";
 
@@ -180,7 +180,62 @@ function findAlternatingChains(
         while (queue.length > 0) {
             const u = queue.shift()!;
 
-            // check if chain
+            // if chain is nontrivial and ends with a strong link
+            if (u.depth >= 4 && u.nextLink === "weak") {
+
+                // type 1: same digit on both ends
+                if (u.digit === rootDigit) {
+                    const eliminations = board.getDigitEliminations(rootDigit, [rootId, u.id]);
+
+                    if (eliminations.length > 0) {
+                        const chain = backtrackChain(u.cid, parents);
+
+                        const highlights = chain.filter((_, i) => i % 2 === 0).map(cidToPair);
+                        const highlights2 = chain.filter((_, i) => i % 2 === 1).map(cidToPair);
+
+                        chains.push([
+                            chain,
+                            {
+                                eliminations,
+                                highlights,
+                                highlights2,
+                            }
+                        ]);
+                    }
+                }
+
+                // type 2: different digits which see each other
+                if (
+                    u.digit !== rootDigit
+                    && UNITS.some(unit => unit.includes(rootId) && unit.includes(u.id))
+                ) {
+                    const eliminations: Candidate[] = [];
+
+                    if (board.cell(rootId).hasCandidate(u.digit)) {
+                        eliminations.push([rootId, u.digit]);
+                    }
+
+                    if (board.cell(u.id).hasCandidate(rootDigit)) {
+                        eliminations.push([u.id, rootDigit]);
+                    }
+
+                    if (eliminations.length > 0) {
+                        const chain = backtrackChain(u.cid, parents);
+
+                        const highlights = chain.filter((_, i) => i % 2 === 0).map(cidToPair);
+                        const highlights2 = chain.filter((_, i) => i % 2 === 1).map(cidToPair);
+
+                        chains.push([
+                            chain,
+                            {
+                                eliminations,
+                                highlights,
+                                highlights2,
+                            }
+                        ]);
+                    }
+                }
+            }
 
             if (u.digit === rootDigit && u.nextLink === "weak") {
                 const eliminations = board.getDigitEliminations(rootDigit, [rootId, u.id]);
