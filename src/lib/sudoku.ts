@@ -154,13 +154,13 @@ export class Cell {
 
 
 export class Board {
-    cells: Record<CellId, Cell>;
+    private cells: Record<CellId, Cell>;
 
     constructor(board?: Board) {
         const cells: Partial<Record<CellId, Cell>> = {};
 
         for (const id of CELLS) {
-            cells[id] = new Cell(board?.cells[id]);
+            cells[id] = new Cell(board?.cell(id));
         }
 
         this.cells = cells as Record<CellId, Cell>;
@@ -518,6 +518,42 @@ const xyzWing: StrategyFunction = (board: Board) => {
     return undefined;
 };
 
+const bug: StrategyFunction = (board: Board) => {
+    const nonBivalueCells = CELLS
+        .filter(id => !board.cell(id).hasDigit())
+        .filter(id => board.cell(id).candidates.length !== 2);
+
+    if (nonBivalueCells.length !== 1) {
+        return undefined;
+    }
+
+    const bugId = nonBivalueCells[0];
+
+    const bugCandidates = board.cell(bugId).candidates;
+
+    if (bugCandidates.length !== 3) {
+        return undefined;
+    }
+
+    for (const digit of bugCandidates) {
+        for (const unit of UNITS.filter(contains(bugId))) {
+            const count = unit.filter(board.cellHasCandidate(digit)).length;
+
+            if (count !== 3) {
+                break;
+            }
+
+            return {
+                solutions: [[bugId, digit]],
+            };
+        }
+    }
+
+
+
+    return undefined;
+};
+
 const xChainSimple = makeChain(["bilocal"], ["bilocal"]);
 const xChainAlternating = makeChain(["bilocal"], ["weakUnit"]);
 const xyChain = makeChain(["bivalue"], ["weakUnit"]);
@@ -543,5 +579,6 @@ export const STRATEGIES: Strategy[] = [
     ["x-chain (alternating)", xChainAlternating],
     ["y-wing", yWing],
     ["xyz-wing", xyzWing],
+    ["bug", bug],
     ["xy-chain", xyChain],
 ];

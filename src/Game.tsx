@@ -78,8 +78,12 @@ export default class Game extends React.Component<any, GameState> {
         }
 
         this.setState({
+            board,
             history: [board],
         });
+
+        this.resetSelection();
+        this.resetKnowledge();
     }
 
     resetSelection() {
@@ -246,8 +250,6 @@ export default class Game extends React.Component<any, GameState> {
         }
 
         for (const strat of STRATEGIES) {
-
-
             if (await this.checkStrategy(strat)) {
                 return;
             }
@@ -266,7 +268,6 @@ export default class Game extends React.Component<any, GameState> {
                     history: history,
                 };
             }
-
 
             return {
                 board: history[history.length - 1],
