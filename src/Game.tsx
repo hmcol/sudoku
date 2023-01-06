@@ -26,7 +26,7 @@ export default class Game extends React.Component<any, GameState> {
 
         this.state = {
             board: Board.fromString(
-                "800070500090050040000900700401003020900000004070400306006009000020080030004030007"
+                "6.7..5.1.58...79......6......5.....9...936...3.....4......8......36...94.5.2..8.6"
             )!,
             history: [],
             selectedCells: new Set(),
@@ -321,8 +321,8 @@ export default class Game extends React.Component<any, GameState> {
             };
         });
 
-        if (found) {
-            console.log(name, result);
+        if (found && name !== "revise notes") {
+            console.log(name);
         }
 
         this.setState({
