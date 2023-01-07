@@ -1,18 +1,21 @@
 import { isNone, isSome, notEqual } from "./combinatorics";
-import { Board, CELLS, Candidate, CandidateId, CellId, DIGITS, Digit, StrategyFunction, StrategyResult, UNITS, cellIdOf, cidOf, cidToPair, digitOf } from "./sudoku";
+import { BOXES, Board, CELLS, COLUMNS, Candidate, CandidateId, CellId, DIGITS, Digit, ROWS, StrategyFunction, StrategyResult, UNITS, cellIdOf, cidOf, cidToPair, digitOf } from "./sudoku";
 
-type LinkClass = "bivalue" | "bilocal" | "weakCell" | "weakUnit";
+type LinkClass = "bivalue" | "bilocal" | "bilocalBox" | "bilocalRow" | "bilocalColumn" | "weakCell" | "weakUnit" | "weakBox" | "weakRow" | "weakColumn";
 
-export function makeChain(
+export function makeBasicChain(
     strongClasses: LinkClass[],
     weakClasses: LinkClass[],
+    minLength?: number,
     maxLength?: number,
 ): StrategyFunction {
     return (board: Board) => {
         const strongLinks = new CandidateLinks(board, strongClasses);
         const weakLinks = new CandidateLinks(board, weakClasses);
 
-        const chains = findAlternatingChains(board, strongLinks, weakLinks, maxLength);
+        const chains = findAlternatingChains(board, strongLinks, weakLinks, minLength, maxLength);
+
+        // console.log(chains);
 
         return shortestChain(chains);
     };
@@ -32,12 +35,36 @@ class CandidateLinks {
             this.findStrongBilocal(board);
         }
 
+        if (linkTypes.includes("bilocalBox")) {
+            this.findStrongBilocalBox(board);
+        }
+        
+        if (linkTypes.includes("bilocalRow")) {
+            this.findStrongBilocalRow(board);
+        }
+
+        if (linkTypes.includes("bilocalColumn")) {
+            this.findStrongBilocalColumn(board);
+        }
+
         if (linkTypes.includes("weakCell")) {
             this.findWeakCell(board);
         }
 
         if (linkTypes.includes("weakUnit")) {
             this.findWeakUnit(board);
+        }
+
+        if (linkTypes.includes("weakBox")) {
+            this.findWeakBox(board);
+        }
+
+        if (linkTypes.includes("weakRow")) {
+            this.findWeakRow(board);
+        }
+
+        if (linkTypes.includes("weakColumn")) {
+            this.findWeakColumn(board);
         }
     }
 
@@ -92,6 +119,36 @@ class CandidateLinks {
         }
     }
 
+    findStrongBilocalSpecific(board: Board, units: CellId[][]) {
+        for (const digit of DIGITS) {
+            for (const unit of units) {
+                const candidateCells = unit.filter(id =>
+                    board.cell(id).hasCandidate(digit)
+                );
+
+                if (candidateCells.length !== 2) {
+                    continue;
+                }
+
+                const [cid1, cid2] = candidateCells.map(id => cidOf(id, digit));
+
+                this.add(cid1, cid2);
+                this.add(cid2, cid1);
+            }
+        }
+    }
+
+    findStrongBilocalBox(board: Board) {
+        this.findStrongBilocalSpecific(board, BOXES);
+    }
+
+    findStrongBilocalRow(board: Board) {
+        this.findStrongBilocalSpecific(board, ROWS);
+    }
+
+    findStrongBilocalColumn(board: Board) {
+        this.findStrongBilocalSpecific(board, COLUMNS);
+    }
 
     // weak link finders
 
@@ -127,6 +184,35 @@ class CandidateLinks {
 
         }
     }
+
+    findWeakBox(board: Board) {
+        this.findWeakUnitSpecific(board, BOXES);
+    }
+
+    findWeakRow(board: Board) {
+        this.findWeakUnitSpecific(board, ROWS);
+    }
+
+    findWeakColumn(board: Board) {
+        this.findWeakUnitSpecific(board, COLUMNS);
+    }
+
+    findWeakUnitSpecific(board: Board, units: CellId[][]) {
+        for (const digit of DIGITS) {
+            for (const unit of units) {
+                const candidateCells = unit.filter((id) =>
+                    board.cell(id).hasCandidate(digit)
+                );
+
+                for (const id1 of candidateCells) {
+                    for (const id2 of candidateCells.filter(notEqual(id1))) {
+                        this.add(cidOf(id1, digit), cidOf(id2, digit));
+                    }
+                }
+
+            }
+        }
+    }
 }
 
 type LinkType = "strong" | "weak";
@@ -159,6 +245,7 @@ function findAlternatingChains(
     board: Board,
     strongLinks: CandidateLinks,
     weakLinks: CandidateLinks,
+    minLength?: number,
     maxLength?: number,
 ): ChainResult[] {
     const chains = new Array<ChainResult>();
@@ -181,7 +268,7 @@ function findAlternatingChains(
             const u = queue.shift()!;
 
             // if chain is nontrivial and ends with a strong link
-            if (u.depth >= 4 && u.nextLink === "weak") {
+            if (u.depth >= (minLength ?? 4) && u.nextLink === "weak") {
 
                 // type 1: same digit on both ends
                 if (u.digit === rootDigit) {
@@ -235,31 +322,6 @@ function findAlternatingChains(
                         ]);
                     }
                 }
-            }
-
-            if (u.digit === rootDigit && u.nextLink === "weak") {
-                const eliminations = board.getDigitEliminations(rootDigit, [rootId, u.id]);
-
-                if (eliminations.length > 0) {
-                    const chain = backtrackChain(u.cid, parents);
-
-                    const highlights = chain.filter((_, i) => i % 2 === 0).map(cidToPair);
-                    const highlights2 = chain.filter((_, i) => i % 2 === 1).map(cidToPair);
-
-                    chains.push([
-                        chain,
-                        {
-                            eliminations,
-                            highlights,
-                            highlights2,
-                        }
-                    ]);
-                }
-
-
-
-
-
             }
 
             // keep looking

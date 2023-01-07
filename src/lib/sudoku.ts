@@ -1,4 +1,4 @@
-import { makeChain } from "./chain";
+import { makeBasicChain } from "./chain";
 import { contains, hasSubset, In, intersection, isNone, isSome, isSubset, notEqual, notIn, pairsOf, tuplesOf } from "./combinatorics";
 
 export type Digit = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
@@ -283,7 +283,28 @@ const reviseNotes: StrategyFunction = (board: Board) => {
         undefined;
 };
 
-const hiddenSingles: StrategyFunction = (board: Board) => {
+const fullHouse: StrategyFunction = (board: Board) => {
+    const solutions = new Array<Candidate>();
+
+    for (const unit of UNITS) {
+        const unsolvedCells = unit.filter(id => !board.cell(id).hasDigit());
+
+        if (unsolvedCells.length !== 1) {
+            continue;
+        }
+
+        const id = unsolvedCells[0];
+        const digit = board.cell(id).candidates[0]; // should be true if notes are correct
+
+        solutions.push([id, digit]);
+    }
+
+    return solutions.length > 0 ?
+        { solutions } :
+        undefined;
+};
+
+const hiddenSingle: StrategyFunction = (board: Board) => {
     const solutions = new Array<Candidate>();
 
     for (const digit of DIGITS) {
@@ -303,7 +324,7 @@ const hiddenSingles: StrategyFunction = (board: Board) => {
         undefined;
 };
 
-const nakedSingles: StrategyFunction = (board: Board) => {
+const nakedSingle: StrategyFunction = (board: Board) => {
     const solutions = new Array<Candidate>();
 
     for (const id of CELLS) {
@@ -476,7 +497,27 @@ const xWing = makeBasicFish(2);
 const swordfish = makeBasicFish(3);
 const jellyfish = makeBasicFish(4);
 
-const yWing = makeChain(["bivalue"], ["weakUnit"], 6);
+
+const skyscraper: StrategyFunction = (board: Board) => {
+    const vertical = makeBasicChain(["bilocalColumn"], ["weakRow"], 4, 4)(board);
+    if (isSome(vertical)) {
+        return vertical;
+    }
+
+    const horizontal = makeBasicChain(["bilocalRow"], ["weakColumn"], 4, 4)(board);
+    if (isSome(horizontal)) {
+        return horizontal;
+    }
+
+    return undefined;
+};
+
+const kite = makeBasicChain(["bilocalRow", "bilocalColumn"], ["weakBox"], 4, 4);
+
+const turbotFish = makeBasicChain(["bilocal"], ["weakUnit"], 4, 4);
+
+
+const yWing = makeBasicChain(["bivalue"], ["weakUnit"], 6, 6);
 
 const xyzWing: StrategyFunction = (board: Board) => {
     for (const xyzId of CELLS) {
@@ -540,7 +581,7 @@ const wWing: StrategyFunction = (board: Board) => {
                 const w = board.cell(wx1Id).candidates.find(notEqual(x))!;
 
                 for (const wx2Id of wxCells[1].filter(board.cellHasCandidate(w))) {
-                    
+
                     const eliminations = board.getDigitEliminations(w, [wx1Id, wx2Id]);
 
                     if (eliminations.length > 0) {
@@ -559,6 +600,13 @@ const wWing: StrategyFunction = (board: Board) => {
 
     return undefined;
 };
+
+
+// const uniqueRectangle: StrategyFunction = (board: Board) => {
+//     // todo
+
+//     return undefined;
+// }
 
 const bug: StrategyFunction = (board: Board) => {
     const nonBivalueCells = CELLS
@@ -596,18 +644,19 @@ const bug: StrategyFunction = (board: Board) => {
     return undefined;
 };
 
-const xChainSimple = makeChain(["bilocal"], ["bilocal"]);
-const xChainAlternating = makeChain(["bilocal"], ["weakUnit"]);
-const xyChain = makeChain(["bivalue"], ["weakUnit"]);
+const xChainSimple = makeBasicChain(["bilocal"], ["bilocal"]);
+const xChainAlternating = makeBasicChain(["bilocal"], ["weakUnit"]);
+const xyChain = makeBasicChain(["bivalue"], ["weakUnit"]);
 
-const aic = makeChain(["bivalue", "bilocal"], ["weakUnit", "weakCell"]);
+const aic = makeBasicChain(["bivalue", "bilocal"], ["weakUnit", "weakCell"]);
 
 export type Strategy = [name: string, func: StrategyFunction];
 
 export const STRATEGIES: Strategy[] = [
     ["revise notes", reviseNotes],
-    ["naked singles", nakedSingles],
-    ["hidden singles", hiddenSingles],
+    ["full house", fullHouse],
+    ["naked single", nakedSingle],
+    ["hidden single", hiddenSingle],
     ["naked pair", nakedPair],
     ["hidden pair", hiddenPair],
     ["naked triple", nakedTriple],
@@ -619,6 +668,9 @@ export const STRATEGIES: Strategy[] = [
     ["x-wing", xWing],
     ["swordfish", swordfish],
     ["jellyfish", jellyfish],
+    ["skyscraper", skyscraper],
+    ["2-string kite", kite],
+    ["turbot fish", turbotFish],
     ["x-chain (simple)", xChainSimple],
     ["x-chain (alternating)", xChainAlternating],
     ["y-wing", yWing],
