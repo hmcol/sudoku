@@ -1,5 +1,5 @@
 import { makeBasicChain } from "./chain";
-import { contains, hasSubset, In, intersection, isNone, isSome, isSubset, notEqual, notIn, pairsOf, tuplesOf } from "./combinatorics";
+import { contains, hasSubset, In, intersection, isNone, isSome, isSubset, notEqual, notIn, pairsOf, tuplesOf, Graph, Tuple } from "./combinatorics";
 
 export type Digit = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
 export const DIGITS: Digit[] = [1, 2, 3, 4, 5, 6, 7, 8, 9];
@@ -82,6 +82,8 @@ export const ROWS: CellId[][] = [
     ["I1", "I2", "I3", "I4", "I5", "I6", "I7", "I8", "I9"],
 ];
 
+export const FLOORS: CellId[][][] = [ROWS.slice(0, 3), ROWS.slice(3, 6), ROWS.slice(6, 9)];
+
 export const COLUMNS: CellId[][] = [
     ["A1", "B1", "C1", "D1", "E1", "F1", "G1", "H1", "I1"],
     ["A2", "B2", "C2", "D2", "E2", "F2", "G2", "H2", "I2"],
@@ -93,6 +95,8 @@ export const COLUMNS: CellId[][] = [
     ["A8", "B8", "C8", "D8", "E8", "F8", "G8", "H8", "I8"],
     ["A9", "B9", "C9", "D9", "E9", "F9", "G9", "H9", "I9"],
 ];
+
+export const TOWERS: CellId[][][] = [COLUMNS.slice(0, 3), COLUMNS.slice(3, 6), COLUMNS.slice(6, 9)];
 
 export const UNITS: CellId[][] = BOXES.concat(ROWS).concat(COLUMNS);
 export const LINES: CellId[][] = ROWS.concat(COLUMNS);
@@ -602,11 +606,150 @@ const wWing: StrategyFunction = (board: Board) => {
 };
 
 
-// const uniqueRectangle: StrategyFunction = (board: Board) => {
-//     // todo
+const uniqueRectangle: StrategyFunction = (board: Board) => {
+    // make link graph
+    const g = new Graph();
 
-//     return undefined;
-// }
+    // bivalue
+    for (const id of CELLS) {
+        const candidates = board.cell(id).candidates;
+
+        if (candidates.length === 2) {
+            for (const digit of candidates) {
+                g.addVertex(cidOf(id, digit));
+            }
+        }
+    }
+
+    // line bilocal
+    for (const line of LINES) {
+        for (const digit of DIGITS) {
+            const candidateCells = line.filter(board.cellHasCandidate(digit));
+
+            if (candidateCells.length === 2) {
+                g.addEdge(cidOf(candidateCells[0], digit), cidOf(candidateCells[1], digit));
+            }
+        }
+    }
+
+    // find rectangles
+    const cubes = [];
+
+    for (const [upFloor, downFloor] of pairsOf(FLOORS)) {
+        for (const upWall of upFloor) {
+            for (const downWall of downFloor) {
+                for (const [leftWall, rightWall] of TOWERS.map(pairsOf).flat()) {
+                    const ulCell = intersection(upWall, leftWall)[0];
+                    const urCell = intersection(upWall, rightWall)[0];
+                    const dlCell = intersection(downWall, leftWall)[0];
+                    const drCell = intersection(downWall, rightWall)[0];
+
+                    for (const [a, b] of pairsOf(DIGITS)) {
+                        const candidateCube = [
+                            [
+                                [cidOf(ulCell, a), cidOf(ulCell, b)],
+                                [cidOf(urCell, a), cidOf(urCell, b)],
+                            ],
+                            [
+                                [cidOf(dlCell, a), cidOf(dlCell, b)],
+                                [cidOf(drCell, a), cidOf(drCell, b)],
+                            ],
+                        ] as const;
+
+
+
+                        cubes.push(candidateCube);
+                    }
+
+
+                    // console.log(ulCell, urCell, dlCell, drCell);
+                }
+            }
+        }
+    }
+
+    const iters = [];
+
+    for (const cube of cubes) {
+        for (const i of [0, 1]) {
+            for (const j of [0, 1]) {
+                for (const k of [0, 1]) {
+                    const focusId = cube[i][j][k];
+                    // console.log(focusId);
+                    iters.push(focusId);
+                    type V = Tuple<0 | 1, 3>;
+
+                    const vertexToId = ([x, y, z]: V) => (
+                        cube[x == 0 ? i : 1 - i][y == 0 ? j : 1 - j][z == 0 ? k : 1 - k]
+                    );
+
+                    const edge = (v1: V, v2: V) => g.hasEdge(vertexToId(v1), vertexToId(v2));
+
+
+                    // check patterns
+
+                    //   *-----*
+                    //  /|    /|
+                    // j-----* |
+                    // | |   | |
+                    // | k---|-*
+                    // |/    |/
+                    // 0-----i
+
+
+                    //   *     *
+                    //  /     /
+                    // j     * 
+                    //      
+                    //   k     *
+                    //        /
+                    // 0     i
+                    if (edge([1, 0, 0], [1, 0, 1])
+                        && edge([1, 1, 0], [1, 1, 1])
+                        && edge([0, 1, 0], [0, 1, 1])
+                    ) {
+                        console.log(cube, i, j, k);
+                    }
+
+                    //   *     *
+                    //  /      |
+                    // j     * |
+                    //       | |
+                    //   k   | *
+                    //       | 
+                    // 0     i
+                    if (edge([1, 0, 0], [1, 1, 0])
+                        && edge([1, 0, 1], [1, 1, 1])
+                        && edge([0, 1, 0], [0, 1, 1])
+                    ) {
+                        console.log(cube, i, j, k);
+                    }
+
+                    //   *-----*
+                    //        
+                    // j-----* 
+                    //       
+                    //   k     *
+                    //        /
+                    // 0     i
+                    if (edge([1, 0, 0], [1, 0, 1])
+                        && edge([0, 1, 0], [0, 1, 1])
+                        && edge([0, 1, 1], [1, 1, 1])
+                    ) {
+                        console.log(cube, i, j, k);
+                    }
+
+                    
+                };
+            }
+        }
+
+    }
+
+    // console.log(iters);
+
+    return undefined;
+};
 
 const bug: StrategyFunction = (board: Board) => {
     const nonBivalueCells = CELLS
@@ -676,6 +819,7 @@ export const STRATEGIES: Strategy[] = [
     ["y-wing", yWing],
     ["xyz-wing", xyzWing],
     ["w-wing", wWing],
+    ["unique rectangle", uniqueRectangle],
     ["bug", bug],
     ["xy-chain", xyChain],
     ["aic", aic],
