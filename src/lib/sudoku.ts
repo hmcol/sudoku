@@ -615,9 +615,7 @@ const uniqueRectangle: StrategyFunction = (board: Board) => {
         const candidates = board.cell(id).candidates;
 
         if (candidates.length === 2) {
-            for (const digit of candidates) {
-                g.addVertex(cidOf(id, digit));
-            }
+            g.addEdge(cidOf(id, candidates[0]), cidOf(id, candidates[1]));
         }
     }
 
@@ -645,7 +643,7 @@ const uniqueRectangle: StrategyFunction = (board: Board) => {
                     const drCell = intersection(downWall, rightWall)[0];
 
                     for (const [a, b] of pairsOf(DIGITS)) {
-                        const candidateCube = [
+                        cubes.push([
                             [
                                 [cidOf(ulCell, a), cidOf(ulCell, b)],
                                 [cidOf(urCell, a), cidOf(urCell, b)],
@@ -654,99 +652,76 @@ const uniqueRectangle: StrategyFunction = (board: Board) => {
                                 [cidOf(dlCell, a), cidOf(dlCell, b)],
                                 [cidOf(drCell, a), cidOf(drCell, b)],
                             ],
-                        ] as const;
-
-
-
-                        cubes.push(candidateCube);
+                        ]);
                     }
-
-
-                    // console.log(ulCell, urCell, dlCell, drCell);
                 }
             }
         }
     }
 
-    const iters = [];
+    type B = 0 | 1;
+    type V = Tuple<B, 3>;
 
     for (const cube of cubes) {
-        for (const i of [0, 1]) {
-            for (const j of [0, 1]) {
-                for (const k of [0, 1]) {
-                    const focusId = cube[i][j][k];
-                    // console.log(focusId);
-                    iters.push(focusId);
-                    type V = Tuple<0 | 1, 3>;
+        for (const i of [0, 1] as const) {
+            for (const j of [0, 1] as const) {
+                for (const k of [0, 1] as const) {
+                    const flip = (b: B) => b === 0 ? 1 : 0;
 
                     const vertexToId = ([x, y, z]: V) => (
-                        cube[x == 0 ? i : 1 - i][y == 0 ? j : 1 - j][z == 0 ? k : 1 - k]
+                        cube[x === 0 ? i : 1 - i][y === 0 ? j : 1 - j][z === 0 ? k : 1 - k]
                     );
+
+                    const idOf = ([x, y, z]: V) => `${x}${y}${z}`;
 
                     const edge = (v1: V, v2: V) => g.hasEdge(vertexToId(v1), vertexToId(v2));
 
+                    const queue: [V, "strong" | "weak"][] = [];
+                    const visited = new Set<string>();
 
-                    // check patterns
+                    queue.push([[0, 0, 0], "weak"]);
 
-                    //   *-----*
-                    //  /|    /|
-                    // j-----* |
-                    // | |   | |
-                    // | k---|-*
-                    // |/    |/
-                    // 0-----i
+                    while (queue.length > 0) {
+                        const [u, nextLink] = queue.shift()!;
 
+                        visited.add(idOf(u));
 
-                    //   *     *
-                    //  /     /
-                    // j     * 
-                    //      
-                    //   k     *
-                    //        /
-                    // 0     i
-                    if (edge([1, 0, 0], [1, 0, 1])
-                        && edge([1, 1, 0], [1, 1, 1])
-                        && edge([0, 1, 0], [0, 1, 1])
-                    ) {
-                        console.log(cube, i, j, k);
+                        let adjacentVertices: V[] = [
+                            [flip(u[0]), u[1], u[2]],
+                            [u[0], flip(u[1]), u[2]],
+                            [u[0], u[1], flip(u[2])]
+                        ];
+
+                        if (nextLink === "strong") {
+                            adjacentVertices = adjacentVertices.filter(v => edge(u, v));
+                        }
+
+                        for (const v of adjacentVertices) {
+                            if (visited.has(idOf(v))) {
+                                continue;
+                            }
+
+                            queue.push([
+                                v,
+                                nextLink === "strong" ? "weak" : "strong",
+                            ]);
+                        }
                     }
 
-                    //   *     *
-                    //  /      |
-                    // j     * |
-                    //       | |
-                    //   k   | *
-                    //       | 
-                    // 0     i
-                    if (edge([1, 0, 0], [1, 1, 0])
-                        && edge([1, 0, 1], [1, 1, 1])
-                        && edge([0, 1, 0], [0, 1, 1])
-                    ) {
-                        console.log(cube, i, j, k);
-                    }
+                    if (visited.has("110") && visited.has("101") && visited.has("011")) {
+                        const [id, digit] = cidToPair(cube[i][j][k]);
 
-                    //   *-----*
-                    //        
-                    // j-----* 
-                    //       
-                    //   k     *
-                    //        /
-                    // 0     i
-                    if (edge([1, 0, 0], [1, 0, 1])
-                        && edge([0, 1, 0], [0, 1, 1])
-                        && edge([0, 1, 1], [1, 1, 1])
-                    ) {
-                        console.log(cube, i, j, k);
+                        if (board.cell(id).hasCandidate(digit)) {
+                            return {
+                                eliminations: [[id, digit]],
+                                highlights: cube.flat().flat().map(cidToPair),
+                            };
+                        }
                     }
-
-                    
                 };
             }
         }
-
     }
-
-    // console.log(iters);
 
     return undefined;
 };
