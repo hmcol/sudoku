@@ -1,11 +1,18 @@
+import { Strategy } from ".";
 import { hasSubset, isNone, notIn } from "../combinatorics";
 import { Board, Cell, DIGITS, CellDigitPair, BOXES, LINES } from "../sudoku";
-import { StrategyFunction } from "./types";
 
-export const intersectionPointing = makeIntersection(BOXES, LINES);
-export const intersectionClaiming = makeIntersection(LINES, BOXES);
+export const intersectionPointing: Strategy ={
+    name: "intersection pointing",
+    func: makeIntersection(BOXES, LINES),
+};
 
-function makeIntersection(baseType: Cell[][], coverType: Cell[][]): StrategyFunction {
+export const intersectionClaiming: Strategy ={
+    name: "intersection claiming",
+    func: makeIntersection(LINES, BOXES),
+};
+
+function makeIntersection(baseType: Cell[][], coverType: Cell[][]) {
     return (board: Board) => {
         for (const digit of DIGITS) {
             for (const baseUnit of baseType) {

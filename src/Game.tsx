@@ -294,11 +294,11 @@ export default class Game extends React.Component<any, GameState> {
         this.resetSelection();
     }
 
-    async checkStrategy([name, func]: Strategy): Promise<boolean> {
+    async checkStrategy(strat: Strategy): Promise<boolean> {
         // pre-computation
         this.setState(prevState => {
             const strategyStatus = new Map(prevState.strategyStatus);
-            strategyStatus.set(name, "?");
+            strategyStatus.set(strat.name, "?");
             return {
                 strategyStatus
             };
@@ -309,7 +309,7 @@ export default class Game extends React.Component<any, GameState> {
 
         const promise = new Promise<StrategyResult | undefined>((resolve, _) => {
             setTimeout(() => {
-                resolve(func(board));
+                resolve(strat.func(board));
             }, 0);
         });
 
@@ -320,14 +320,14 @@ export default class Game extends React.Component<any, GameState> {
 
         this.setState(prevState => {
             const strategyStatus = new Map(prevState.strategyStatus);
-            strategyStatus.set(name, found ? "yes" : "no");
+            strategyStatus.set(strat.name, found ? "yes" : "no");
             return {
                 strategyStatus
             };
         });
 
-        if (found && name !== "revise notes") {
-            console.log(name);
+        if (found && strat.name !== "revise notes") {
+            console.log(strat.name);
         }
 
         this.setState({
@@ -641,12 +641,12 @@ function StrategyList(props: StrategyListProps) {
                     {String(index).padStart(2, "0")}
                 </div>
                 <div className={"strategy-name"}>
-                    {strat[0]}
+                    {strat.name}
                 </div>
                 <div className={"strategy-status"}
                     onClick={() => props.onClick(strat)}
                 >
-                    {props.strategyStatus.get(strat[0]) ?? " "}
+                    {props.strategyStatus.get(strat.name) ?? " "}
                 </div>
             </div>
         );

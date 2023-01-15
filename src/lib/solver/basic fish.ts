@@ -1,12 +1,23 @@
+import { Strategy } from ".";
 import { isSubset, notIn, tuplesOf } from "../combinatorics";
 import { Board, DIGITS, CellDigitPair, COLUMNS, ROWS } from "../sudoku";
-import { StrategyFunction } from "./types";
 
-export const xWing = makeBasicFish(2);
-export const swordfish = makeBasicFish(3);
-export const jellyfish = makeBasicFish(4);
+export const xWing: Strategy = {
+    name: "x-wing",
+    func: makeBasicFish(2),
+};
 
-function makeBasicFish(n: 2 | 3 | 4): StrategyFunction {
+export const swordfish: Strategy = {
+    name: "swordfish",
+    func: makeBasicFish(3),
+};
+
+export const jellyfish: Strategy = {
+    name: "jellyfish",
+    func: makeBasicFish(4),
+};
+
+function makeBasicFish(n: 2 | 3 | 4) {
     return (board: Board) => {
         for (const digit of DIGITS) {
             for (const [baseType, coverType] of [[COLUMNS, ROWS], [ROWS, COLUMNS]]) {

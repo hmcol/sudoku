@@ -1,20 +1,32 @@
+import { Strategy } from ".";
 import { isSome } from "../combinatorics";
 import { Board } from "../sudoku";
-import { StrategyFunction } from "./types";
 import { makeBasicChain } from "./chains";
 
-export const skyscraper: StrategyFunction = (board: Board) => {
-    const vertical = makeBasicChain(["bilocalColumn"], ["weakRow"], 4, 4)(board);
-    if (isSome(vertical)) {
-        return vertical;
-    }
+export const skyscraper: Strategy = {
+    name: "skyscraper",
+    func: (board: Board) => {
+        const vertical = makeBasicChain(["bilocalColumn"], ["weakRow"], 4, 4)(board);
+        if (isSome(vertical)) {
+            return vertical;
+        }
 
-    const horizontal = makeBasicChain(["bilocalRow"], ["weakColumn"], 4, 4)(board);
-    if (isSome(horizontal)) {
-        return horizontal;
-    }
+        const horizontal = makeBasicChain(["bilocalRow"], ["weakColumn"], 4, 4)(board);
+        if (isSome(horizontal)) {
+            return horizontal;
+        }
 
-    return undefined;
+        return undefined;
+    },
 };
-export const kite = makeBasicChain(["bilocalRow", "bilocalColumn"], ["weakBox"], 4, 4);
-export const turbotFish = makeBasicChain(["bilocal"], ["weakUnit"], 4, 4);
+
+
+export const kite: Strategy = {
+    name: "kite",
+    func: makeBasicChain(["bilocalRow", "bilocalColumn"], ["weakBox"], 4, 4),
+};
+
+export const turbotFish: Strategy = {
+    name: "turbot fish",
+    func: makeBasicChain(["bilocal"], ["weakUnit"], 4, 4),
+};

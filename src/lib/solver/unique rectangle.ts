@@ -1,6 +1,6 @@
+import { Strategy } from ".";
 import { intersection, pairsOf, Graph, Tuple, iterProduct3, iterProduct } from "../combinatorics";
-import { CELLS, newCandidate, candidateToPair, LINES, FLOORS, TOWERS, DIGITS,  Board } from "../sudoku";
-import { StrategyFunction } from "./types";
+import { CELLS, newCandidate, candidateToPair, LINES, FLOORS, TOWERS, DIGITS, Board } from "../sudoku";
 
 // binary type
 type B = 0 | 1;
@@ -90,40 +90,46 @@ const CUBES = (() => {
 
 // unique rectangle strategies
 
-const ur1: StrategyFunction = (board: Board) => {
-    const g = makeStrongLinkGraph(board);
+const ur1: Strategy = {
+    name: "unique rectangle type 1",
+    func: (board: Board) => {
+        const g = makeStrongLinkGraph(board);
 
-    for (const [[id00, id01], [id10, id11]] of RECTANGLES) {
-        // if (board.cell(id01).candidates.length)
-    }
+        for (const [[id00, id01], [id10, id11]] of RECTANGLES) {
+            // if (board.cell(id01).candidates.length)
+        }
 
-    return undefined;
+        return undefined;
+    },
 };
 
 
 // this checks for the most general case, but it would be more useful to first
 // check for easy specific cases
-export const uniqueRectangle: StrategyFunction = (board: Board) => {
-    const g = makeStrongLinkGraph(board);
+export const uniqueRectangle: Strategy = {
+    name: "unique rectangle",
+    func: (board: Board) => {
+        const g = makeStrongLinkGraph(board);
 
-    // find rectangles
-    for (const cube of CUBES) {
-        for (const [i, j, k] of CUBE_INDICES) {
+        // find rectangles
+        for (const cube of CUBES) {
+            for (const [i, j, k] of CUBE_INDICES) {
 
-            const vertexToId = ([x, y, z]: V) => (
-                cube[x === 0 ? i : 1 - i][y === 0 ? j : 1 - j][z === 0 ? k : 1 - k]
-            );
+                const vertexToId = ([x, y, z]: V) => (
+                    cube[x === 0 ? i : 1 - i][y === 0 ? j : 1 - j][z === 0 ? k : 1 - k]
+                );
 
-            const edge = (v1: V, v2: V) => g.hasEdge(vertexToId(v1), vertexToId(v2));
-
-
-            // type 1
+                const edge = (v1: V, v2: V) => g.hasEdge(vertexToId(v1), vertexToId(v2));
 
 
-        };
-    }
+                // type 1
 
-    return undefined;
+
+            };
+        }
+
+        return undefined;
+    },
 };
 
 

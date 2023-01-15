@@ -1,12 +1,23 @@
+import { Strategy} from ".";
 import { tuplesOf } from "../combinatorics";
 import { Board, DIGITS, CellDigitPair, UNITS } from "../sudoku";
-import { StrategyFunction } from "./types";
 
-export const nakedPair = makeNakedSubset(2);
-export const nakedTriple = makeNakedSubset(3);
-export const nakedQuad = makeNakedSubset(4);
+export const nakedPair: Strategy = {
+    name: "naked pair",
+    func: makeNakedSubset(2),
+};
 
-function makeNakedSubset(n: 2 | 3 | 4): StrategyFunction {
+export const nakedTriple: Strategy = {
+    name: "naked triple",
+    func: makeNakedSubset(3),
+};
+
+export const nakedQuad: Strategy = {
+    name: "naked quad",
+    func: makeNakedSubset(4),
+};
+
+function makeNakedSubset(n: 2 | 3 | 4) {
     return (board: Board) => {
         for (const unit of UNITS) {
             const unitFiltered = unit.filter(id => !board.cell(id).hasDigit());

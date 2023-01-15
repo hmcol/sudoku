@@ -1,8 +1,23 @@
+import { Strategy } from ".";
 import { notIn, tuplesOf } from "../combinatorics";
 import { Board, DIGITS, CellDigitPair, UNITS } from "../sudoku";
-import { StrategyFunction } from "./types";
 
-function makeHiddenSubset(n: 2 | 3 | 4): StrategyFunction {
+export const hiddenPair: Strategy = {
+    name: "hidden pair",
+    func: makeHiddenSubset(2),
+};
+
+export const hiddenTriple: Strategy = {
+    name: "hidden triple",
+    func: makeHiddenSubset(3),
+};
+
+export const hiddenQuad: Strategy = {
+    name: "hidden quad",
+    func: makeHiddenSubset(4),
+};
+
+function makeHiddenSubset(n: 2 | 3 | 4) {
     return (board: Board) => {
         for (const unit of UNITS) {
             const digits = DIGITS.filter(digit => unit.every(id => board.cell(id).digit !== digit
@@ -35,6 +50,4 @@ function makeHiddenSubset(n: 2 | 3 | 4): StrategyFunction {
         return undefined;
     };
 }
-export const hiddenPair = makeHiddenSubset(2);
-export const hiddenTriple = makeHiddenSubset(3);
-export const hiddenQuad = makeHiddenSubset(4);
+

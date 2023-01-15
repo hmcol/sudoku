@@ -1,11 +1,27 @@
 import { isNone, isSome, notEqual } from "../combinatorics";
 import { CELLS, Cell, CellDigitPair, Candidate, cellOf, newCandidate, candidateToPair, digitOf, BOXES, COLUMNS, ROWS, UNITS, DIGITS, Digit, Board } from "../sudoku";
-import { StrategyFunction, StrategyResult } from ".";
+import { Strategy, StrategyResult } from ".";
 
-export const xChainSimple = makeBasicChain(["bilocal"], ["bilocal"]);
-export const xChainAlternating = makeBasicChain(["bilocal"], ["weakUnit"]);
-export const xyChain = makeBasicChain(["bivalue"], ["weakUnit"]);
-export const aic = makeBasicChain(["bivalue", "bilocal"], ["weakUnit", "weakCell"]);
+export const xChainSimple: Strategy = {
+    name: "x-chain simple",
+    func: makeBasicChain(["bilocal"], ["bilocal"]),
+};
+
+export const xChain: Strategy = {
+    name: "x-chain alternating",
+    func: makeBasicChain(["bilocal"], ["weakUnit"]),
+};
+
+export const xyChain: Strategy = {
+    name: "xy-chain",
+    func: makeBasicChain(["bivalue"], ["weakUnit"]),
+};
+
+
+export const aic: Strategy = {
+    name: "aic",
+    func: makeBasicChain(["bivalue", "bilocal"], ["weakUnit", "weakCell"])
+};
 
 type LinkClass = "bivalue" | "bilocal" | "bilocalBox" | "bilocalRow" | "bilocalColumn" | "weakCell" | "weakUnit" | "weakBox" | "weakRow" | "weakColumn";
 
@@ -14,7 +30,7 @@ export function makeBasicChain(
     weakClasses: LinkClass[],
     minLength?: number,
     maxLength?: number,
-): StrategyFunction {
+) {
     return (board: Board) => {
         const strongLinks = new CandidateLinks(board, strongClasses);
         const weakLinks = new CandidateLinks(board, weakClasses);
