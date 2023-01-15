@@ -1,5 +1,11 @@
-import { isNone, isSome, notEqual } from "./combinatorics";
-import { BOXES, Board, CELLS, COLUMNS, Candidate, CandidateId, CellId, DIGITS, Digit, ROWS, StrategyFunction, StrategyResult, UNITS, cellIdOf, cidOf, cidToPair, digitOf } from "./sudoku";
+import { isNone, isSome, notEqual } from "../combinatorics";
+import { CELLS, Cell, CellDigitPair, Candidate, cellOf, newCandidate, candidateToPair, digitOf, BOXES, COLUMNS, ROWS, UNITS, DIGITS, Digit, Board } from "../sudoku";
+import { StrategyFunction, StrategyResult } from ".";
+
+export const xChainSimple = makeBasicChain(["bilocal"], ["bilocal"]);
+export const xChainAlternating = makeBasicChain(["bilocal"], ["weakUnit"]);
+export const xyChain = makeBasicChain(["bivalue"], ["weakUnit"]);
+export const aic = makeBasicChain(["bivalue", "bilocal"], ["weakUnit", "weakCell"]);
 
 type LinkClass = "bivalue" | "bilocal" | "bilocalBox" | "bilocalRow" | "bilocalColumn" | "weakCell" | "weakUnit" | "weakBox" | "weakRow" | "weakColumn";
 
@@ -22,7 +28,7 @@ export function makeBasicChain(
 }
 
 class CandidateLinks {
-    links: Map<CandidateId, CandidateId[]>;
+    links: Map<Candidate, Candidate[]>;
 
     constructor(board: Board, linkTypes: LinkClass[]) {
         this.links = new Map();
@@ -38,7 +44,7 @@ class CandidateLinks {
         if (linkTypes.includes("bilocalBox")) {
             this.findStrongBilocalBox(board);
         }
-        
+
         if (linkTypes.includes("bilocalRow")) {
             this.findStrongBilocalRow(board);
         }
@@ -72,7 +78,7 @@ class CandidateLinks {
         return this.links.keys();
     }
 
-    add(source: CandidateId, target: CandidateId) {
+    add(source: Candidate, target: Candidate) {
         if (isNone(this.links.get(source))) {
             this.links.set(source, []);
         }
@@ -80,7 +86,7 @@ class CandidateLinks {
         this.links.get(source)?.push(target);
     }
 
-    get(source: CandidateId): CandidateId[] {
+    get(source: Candidate): Candidate[] {
         return this.links.get(source) ?? [];
     }
 
@@ -89,7 +95,7 @@ class CandidateLinks {
     findStrongBivalue(board: Board) {
         const bivalueCells = CELLS.filter(id => board.cell(id).candidates.length === 2);
         for (const id of bivalueCells) {
-            const [x, y] = board.cell(id).candidates.map(c => cidOf(id, c));
+            const [x, y] = board.cell(id).candidates.map(c => newCandidate(id, c));
 
             this.add(x, y);
             this.add(y, x);
@@ -112,14 +118,14 @@ class CandidateLinks {
                 continue;
             }
 
-            const [cid1, cid2] = candidateCells.map(id => cidOf(id, digit));
+            const [cid1, cid2] = candidateCells.map(id => newCandidate(id, digit));
 
             this.add(cid1, cid2);
             this.add(cid2, cid1);
         }
     }
 
-    findStrongBilocalSpecific(board: Board, units: CellId[][]) {
+    findStrongBilocalSpecific(board: Board, units: Cell[][]) {
         for (const digit of DIGITS) {
             for (const unit of units) {
                 const candidateCells = unit.filter(id =>
@@ -130,7 +136,7 @@ class CandidateLinks {
                     continue;
                 }
 
-                const [cid1, cid2] = candidateCells.map(id => cidOf(id, digit));
+                const [cid1, cid2] = candidateCells.map(id => newCandidate(id, digit));
 
                 this.add(cid1, cid2);
                 this.add(cid2, cid1);
@@ -158,7 +164,7 @@ class CandidateLinks {
 
             for (const digit1 of candidates) {
                 for (const digit2 of candidates.filter(notEqual(digit1))) {
-                    this.add(cidOf(id, digit1), cidOf(id, digit2));
+                    this.add(newCandidate(id, digit1), newCandidate(id, digit2));
                 }
             }
         }
@@ -178,7 +184,7 @@ class CandidateLinks {
 
             for (const id1 of candidateCells) {
                 for (const id2 of candidateCells.filter(notEqual(id1))) {
-                    this.add(cidOf(id1, digit), cidOf(id2, digit));
+                    this.add(newCandidate(id1, digit), newCandidate(id2, digit));
                 }
             }
 
@@ -197,7 +203,7 @@ class CandidateLinks {
         this.findWeakUnitSpecific(board, COLUMNS);
     }
 
-    findWeakUnitSpecific(board: Board, units: CellId[][]) {
+    findWeakUnitSpecific(board: Board, units: Cell[][]) {
         for (const digit of DIGITS) {
             for (const unit of units) {
                 const candidateCells = unit.filter((id) =>
@@ -206,7 +212,7 @@ class CandidateLinks {
 
                 for (const id1 of candidateCells) {
                     for (const id2 of candidateCells.filter(notEqual(id1))) {
-                        this.add(cidOf(id1, digit), cidOf(id2, digit));
+                        this.add(newCandidate(id1, digit), newCandidate(id2, digit));
                     }
                 }
 
@@ -222,24 +228,24 @@ function oppLink(link: LinkType): LinkType {
 }
 
 type QueueItem = {
-    cid: CandidateId,
-    id: CellId,
+    cid: Candidate,
+    id: Cell,
     digit: Digit,
     nextLink: LinkType,
     depth: number,
 };
 
-function newStackItem(cid: CandidateId, nextLink: LinkType, depth: number = 1): QueueItem {
+function newStackItem(cid: Candidate, nextLink: LinkType, depth: number = 1): QueueItem {
     return {
         cid: cid,
-        id: cellIdOf(cid),
+        id: cellOf(cid),
         digit: digitOf(cid),
         nextLink: nextLink,
         depth,
     };
 }
 
-type ChainResult = [CandidateId[], StrategyResult];
+type ChainResult = [Candidate[], StrategyResult];
 
 function findAlternatingChains(
     board: Board,
@@ -256,11 +262,11 @@ function findAlternatingChains(
     };
 
     for (const root of strongLinks.candidates) {
-        const [rootId, rootDigit] = cidToPair(root);
+        const [rootId, rootDigit] = candidateToPair(root);
 
         const queue: QueueItem[] = [];
-        const visited = new Set<CandidateId>();
-        const parents = new Map<CandidateId, CandidateId>();
+        const visited = new Set<Candidate>();
+        const parents = new Map<Candidate, Candidate>();
 
         queue.push(newStackItem(root, "strong"));
 
@@ -277,8 +283,8 @@ function findAlternatingChains(
                     if (eliminations.length > 0) {
                         const chain = backtrackChain(u.cid, parents);
 
-                        const highlights = chain.filter((_, i) => i % 2 === 0).map(cidToPair);
-                        const highlights2 = chain.filter((_, i) => i % 2 === 1).map(cidToPair);
+                        const highlights = chain.filter((_, i) => i % 2 === 0).map(candidateToPair);
+                        const highlights2 = chain.filter((_, i) => i % 2 === 1).map(candidateToPair);
 
                         chains.push([
                             chain,
@@ -296,7 +302,7 @@ function findAlternatingChains(
                     u.digit !== rootDigit
                     && UNITS.some(unit => unit.includes(rootId) && unit.includes(u.id))
                 ) {
-                    const eliminations: Candidate[] = [];
+                    const eliminations: CellDigitPair[] = [];
 
                     if (board.cell(rootId).hasCandidate(u.digit)) {
                         eliminations.push([rootId, u.digit]);
@@ -309,8 +315,8 @@ function findAlternatingChains(
                     if (eliminations.length > 0) {
                         const chain = backtrackChain(u.cid, parents);
 
-                        const highlights = chain.filter((_, i) => i % 2 === 0).map(cidToPair);
-                        const highlights2 = chain.filter((_, i) => i % 2 === 1).map(cidToPair);
+                        const highlights = chain.filter((_, i) => i % 2 === 0).map(candidateToPair);
+                        const highlights2 = chain.filter((_, i) => i % 2 === 1).map(candidateToPair);
 
                         chains.push([
                             chain,
@@ -350,7 +356,7 @@ function findAlternatingChains(
     return chains;
 }
 
-function backtrackChain(end: CandidateId, parents: Map<CandidateId, CandidateId>): CandidateId[] {
+function backtrackChain(end: Candidate, parents: Map<Candidate, Candidate>): Candidate[] {
     const chain = [end];
 
     let v = end;
@@ -373,3 +379,4 @@ function shortestChain(chains: ChainResult[]): StrategyResult | undefined {
 
     return shortest[1];
 }
+

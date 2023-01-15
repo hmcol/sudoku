@@ -41,8 +41,7 @@ export function intersection<T>(arr1: T[], arr2: T[]): T[] {
     return arr1.filter(In(arr2));
 }
 
-
-// subset generators ----------------------------------------------------------
+// iterators
 
 type TupleSize = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
 
@@ -50,13 +49,36 @@ export type Tuple<
     T,
     N extends TupleSize,
     A extends T[] = []
-> = N extends A['length'] ?
+> = N extends A["length"] ?
     A :
     Tuple<T, N, [...A, T]>;
 
-
 export function range(n: number): number[] {
     return [...Array(n).keys()];
+}
+
+export function iterProduct<A, B>(aIter: Iterable<A>, bIter: Iterable<B>): [A, B][] {
+    const product = new Array<[A, B]>();
+
+    for (const a of aIter) {
+        for (const b of bIter) {
+            product.push([a, b]);
+        }
+    }
+
+    return product;
+}
+
+export function iterProduct3<A, B, C>(aIter: Iterable<A>, bIter: Iterable<B>, cIter: Iterable<C>): [A, B, C][] {
+    const product = new Array<[A, B, C]>();
+
+    for (const a of aIter) {
+        for (const bc of iterProduct(bIter, cIter)) {
+            product.push([a, ...bc]);
+        }
+    }
+
+    return product;
 }
 
 function orderedChoose(n: number, k: number): number[][] {

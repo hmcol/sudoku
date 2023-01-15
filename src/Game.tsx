@@ -1,8 +1,13 @@
 import React from "react";
 import { MouseEventHandler } from 'react';
 import "./Game.css";
-import { Board, BOXES, Cell, CellId, Digit, DIGITS, parseDigit, STRATEGIES, Strategy, StrategyResult } from './lib/sudoku';
+import { Board } from "./lib/sudoku/board";
+import { CellData } from "./lib/sudoku/cell data";
+import { Cell } from "./lib/sudoku/cell";
+import { BOXES } from "./lib/sudoku/units";
+import { Digit, DIGITS, parseDigit } from "./lib/sudoku/digit";
 import { isNone, isSome } from "./lib/combinatorics";
+import { STRATEGIES, Strategy, StrategyResult } from "./lib/solver";
 
 
 
@@ -13,7 +18,7 @@ type InputMode = "digit" | "note" | "accent" | "strike";
 type GameState = {
     board: Board,
     history: Board[],
-    selectedCells: Set<CellId>,
+    selectedCells: Set<Cell>,
     inputMode: InputMode,
     focus?: Digit,
     result?: StrategyResult,
@@ -101,13 +106,13 @@ export default class Game extends React.Component<any, GameState> {
         });
     }
 
-    handleClickCell(id: CellId) {
+    handleClickCell(id: Cell) {
         this.state.board.cell(id).hasDigit() ?
             this.handleClickCellDigit(id) :
             this.handleClickCellNotes(id);
     }
 
-    handleClickCellDigit(id: CellId) {
+    handleClickCellDigit(id: Cell) {
         const cell = this.state.board.cell(id);
         const digit = cell.digit!;
         const selectedCells = new Set(this.state.selectedCells);
@@ -125,7 +130,7 @@ export default class Game extends React.Component<any, GameState> {
         });
     }
 
-    handleClickCellNotes(id: CellId) {
+    handleClickCellNotes(id: Cell) {
         const selectedCells = new Set(this.state.selectedCells);
         let inputMode = this.state.inputMode;
 
@@ -144,7 +149,7 @@ export default class Game extends React.Component<any, GameState> {
         });
     }
 
-    handleMouseMove(id: CellId) {
+    handleMouseMove(id: Cell) {
         const selectedCells = new Set(this.state.selectedCells);
 
         selectedCells.add(id);
@@ -409,18 +414,18 @@ function SolverControls(props: SolverControlsProps) {
 
 type GridProps = {
     board: Board,
-    selectedCells: Set<CellId>,
+    selectedCells: Set<Cell>,
     result?: StrategyResult,
     focus?: Digit,
-    onClickCell: (id: CellId) => void,
-    onMouseMove: (id: CellId) => void,
+    onClickCell: (id: Cell) => void,
+    onMouseMove: (id: Cell) => void,
 };
 
 class Grid extends React.Component<GridProps> {
 
-    renderCell(id: CellId) {
+    renderCell(id: Cell) {
         const result = this.props.result;
-        const filterCell = (set?: [CellId, Digit][]) => set?.filter(e => e[0] === id).map(e => e[1]);
+        const filterCell = (set?: [Cell, Digit][]) => set?.filter(e => e[0] === id).map(e => e[1]);
 
         const solution = filterCell(result?.solutions)?.at(0);
         const eliminations = filterCell(result?.eliminations);
@@ -459,7 +464,7 @@ class Grid extends React.Component<GridProps> {
 }
 
 type CellProps = {
-    cell: Cell,
+    cell: CellData,
     selected: boolean,
     focus?: Digit,
     solution?: Digit,
