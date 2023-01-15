@@ -7,11 +7,11 @@ export class CellData {
     isGiven: boolean;
     candidateSet: Set<Digit>;
 
-    constructor(cell?: CellData) {
-        if (isSome(cell)) {
-            this.digit = cell.digit;
-            this.isGiven = cell.isGiven;
-            this.candidateSet = new Set(cell.candidateSet);
+    constructor(cellData?: CellData) {
+        if (isSome(cellData)) {
+            this.digit = cellData.digit;
+            this.isGiven = cellData.isGiven;
+            this.candidateSet = new Set(cellData.candidateSet);
             return;
         }
 
@@ -20,13 +20,13 @@ export class CellData {
     }
 
     static withGiven(givenDigit: Digit): CellData {
-        const cell = new CellData();
+        const cellData = new CellData();
 
-        cell.digit = givenDigit;
-        cell.isGiven = true;
-        cell.candidateSet.clear();
+        cellData.digit = givenDigit;
+        cellData.isGiven = true;
+        cellData.candidateSet.clear();
 
-        return cell;
+        return cellData;
     }
 
     get candidates(): Digit[] {

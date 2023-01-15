@@ -13,10 +13,11 @@ export const fullHouse: Strategy = {
                 continue;
             }
 
-            const id = unsolvedCells[0];
-            const digit = board.cell(id).candidates[0]; // should be true if notes are correct
+            const [cell] = unsolvedCells;
 
-            solutions.push([id, digit]);
+            const digit = board.cell(cell).candidates[0]; // should be true if notes are correct
+
+            solutions.push([cell, digit]);
         }
 
         return solutions.length > 0 ?
@@ -32,7 +33,8 @@ export const hiddenSingle: Strategy = {
 
         for (const digit of DIGITS) {
             for (const unit of UNITS) {
-                const candidateCells = unit.filter((id) => board.cell(id).hasCandidate(digit)
+                const candidateCells = unit.filter(id =>
+                    board.cell(id).hasCandidate(digit)
                 );
 
                 if (candidateCells.length === 1) {

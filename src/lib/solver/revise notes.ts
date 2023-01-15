@@ -1,26 +1,26 @@
 import { Strategy } from ".";
-import { contains, isSome } from "../combinatorics";
-import { Board, CELLS, CellDigitPair, UNITS } from "../sudoku";
+import { isSome } from "../combinatorics";
+import { Board, CELLS, CellDigitPair, neighborsOf } from "../sudoku";
 
 export const reviseNotes: Strategy = {
     name: "revise notes",
     func: (board: Board) => {
         const eliminations = new Array<CellDigitPair>();
 
-        for (const id of CELLS) {
-            const cell = board.cell(id);
+        for (const cell of CELLS) {
+            const cellData = board.cell(cell);
 
-            if (cell.hasDigit()) {
+            if (cellData.hasDigit()) {
                 continue;
             }
 
-            for (const id2 of UNITS.filter(contains(id)).flat()) {
-                const digit = board.cell(id2).digit;
+            const cellEliminations = neighborsOf(cell)
+                .map(neighbor => board.cell(neighbor).digit)
+                .filter(isSome)
+                .filter(digit => cellData.hasCandidate(digit))
+                .map(digit => [cell, digit] as CellDigitPair);
 
-                if (isSome(digit) && cell.hasCandidate(digit)) {
-                    eliminations.push([id, digit]);
-                }
-            }
+            eliminations.push(...cellEliminations);
         }
 
         return eliminations.length > 0 ?

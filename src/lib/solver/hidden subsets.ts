@@ -33,17 +33,22 @@ function makeHiddenSubset(n: 2 | 3 | 4) {
                     continue;
                 }
 
-                const eliminations = candidateCells.map(id => DIGITS.filter(notIn(candidates))
-                    .filter(digit => board.cell(id).hasCandidate(digit))
-                    .map(digit => [id, digit] as CellDigitPair)
+                const eliminations = candidateCells.map(id =>
+                    DIGITS.filter(notIn(candidates))
+                        .filter(digit => board.cell(id).hasCandidate(digit))
+                        .map(digit => [id, digit] as CellDigitPair)
                 ).flat();
 
-                if (eliminations.length > 0) {
-                    return {
-                        eliminations,
-                        highlights: candidateCells.map(id => candidates.map(digit => [id, digit] as CellDigitPair)).flat(),
-                    };
+                if (eliminations.length === 0) {
+                    continue;
                 }
+
+                return {
+                    eliminations,
+                    highlights: candidateCells.map(id =>
+                        candidates.map(digit => [id, digit] as CellDigitPair)
+                    ).flat(),
+                };
             }
         }
 

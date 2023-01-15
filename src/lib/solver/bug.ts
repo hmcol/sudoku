@@ -13,26 +13,27 @@ export const bugPlusOne: Strategy = {
             return undefined;
         }
 
-        const bugId = nonBivalueCells[0];
+        const [bugCell] = nonBivalueCells;
 
-        const bugCandidates = board.cell(bugId).candidates;
+        const bugCandidates = board.cell(bugCell).candidates;
 
         if (bugCandidates.length !== 3) {
             return undefined;
         }
 
+        digitLoop: 
         for (const digit of bugCandidates) {
-            for (const unit of UNITS.filter(contains(bugId))) {
+            for (const unit of UNITS.filter(contains(bugCell))) {
                 const count = unit.filter(board.cellHasCandidate(digit)).length;
 
                 if (count !== 3) {
-                    break;
-                }
-
-                return {
-                    solutions: [[bugId, digit]],
-                };
+                    continue digitLoop;
+                }                
             }
+
+            return {
+                solutions: [[bugCell, digit]],
+            };
         }
 
         return undefined;

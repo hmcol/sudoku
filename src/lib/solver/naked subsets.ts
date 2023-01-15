@@ -1,4 +1,4 @@
-import { Strategy} from ".";
+import { Strategy } from ".";
 import { tuplesOf } from "../combinatorics";
 import { Board, DIGITS, CellDigitPair, UNITS } from "../sudoku";
 
@@ -30,15 +30,18 @@ function makeNakedSubset(n: 2 | 3 | 4) {
                     continue;
                 }
 
-                const eliminations = candidates.map(digit => board.getDigitEliminations(digit, cells)
+                const eliminations = candidates.map(digit =>
+                    board.getDigitEliminations(digit, cells)
                 ).flat();
 
-                if (eliminations.length > 0) {
-                    return {
-                        eliminations,
-                        highlights: cells.map(id => candidates.map(digit => [id, digit] as CellDigitPair)).flat(),
-                    };
+                if (eliminations.length === 0) {
+                    continue;
                 }
+
+                return {
+                    eliminations,
+                    highlights: cells.map(id => candidates.map(digit => [id, digit] as CellDigitPair)).flat(),
+                };
             }
         }
 
