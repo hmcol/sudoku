@@ -1,6 +1,6 @@
 import { Strategy } from ".";
-import { intersection, pairsOf, Graph, Tuple, iterProduct3, iterProduct } from "../combinatorics";
-import { CELLS, newCandidate, candidateToPair, LINES, FLOORS, TOWERS, DIGITS, Board } from "../sudoku";
+import { intersection, pairsOf, Graph, Tuple, iterProduct3, iterProduct, range, notIn, notEq, setEquality, hasSubset } from "../combinatorics";
+import { CELLS, newCandidate, candidateToPair, LINES, FLOORS, TOWERS, DIGITS, Board, CellDigitPair, UNITS } from "../sudoku";
 
 // binary type
 type B = 0 | 1;
@@ -43,24 +43,24 @@ const RECTANGLES = (() => {
             const drCell = intersection(downLine, rightLine)[0];
 
             rectangles.push([
-                [ulCell, urCell],
-                [dlCell, drCell],
+                ulCell, urCell,
+                dlCell, drCell,
             ]);
 
-            rectangles.push([
-                [urCell, drCell],
-                [ulCell, dlCell],
-            ]);
+            // rectangles.push([
+            //     [urCell, drCell],
+            //     [ulCell, dlCell],
+            // ]);
 
-            rectangles.push([
-                [drCell, dlCell],
-                [urCell, ulCell],
-            ]);
+            // rectangles.push([
+            //     [drCell, dlCell],
+            //     [urCell, ulCell],
+            // ]);
 
-            rectangles.push([
-                [dlCell, ulCell],
-                [drCell, urCell],
-            ]);
+            // rectangles.push([
+            //     [dlCell, ulCell],
+            //     [drCell, urCell],
+            // ]);
         }
     }
 
@@ -70,7 +70,7 @@ const RECTANGLES = (() => {
 const CUBES = (() => {
     const cubes = [];
 
-    for (const [[ul, ur], [dl, dr]] of RECTANGLES) {
+    for (const [ul, ur, dl, dr] of RECTANGLES) {
         for (const [a, b] of pairsOf(DIGITS)) {
             cubes.push([
                 [
@@ -90,14 +90,168 @@ const CUBES = (() => {
 
 // unique rectangle strategies
 
-const ur1: Strategy = {
+export const ur1: Strategy = {
     name: "unique rectangle type 1",
     func: (board: Board) => {
-        const g = makeStrongLinkGraph(board);
+        for (const [rect, ab] of iterProduct(RECTANGLES, pairsOf(DIGITS))) {
+            const nonBivalueCells = rect.filter(cell =>
+                !setEquality(ab, board.data[cell].candidates)
+            );
 
-        for (const [[id00, id01], [id10, id11]] of RECTANGLES) {
-            // if (board.cell(id01).candidates.length)
+            if (nonBivalueCells.length !== 1) {
+                continue;
+            }
+
+            const [cell] = nonBivalueCells;
+
+            const eliminations = ab
+                .filter(digit => board.data[cell].hasCandidate(digit))
+                .map(digit => [cell, digit] as CellDigitPair);
+
+            if (eliminations.length === 0) {
+                continue;
+            }
+
+            return {
+                eliminations,
+                highlights: iterProduct(rect.filter(notEq(cell)), ab),
+            };
         }
+
+        return undefined;
+    },
+};
+
+export const ur2: Strategy = {
+    name: "unique rectangle type 2",
+    func: (board: Board) => {
+        // two non-diagonal ab cells, two abc cells
+        // can eliminate c from every cell that sees both abc cells
+        for (const [rect, ab] of iterProduct(RECTANGLES, pairsOf(DIGITS))) {
+            for (const i of range(4)) {
+                const bv1 = rect[i];
+                if (!setEquality(ab, board.data[bv1].candidates)) {
+                    continue;
+                }
+
+                const bv2 = rect[(i + 1) % 4];
+                if (!setEquality(ab, board.data[bv2].candidates)) {
+                    continue;
+                }
+
+                const tv1 = rect[(i + 2) % 4];
+                const tv2 = rect[(i + 3) % 4];
+
+                for (const c of DIGITS.filter(notIn(ab))) {
+                    const abc = [...ab, c];
+
+                    if (!setEquality(abc, board.data[tv1].candidates)) {
+                        continue;
+                    }
+
+                    if (!setEquality(abc, board.data[tv2].candidates)) {
+                        continue;
+                    }
+
+                    const eliminations = board.getDigitEliminations(c, [tv1, tv2]);
+
+                    if (eliminations.length === 0) {
+                        continue;
+                    }
+
+                    return {
+                        eliminations,
+                        highlights: iterProduct(rect, ab),
+                        highlights2: [[tv1, c], [tv2, c]],
+                    };
+                }
+            }
+        }
+
+        return undefined;
+    },
+};
+
+const ur3: Strategy = {
+    name: "unique rectangle type 3",
+    func: (_board: Board) => {
+        // two non-diagonal ab cells, two ab* cells
+        // use * to make naked subset
+
+        return undefined;
+    },
+};
+
+export const ur4: Strategy = {
+    name: "unique rectangle type 4",
+    func: (board: Board) => {
+        // two non-diagonal ab cells, two ab* cells strongly linked by a
+        // can eliminate b from ab* cells
+        for (const [rect, ab] of iterProduct(RECTANGLES, pairsOf(DIGITS))) {
+            for (const i of range(4)) {
+                const bv1 = rect[i];
+                if (!setEquality(ab, board.data[bv1].candidates)) {
+                    continue;
+                }
+
+                const bv2 = rect[(i + 1) % 4];
+                if (!setEquality(ab, board.data[bv2].candidates)) {
+                    continue;
+                }
+
+                const dc1 = rect[(i + 2) % 4];
+                const dc2 = rect[(i + 3) % 4];
+
+                for (const unit of UNITS.filter(hasSubset([dc1, dc2]))) {
+                    for (const strongDigit of ab) {
+                        const candidateCells = unit.filter(cell =>
+                            board.data[cell].hasCandidate(strongDigit)
+                        );
+
+                        if (!setEquality(candidateCells, [dc1, dc2])) {
+                            continue;
+                        }
+
+                        const otherDigit = ab.filter(notEq(strongDigit))[0];
+
+                        const eliminations = [dc1, dc2]
+                            .filter(board.cellHasCandidate(otherDigit))
+                            .map(cell => [cell, otherDigit] as CellDigitPair);
+
+                        if (eliminations.length === 0) {
+                            continue;
+                        }
+
+                        return {
+                            eliminations,
+                            highlights: iterProduct([bv1, bv2], ab)
+                                .concat([[dc1, strongDigit], [dc2, strongDigit]]),
+                        };
+                    }
+                }
+            }
+        }
+
+        return undefined;
+    },
+};
+
+const ur5: Strategy = {
+    name: "unique rectangle type 5",
+    func: (_board: Board) => {
+        // one or two ab cells, two or three abc cells
+        // can eliminate c from every cell that sees both abc cells
+
+        return undefined;
+    },
+};
+
+const ur6: Strategy = {
+    name: "unique rectangle type 6",
+    func: (_board: Board) => {
+        // two diagonal ab cells, two diagonal ab* cells
+        // a is strongly linked in both/all units
+        // can eliminate a from ab* cells
 
         return undefined;
     },
@@ -121,9 +275,50 @@ export const uniqueRectangle: Strategy = {
 
                 const edge = (v1: V, v2: V) => g.hasEdge(vertexToId(v1), vertexToId(v2));
 
+                // breadth-first alternating search
+                const queue: [V, "strong" | "weak"][] = [];
+                const visited = new Set<string>();
 
-                // type 1
+                queue.push([[0, 0, 0], "weak"]);
 
+                while (queue.length > 0) {
+                    const [u, nextLink] = queue.shift()!;
+
+                    visited.add(idOf(u));
+
+                    let adjacentVertices: V[] = [
+                        [flip(u[0]), u[1], u[2]],
+                        [u[0], flip(u[1]), u[2]],
+                        [u[0], u[1], flip(u[2])]
+                    ];
+
+                    if (nextLink === "strong") {
+                        adjacentVertices = adjacentVertices.filter(v => edge(u, v));
+                    }
+
+                    for (const v of adjacentVertices) {
+                        if (visited.has(idOf(v))) {
+                            continue;
+                        }
+
+                        queue.push([
+                            v,
+                            nextLink === "strong" ? "weak" : "strong",
+                        ]);
+                    }
+                }
+
+                // check if "deadly" friends were found in the search
+                if (visited.has("110") && visited.has("101") && visited.has("011")) {
+                    const [id, digit] = candidateToPair(cube[i][j][k]);
+
+                    if (board.cell(id).hasCandidate(digit)) {
+                        return {
+                            eliminations: [[id, digit]],
+                            highlights: cube.flat().flat().map(candidateToPair),
+                        };
+                    }
+                }
 
             };
         }

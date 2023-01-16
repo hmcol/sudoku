@@ -1,6 +1,4 @@
 ## to add
-- full house
-- Last digit
 - UR. full generalization with three lines method. Maybe sort by difficulty.
 - wxyz wing. Idk how useful
 - finned/sashimi/Franken fish. Special cases include skyscraper, kite, empty rectangle, turbot

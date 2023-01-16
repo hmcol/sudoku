@@ -1,7 +1,7 @@
 import { reviseNotes } from "./revise notes";
 import { fullHouse, nakedSingle, hiddenSingle } from "./singles";
 import { aic, xChain, xChainSimple, xyChain } from "./chains";
-import { uniqueRectangle } from "./unique rectangle";
+import { uniqueRectangle, ur1, ur2, ur4 } from "./unique rectangle";
 import { nakedPair, nakedTriple, nakedQuad } from "./naked subsets";
 import { hiddenPair, hiddenTriple, hiddenQuad } from "./hidden subsets";
 import { intersectionPointing, intersectionClaiming } from "./intersections";
@@ -47,6 +47,9 @@ export const STRATEGIES: Strategy[] = [
     yWing,
     xyzWing,
     wWing,
+    ur1,
+    ur2,
+    ur4,
     uniqueRectangle,
     bugPlusOne,
     xyChain,

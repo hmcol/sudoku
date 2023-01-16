@@ -1,4 +1,4 @@
-import { isNone, isSome, notEqual } from "../combinatorics";
+import { isNone, isSome, notEq } from "../combinatorics";
 import { CELLS, Cell, CellDigitPair, Candidate, cellOf, newCandidate, candidateToPair, digitOf, BOXES, COLUMNS, ROWS, UNITS, DIGITS, Digit, Board } from "../sudoku";
 import { Strategy, StrategyResult } from ".";
 
@@ -179,7 +179,7 @@ class CandidateLinks {
             const candidates = board.cell(id).candidates;
 
             for (const digit1 of candidates) {
-                for (const digit2 of candidates.filter(notEqual(digit1))) {
+                for (const digit2 of candidates.filter(notEq(digit1))) {
                     this.add(newCandidate(id, digit1), newCandidate(id, digit2));
                 }
             }
@@ -199,7 +199,7 @@ class CandidateLinks {
             );
 
             for (const id1 of candidateCells) {
-                for (const id2 of candidateCells.filter(notEqual(id1))) {
+                for (const id2 of candidateCells.filter(notEq(id1))) {
                     this.add(newCandidate(id1, digit), newCandidate(id2, digit));
                 }
             }
@@ -227,7 +227,7 @@ class CandidateLinks {
                 );
 
                 for (const id1 of candidateCells) {
-                    for (const id2 of candidateCells.filter(notEqual(id1))) {
+                    for (const id2 of candidateCells.filter(notEq(id1))) {
                         this.add(newCandidate(id1, digit), newCandidate(id2, digit));
                     }
                 }

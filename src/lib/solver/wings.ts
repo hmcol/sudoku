@@ -1,5 +1,5 @@
 import { Strategy } from ".";
-import { intersection, isSubset, notEqual, notIn, pairsOf } from "../combinatorics";
+import { intersection, isSubset, notEq, notIn, pairsOf } from "../combinatorics";
 import { Board, CELLS, DIGITS, UNITS } from "../sudoku";
 import { makeBasicChain } from "./chains";
 
@@ -35,8 +35,8 @@ export const xyzWing: Strategy = {
                 const eliminations = board.getDigitEliminations(z, [xyzId, xzId, yzId]);
 
                 if (eliminations.length > 0) {
-                    const x = xz.filter(notEqual(z))[0];
-                    const y = yz.filter(notEqual(z))[0];
+                    const x = xz.filter(notEq(z))[0];
+                    const y = yz.filter(notEq(z))[0];
 
                     return {
                         eliminations,
@@ -71,7 +71,7 @@ export const wWing: Strategy = {
                 );
 
                 for (const wx1Id of wxCells[0]) {
-                    const w = board.cell(wx1Id).candidates.find(notEqual(x))!;
+                    const w = board.cell(wx1Id).candidates.find(notEq(x))!;
 
                     for (const wx2Id of wxCells[1].filter(board.cellHasCandidate(w))) {
 

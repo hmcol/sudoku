@@ -1,25 +1,29 @@
+type Filter<T> = (item: T) => boolean;
 
-// iterator helpers and set operations ----------------------------------------
-
-export function In<T>(arr: T[]): (item: T) => boolean {
-    return (item: T) => arr.includes(item);
-}
-
-export function notIn<T>(arr: T[]): (item: T) => boolean {
-    return (item: T) => !arr.includes(item);
-}
-
-export function contains<T>(item: T): (arr: T[]) => boolean {
-    return (arr: T[]) => arr.includes(item);
-}
+// set stuff
 
 export function isSubset<T>(arr1: T[], arr2: T[]): boolean {
-    return arr1.every((item) => arr2.includes(item));
+    return arr1.every(item => arr2.includes(item));
 }
 
-export function hasSubset<T>(arr: T[]): (item: T[]) => boolean {
-    return (item: T[]) => isSubset(arr, item);
+export function intersection<T>(arr1: T[], arr2: T[]): T[] {
+    return arr1.filter(isIn(arr2));
 }
+
+export function setEquality<T>(arr1: T[], arr2: T[]): boolean {
+    return arr1.length === arr2.length && isSubset(arr1, arr2);
+}
+
+// filters and filter builders
+
+export function isEq<T>(value: T): Filter<T> {
+    return item => item === value;
+}
+
+export function notEq<T>(value: T): Filter<T> {
+    return item => item !== value;
+}
+
 
 export function isSome<T>(item: T | undefined): item is T {
     return item !== undefined;
@@ -29,16 +33,22 @@ export function isNone<T>(item: T | undefined): item is undefined {
     return item === undefined;
 }
 
-export function isEqual<T>(value: T): (item: T) => boolean {
-    return (item) => item === value;
+
+export function isIn<T>(arr: T[]): Filter<T> {
+    return item => arr.includes(item);
 }
 
-export function notEqual<T>(value: T): (item: T) => boolean {
-    return (item) => item !== value;
+export function notIn<T>(arr: T[]): Filter<T> {
+    return item => !arr.includes(item);
 }
 
-export function intersection<T>(arr1: T[], arr2: T[]): T[] {
-    return arr1.filter(In(arr2));
+
+export function contains<T>(value: T): Filter<T[]> {
+    return item => item.includes(value);
+}
+
+export function hasSubset<T>(arr: T[]): Filter<T[]> {
+    return item => isSubset(arr, item);
 }
 
 // iterators

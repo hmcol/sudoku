@@ -269,7 +269,12 @@ export default class Game extends React.Component<any, GameState> {
             }
         }
 
-        console.log("no strategy found");
+        if (this.state.board.isComplete()) {
+            console.log("puzzle complete");
+        } else {
+            console.log("no strategy found");
+        }
+        
         return false;
     }
 

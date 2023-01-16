@@ -1,4 +1,4 @@
-import { iterProduct, notEqual, notIn } from "../combinatorics";
+import { iterProduct, notEq, notIn } from "../combinatorics";
 import { RowId, ColumnId, COLUMN_IDS, ROW_IDS, BOXES } from "./units";
 
 
@@ -35,7 +35,7 @@ export const CELLS: Cell[] = iterProduct(ROW_IDS, COLUMN_IDS).map(pair => newCel
 export function neighborsOf(cell: Cell): Cell[] {
     const box = boxOf(cell);
 
-    return box.filter(notEqual(cell))
+    return box.filter(notEq(cell))
         .concat(rowOf(cell).filter(notIn(box)))
         .concat(columnOf(cell).filter(notIn(box)));
 }

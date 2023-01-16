@@ -1,13 +1,13 @@
 import { Cell, CELLS } from "./cell";
 import { CellDigitPair } from "./candidate";
 import { UNITS } from "./units";
-import { contains, In, isSome, notIn } from "../combinatorics";
-import { Digit, parseDigit } from "./digit";
+import { contains, isIn, isSome, notIn, setEquality } from "../combinatorics";
+import { DIGITS, Digit, parseDigit } from "./digit";
 import { CellData } from "./cell data";
 
 
 export class Board {
-    private cells: Record<Cell, CellData>;
+    data: Record<Cell, CellData>;
 
     constructor(board?: Board) {
         const cells: Partial<Record<Cell, CellData>> = {};
@@ -16,13 +16,13 @@ export class Board {
             cells[id] = new CellData(board?.cell(id));
         }
 
-        this.cells = cells as Record<Cell, CellData>;
+        this.data = cells as Record<Cell, CellData>;
     }
 
     static fromCells(cells: Record<Cell, CellData>): Board {
         const board = new Board();
 
-        board.cells = { ...cells };
+        board.data = { ...cells };
 
         return board;
     }
@@ -45,22 +45,25 @@ export class Board {
         return Board.fromCells(cells as Record<Cell, CellData>);
     }
 
+    /**
+     * @deprecated
+     */
     cell(id: Cell): CellData {
-        return this.cells[id];
+        return this.data[id];
     }
 
-    inputDigit(id: Cell, digit: Digit) {
-        const cell = this.cell(id);
+    inputDigit(cell: Cell, digit: Digit) {
+        const cellData = this.data[cell];
 
-        if (cell.isGiven) {
+        if (cellData.isGiven) {
             return;
         }
 
-        cell.inputDigit(digit);
+        cellData.inputDigit(digit);
     }
 
     deleteDigit(id: Cell) {
-        const cell = this.cell(id);
+        const cell = this.data[id];
 
         if (cell.isGiven) {
             return;
@@ -74,13 +77,13 @@ export class Board {
     }
 
     // helper stuff ?
-    cellHasCandidate(digit: Digit): (id: Cell) => boolean {
-        return id => this.cell(id).hasCandidate(digit);
+    cellHasCandidate(digit: Digit): (cell: Cell) => boolean {
+        return cell => this.data[cell].hasCandidate(digit);
     }
 
     getVisible(...focus: Cell[]): Cell[] {
         return UNITS
-            .filter(unit => focus.some(In(unit)))
+            .filter(unit => focus.some(isIn(unit)))
             .flat()
             .filter(id => !this.cell(id).hasDigit())
             .filter(notIn(focus));
@@ -95,5 +98,11 @@ export class Board {
         return this.getSharedNeighbors(...foci)
             .filter(this.cellHasCandidate(digit))
             .map(id => [id, digit]);
+    }
+
+    isComplete(): boolean {
+        return UNITS.every(unit =>
+            setEquality(unit.map(cell => this.data[cell].digit), DIGITS)
+        );
     }
 }

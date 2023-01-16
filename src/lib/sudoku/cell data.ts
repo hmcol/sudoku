@@ -1,22 +1,18 @@
-import { isSome } from "../combinatorics";
+import { isSome, isSubset } from "../combinatorics";
 import { DIGITS, Digit } from "./digit";
 
 
 export class CellData {
     digit?: Digit;
-    isGiven: boolean;
-    candidateSet: Set<Digit>;
+    isGiven: boolean = false;
+    private _candidates: Set<Digit> = new Set(DIGITS);
 
     constructor(cellData?: CellData) {
         if (isSome(cellData)) {
             this.digit = cellData.digit;
             this.isGiven = cellData.isGiven;
-            this.candidateSet = new Set(cellData.candidateSet);
-            return;
+            this._candidates = new Set(cellData._candidates);
         }
-
-        this.isGiven = false;
-        this.candidateSet = new Set(DIGITS);
     }
 
     static withGiven(givenDigit: Digit): CellData {
@@ -24,13 +20,14 @@ export class CellData {
 
         cellData.digit = givenDigit;
         cellData.isGiven = true;
-        cellData.candidateSet.clear();
+        cellData._candidates.clear();
 
         return cellData;
     }
 
     get candidates(): Digit[] {
-        return DIGITS.filter(digit => this.hasCandidate(digit));
+        // return DIGITS.filter(digit => this.hasCandidate(digit));
+        return [...this._candidates];
     }
 
     hasDigit(): this is { digit: Digit; } {
@@ -39,19 +36,23 @@ export class CellData {
 
     inputDigit(digit: Digit) {
         this.digit = digit;
-        this.candidateSet.clear();
+        this._candidates.clear();
     }
 
     deleteDigit() {
         this.digit = undefined;
-        this.candidateSet = new Set(DIGITS);
+        this._candidates = new Set(DIGITS);
     }
 
     hasCandidate(digit: Digit): boolean {
-        return this.candidateSet.has(digit);
+        return this._candidates.has(digit);
     }
 
     eliminateCandidate(digit: Digit) {
-        this.candidateSet.delete(digit);
+        this._candidates.delete(digit);
+    }
+
+    isBivalue(): boolean {
+        return this.candidates.length === 2;
     }
 }
