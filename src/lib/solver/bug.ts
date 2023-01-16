@@ -1,6 +1,6 @@
 import { Strategy } from ".";
 import { contains } from "../combinatorics";
-import { Board, CELLS, UNITS } from "../sudoku";
+import { Board, CELLS, UNITS, newCandidate } from "../sudoku";
 
 export const bugPlusOne: Strategy = {
     name: "bug + 1",
@@ -32,7 +32,7 @@ export const bugPlusOne: Strategy = {
             }
 
             return {
-                solutions: [[bugCell, digit]],
+                solutions: [newCandidate(bugCell, digit)],
             };
         }
 

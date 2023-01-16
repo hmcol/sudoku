@@ -1,6 +1,6 @@
 import { Strategy } from ".";
 import { intersection, pairsOf, Graph, Tuple, iterProduct3, iterProduct, range, notIn, notEq, setEquality, hasSubset } from "../combinatorics";
-import { CELLS, newCandidate, candidateToPair, LINES, FLOORS, TOWERS, DIGITS, Board, CellDigitPair, UNITS } from "../sudoku";
+import { CELLS, newCandidate, LINES, FLOORS, TOWERS, DIGITS, Board, UNITS } from "../sudoku";
 
 // binary type
 type B = 0 | 1;
@@ -106,15 +106,18 @@ export const ur1: Strategy = {
 
             const eliminations = ab
                 .filter(digit => board.data[cell].hasCandidate(digit))
-                .map(digit => [cell, digit] as CellDigitPair);
+                .map(digit => newCandidate(cell, digit));
 
             if (eliminations.length === 0) {
                 continue;
             }
 
+            const highlights = iterProduct(rect.filter(notEq(cell)), ab)
+                .map(([cell, digit]) => newCandidate(cell, digit));
+
             return {
                 eliminations,
-                highlights: iterProduct(rect.filter(notEq(cell)), ab),
+                highlights,
             };
         }
 
@@ -159,10 +162,14 @@ export const ur2: Strategy = {
                         continue;
                     }
 
+                    const highlights = iterProduct(rect, ab)
+                        .map(([cell, digit]) => newCandidate(cell, digit));
+                    
+
                     return {
                         eliminations,
-                        highlights: iterProduct(rect, ab),
-                        highlights2: [[tv1, c], [tv2, c]],
+                        highlights,
+                        highlights2: [newCandidate(tv1, c), newCandidate(tv2, c)],
                     };
                 }
             }
@@ -172,7 +179,7 @@ export const ur2: Strategy = {
     },
 };
 
-const ur3: Strategy = {
+const _ur3: Strategy = {
     name: "unique rectangle type 3",
     func: (_board: Board) => {
         // two non-diagonal ab cells, two ab* cells
@@ -216,16 +223,19 @@ export const ur4: Strategy = {
 
                         const eliminations = [dc1, dc2]
                             .filter(board.cellHasCandidate(otherDigit))
-                            .map(cell => [cell, otherDigit] as CellDigitPair);
+                            .map(cell => newCandidate(cell, otherDigit));
 
                         if (eliminations.length === 0) {
                             continue;
                         }
+                        
+                        const highlights = iterProduct([bv1, bv2], ab)
+                            .concat([[dc1, strongDigit], [dc2, strongDigit]])
+                            .map(([cell, digit]) => newCandidate(cell, digit));
 
                         return {
                             eliminations,
-                            highlights: iterProduct([bv1, bv2], ab)
-                                .concat([[dc1, strongDigit], [dc2, strongDigit]]),
+                            highlights,
                         };
                     }
                 }
@@ -236,7 +246,7 @@ export const ur4: Strategy = {
     },
 };
 
-const ur5: Strategy = {
+const _ur5: Strategy = {
     name: "unique rectangle type 5",
     func: (_board: Board) => {
         // one or two ab cells, two or three abc cells
@@ -246,7 +256,7 @@ const ur5: Strategy = {
     },
 };
 
-const ur6: Strategy = {
+const _ur6: Strategy = {
     name: "unique rectangle type 6",
     func: (_board: Board) => {
         // two diagonal ab cells, two diagonal ab* cells
@@ -310,12 +320,12 @@ export const uniqueRectangle: Strategy = {
 
                 // check if "deadly" friends were found in the search
                 if (visited.has("110") && visited.has("101") && visited.has("011")) {
-                    const [id, digit] = candidateToPair(cube[i][j][k]);
+                    const candidate = cube[i][j][k];
 
-                    if (board.cell(id).hasCandidate(digit)) {
+                    if (board.hasCandidate(candidate)) {
                         return {
-                            eliminations: [[id, digit]],
-                            highlights: cube.flat().flat().map(candidateToPair),
+                            eliminations: [candidate],
+                            highlights: cube.flat().flat(),
                         };
                     }
                 }

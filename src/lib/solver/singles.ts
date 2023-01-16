@@ -1,10 +1,10 @@
 import { Strategy } from ".";
-import { Board, CELLS, DIGITS, CellDigitPair, UNITS } from "../sudoku";
+import { Board, CELLS, DIGITS, UNITS, Candidate, newCandidate } from "../sudoku";
 
 export const fullHouse: Strategy = {
     name: "full house",
     func: (board: Board) => {
-        const solutions = new Array<CellDigitPair>();
+        const solutions = new Array<Candidate>();
 
         for (const unit of UNITS) {
             const unsolvedCells = unit.filter(id => !board.cell(id).hasDigit());
@@ -15,9 +15,9 @@ export const fullHouse: Strategy = {
 
             const [cell] = unsolvedCells;
 
-            const digit = board.cell(cell).candidates[0]; // should be true if notes are correct
+            const digit = board.data[cell].candidates[0]; // should be true if notes are correct
 
-            solutions.push([cell, digit]);
+            solutions.push(newCandidate(cell, digit));
         }
 
         return solutions.length > 0 ?
@@ -29,16 +29,16 @@ export const fullHouse: Strategy = {
 export const hiddenSingle: Strategy = {
     name: "hidden single",
     func: (board: Board) => {
-        const solutions = new Array<CellDigitPair>();
+        const solutions = new Array<Candidate>();
 
         for (const digit of DIGITS) {
             for (const unit of UNITS) {
-                const candidateCells = unit.filter(id =>
-                    board.cell(id).hasCandidate(digit)
+                const candidateCells = unit.filter(cell =>
+                    board.data[cell].hasCandidate(digit)
                 );
 
                 if (candidateCells.length === 1) {
-                    solutions.push([candidateCells[0], digit]);
+                    solutions.push(newCandidate(candidateCells[0], digit));
                 }
             }
         }
@@ -52,13 +52,13 @@ export const hiddenSingle: Strategy = {
 export const nakedSingle: Strategy = {
     name: "naked single",
     func: (board: Board) => {
-        const solutions = new Array<CellDigitPair>();
+        const solutions = new Array<Candidate>();
 
-        for (const id of CELLS) {
-            const candidates = board.cell(id).candidates;
+        for (const cell of CELLS) {
+            const candidates = board.data[cell].candidates;
 
             if (candidates.length === 1) {
-                solutions.push([id, candidates[0]]);
+                solutions.push(newCandidate(cell, candidates[0]));
             }
         }
 

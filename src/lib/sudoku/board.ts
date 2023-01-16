@@ -1,5 +1,5 @@
 import { Cell, CELLS } from "./cell";
-import { CellDigitPair } from "./candidate";
+import { Candidate, cellOf, digitOf, newCandidate } from "./candidate";
 import { UNITS } from "./units";
 import { contains, isIn, isSome, notIn, setEquality } from "../combinatorics";
 import { DIGITS, Digit, parseDigit } from "./digit";
@@ -52,6 +52,9 @@ export class Board {
         return this.data[id];
     }
 
+    /**
+     * @deprecated
+     */
     inputDigit(cell: Cell, digit: Digit) {
         const cellData = this.data[cell];
 
@@ -59,17 +62,29 @@ export class Board {
             return;
         }
 
-        cellData.inputDigit(digit);
+        cellData.setDigit(digit);
     }
 
-    deleteDigit(id: Cell) {
-        const cell = this.data[id];
+    hasCandidate(candidate: Candidate): boolean {
+        return this.data[cellOf(candidate)].hasCandidate(digitOf(candidate));
+    }
 
-        if (cell.isGiven) {
+    fixCandidate(candidate: Candidate) {
+        this.data[cellOf(candidate)].setDigit(digitOf(candidate));
+    }
+
+    eliminateCandidate(candidate: Candidate) {
+        this.data[cellOf(candidate)].eliminateCandidate(digitOf(candidate));
+    }
+
+    deleteDigit(cell: Cell) {
+        const cellData = this.data[cell];
+
+        if (cellData.isGiven) {
             return;
         }
 
-        cell.deleteDigit();
+        cellData.deleteDigit();
     }
 
     clearCell(id: Cell) {
@@ -94,10 +109,10 @@ export class Board {
         return CELLS.filter(id => neighbors.every(contains(id)));
     }
 
-    getDigitEliminations(digit: Digit, foci: Cell[]): CellDigitPair[] {
+    getDigitEliminations(digit: Digit, foci: Cell[]): Candidate[] {
         return this.getSharedNeighbors(...foci)
             .filter(this.cellHasCandidate(digit))
-            .map(id => [id, digit]);
+            .map(cell => newCandidate(cell, digit));
     }
 
     isComplete(): boolean {

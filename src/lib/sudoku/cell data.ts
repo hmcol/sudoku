@@ -1,4 +1,4 @@
-import { isSome, isSubset } from "../combinatorics";
+import { isSome } from "../combinatorics";
 import { DIGITS, Digit } from "./digit";
 
 
@@ -34,7 +34,7 @@ export class CellData {
         return isSome(this.digit);
     }
 
-    inputDigit(digit: Digit) {
+    setDigit(digit: Digit) {
         this.digit = digit;
         this._candidates.clear();
     }

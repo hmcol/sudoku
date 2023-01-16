@@ -1,6 +1,6 @@
 import { Strategy } from ".";
 import { intersection, isSubset, notEq, notIn, pairsOf } from "../combinatorics";
-import { Board, CELLS, DIGITS, UNITS } from "../sudoku";
+import { Board, CELLS, DIGITS, UNITS, newCandidate } from "../sudoku";
 import { makeBasicChain } from "./chains";
 
 export const yWing: Strategy = {
@@ -38,9 +38,16 @@ export const xyzWing: Strategy = {
                     const x = xz.filter(notEq(z))[0];
                     const y = yz.filter(notEq(z))[0];
 
+                    const highlights = ([
+                        [xyzId, x], [xyzId, y], [xyzId, z],
+                        [xzId, x], [xzId, z],
+                        [yzId, y], [yzId, z]
+                    ] as const)
+                        .map(([cell, digit]) => newCandidate(cell, digit));
+
                     return {
                         eliminations,
-                        highlights: [[xyzId, x], [xyzId, y], [xyzId, z], [xzId, x], [xzId, z], [yzId, y], [yzId, z]],
+                        highlights,
                     };
                 }
             }
@@ -65,13 +72,13 @@ export const wWing: Strategy = {
                 const wxCells = xCells.map(xId => board.getVisible(xId)
                     .filter(notIn(baseUnit))
                     .filter(wxId => {
-                        const wx = board.cell(wxId).candidates;
+                        const wx = board.data[wxId].candidates;
                         return wx.length === 2 && wx.includes(x);
                     })
                 );
 
                 for (const wx1Id of wxCells[0]) {
-                    const w = board.cell(wx1Id).candidates.find(notEq(x))!;
+                    const w = board.data[wx1Id].candidates.find(notEq(x))!;
 
                     for (const wx2Id of wxCells[1].filter(board.cellHasCandidate(w))) {
 
@@ -80,10 +87,18 @@ export const wWing: Strategy = {
                         if (eliminations.length > 0) {
                             const [x1Id, x2Id] = xCells;
 
+                            const highlights = [wx1Id, wx2Id].map(
+                                cell => newCandidate(cell, w)
+                            );
+
+                            const highlights2 = [x1Id, x2Id, wx1Id, wx2Id].map(
+                                cell => newCandidate(cell, x)
+                            );
+
                             return {
                                 eliminations,
-                                highlights: [[wx1Id, w], [wx2Id, w]],
-                                highlights2: [[x1Id, x], [x2Id, x], [wx1Id, x], [wx2Id, x]],
+                                highlights,
+                                highlights2,
                             };
                         }
                     }

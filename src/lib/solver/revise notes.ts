@@ -1,24 +1,24 @@
 import { Strategy } from ".";
 import { isSome } from "../combinatorics";
-import { Board, CELLS, CellDigitPair, neighborsOf } from "../sudoku";
+import { Board, CELLS, Candidate, neighborsOf, newCandidate } from "../sudoku";
 
 export const reviseNotes: Strategy = {
     name: "revise notes",
     func: (board: Board) => {
-        const eliminations = new Array<CellDigitPair>();
+        const eliminations = new Array<Candidate>();
 
         for (const cell of CELLS) {
-            const cellData = board.cell(cell);
+            const cellData = board.data[cell];
 
             if (cellData.hasDigit()) {
                 continue;
             }
 
             const cellEliminations = neighborsOf(cell)
-                .map(neighbor => board.cell(neighbor).digit)
+                .map(neighbor => board.data[neighbor].digit)
                 .filter(isSome)
                 .filter(digit => cellData.hasCandidate(digit))
-                .map(digit => [cell, digit] as CellDigitPair);
+                .map(digit => newCandidate(cell, digit));
 
             eliminations.push(...cellEliminations);
         }

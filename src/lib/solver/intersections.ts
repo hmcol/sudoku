@@ -1,6 +1,6 @@
 import { Strategy } from ".";
 import { hasSubset, isNone, notIn } from "../combinatorics";
-import { Board, Cell, DIGITS, CellDigitPair, BOXES, LINES } from "../sudoku";
+import { Board, Cell, DIGITS, BOXES, LINES, newCandidate } from "../sudoku";
 
 export const intersectionPointing: Strategy = {
     name: "intersection pointing",
@@ -16,8 +16,8 @@ function makeIntersection(baseType: Cell[][], coverType: Cell[][]) {
     return (board: Board) => {
         for (const digit of DIGITS) {
             for (const baseUnit of baseType) {
-                const candidateCells = baseUnit.filter(id =>
-                    board.cell(id).hasCandidate(digit)
+                const candidateCells = baseUnit.filter(cell =>
+                    board.data[cell].hasCandidate(digit)
                 );
 
                 if (candidateCells.length < 2) {
@@ -32,8 +32,8 @@ function makeIntersection(baseType: Cell[][], coverType: Cell[][]) {
 
                 const eliminations = coverUnit
                     .filter(notIn(candidateCells))
-                    .filter(id => board.cell(id).hasCandidate(digit))
-                    .map(id => [id, digit] as CellDigitPair);
+                    .filter(cell => board.data[cell].hasCandidate(digit))
+                    .map(cell => newCandidate(cell, digit));
 
                 if (eliminations.length === 0) {
                     continue;
@@ -41,7 +41,7 @@ function makeIntersection(baseType: Cell[][], coverType: Cell[][]) {
 
                 return {
                     eliminations,
-                    highlights: candidateCells.map(id => [id, digit] as CellDigitPair),
+                    highlights: candidateCells.map(cell => newCandidate(cell, digit)),
                 };
             }
         }

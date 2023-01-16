@@ -9,13 +9,13 @@ import { xWing, swordfish, jellyfish } from "./basic fish";
 import { skyscraper, kite, turbotFish } from "./single digit patterns";
 import { yWing, xyzWing, wWing } from "./wings";
 import { bugPlusOne } from "./bug";
-import { Board, CellDigitPair } from "../sudoku";
+import { Board, Candidate } from "../sudoku";
 
 export type StrategyResult = {
-    solutions?: Array<CellDigitPair>;
-    eliminations?: Array<CellDigitPair>;
-    highlights?: Array<CellDigitPair>;
-    highlights2?: Array<CellDigitPair>;
+    solutions?: Array<Candidate>;
+    eliminations?: Array<Candidate>;
+    highlights?: Array<Candidate>;
+    highlights2?: Array<Candidate>;
 };
 
 export type Strategy = {

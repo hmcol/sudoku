@@ -1,5 +1,3 @@
-import { isNone } from "../combinatorics";
-
 /**
  * a digit in a normal sudoku puzzle.
  */

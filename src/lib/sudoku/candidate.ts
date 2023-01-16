@@ -1,9 +1,7 @@
 import { Digit } from "./digit";
 import { Cell } from "./cell";
 
-// candidate
-
-export type CellDigitPair = [Cell, Digit];
+// export type CellDigitPair = [Cell, Digit];
 
 export type Candidate = `${Cell}${Digit}`;
 
@@ -19,6 +17,6 @@ export function digitOf(candidate: Candidate): Digit {
     return parseInt(candidate[2]) as Digit;
 }
 
-export function candidateToPair(candidate: Candidate): CellDigitPair {
-    return [cellOf(candidate), digitOf(candidate)];
-}
+// export function candidateToPair(candidate: Candidate): CellDigitPair {
+//     return [cellOf(candidate), digitOf(candidate)];
+// }

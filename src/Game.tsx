@@ -1,15 +1,9 @@
 import React from "react";
-import { MouseEventHandler } from 'react';
+import { MouseEventHandler } from "react";
 import "./Game.css";
-import { Board } from "./lib/sudoku/board";
-import { CellData } from "./lib/sudoku/cell data";
-import { Cell } from "./lib/sudoku/cell";
-import { BOXES } from "./lib/sudoku/units";
-import { Digit, DIGITS, parseDigit } from "./lib/sudoku/digit";
+import { Board, CellData, Cell, BOXES, Digit, DIGITS, parseDigit, cellOf, Candidate, digitOf } from "./lib/sudoku";
 import { isNone, isSome } from "./lib/combinatorics";
 import { STRATEGIES, Strategy, StrategyResult } from "./lib/solver";
-
-
 
 
 
@@ -38,19 +32,6 @@ export default class Game extends React.Component<any, GameState> {
             inputMode: "digit",
             strategyStatus: new Map(),
         };
-
-        this.resetBoard = this.resetBoard.bind(this);
-        this.loadBoardString = this.loadBoardString.bind(this);
-        this.takeStep = this.takeStep.bind(this);
-        this.undoStep = this.undoStep.bind(this);
-        this.tryComplete = this.tryComplete.bind(this);
-
-        this.handleClickCell = this.handleClickCell.bind(this);
-        this.handleMouseMove = this.handleMouseMove.bind(this);
-
-        this.updateInputMode = this.updateInputMode.bind(this);
-
-        this.checkStrategy = this.checkStrategy.bind(this);
     }
 
     updateBoard(board: Board) {
@@ -251,7 +232,7 @@ export default class Game extends React.Component<any, GameState> {
         // console.log("try complete");
 
         if (await this.takeStep()) {
-            setTimeout(this.tryComplete, 300);
+            setTimeout(this.tryComplete.bind(this), 300);
         }
     }
 
@@ -274,7 +255,7 @@ export default class Game extends React.Component<any, GameState> {
         } else {
             console.log("no strategy found");
         }
-        
+
         return false;
     }
 
@@ -346,13 +327,21 @@ export default class Game extends React.Component<any, GameState> {
         const board = new Board(this.state.board);
         const result = this.state.result;
 
-        for (const [id, digit] of result?.solutions ?? []) {
-            board.inputDigit(id, digit);
+        if (isNone(result)) {
+            return;
         }
 
-        for (const [id, digit] of result?.eliminations ?? []) {
-            // board.inputNote(id, digit, NoteType.ELIMINATED);
-            board.cell(id).eliminateCandidate(digit);
+        if (isSome(result.solutions)) {
+            for (const c of result.solutions) {
+                board.fixCandidate(c);
+            }
+        }
+
+        if (isSome(result.eliminations)) {
+            for (const c of result.eliminations) {
+                // board.inputNote(id, digit, NoteType.ELIMINATED);
+                board.eliminateCandidate(c);
+            }
         }
 
         this.updateBoard(board);
@@ -362,31 +351,31 @@ export default class Game extends React.Component<any, GameState> {
         return (
             <div className="game"
                 tabIndex={-1}
-                onKeyDown={(event) => this.handleKeyDown(event)}
+                onKeyDown={this.handleKeyDown.bind(this)}
             >
                 <Grid
                     board={this.state.board}
                     selectedCells={this.state.selectedCells}
                     result={this.state.result}
                     focus={this.state.focus}
-                    onClickCell={this.handleClickCell}
-                    onMouseMove={this.handleMouseMove}
+                    onClickCell={this.handleClickCell.bind(this)}
+                    onMouseMove={this.handleMouseMove.bind(this)}
                 />
                 <div className="game-info">
                     <div>Sudoku</div>
                     <NoteSelector
                         inputMode={this.state.inputMode}
-                        onClick={this.updateInputMode}
+                        onClick={this.updateInputMode.bind(this)}
                     />
                     <SolverControls
-                        onReset={this.resetBoard}
-                        onLoadString={this.loadBoardString}
-                        onStep={this.takeStep}
-                        onUndo={this.undoStep}
-                        onComplete={this.tryComplete}
+                        onReset={this.resetBoard.bind(this)}
+                        onLoadString={this.loadBoardString.bind(this)}
+                        onStep={this.takeStep.bind(this)}
+                        onUndo={this.undoStep.bind(this)}
+                        onComplete={this.tryComplete.bind(this)}
                     />
                     <StrategyList
-                        onClick={this.checkStrategy}
+                        onClick={this.checkStrategy.bind(this)}
                         strategyStatus={this.state.strategyStatus}
                     />
                 </div>
@@ -428,9 +417,11 @@ type GridProps = {
 
 class Grid extends React.Component<GridProps> {
 
-    renderCell(id: Cell) {
+    renderCell(cell: Cell) {
         const result = this.props.result;
-        const filterCell = (set?: [Cell, Digit][]) => set?.filter(e => e[0] === id).map(e => e[1]);
+        const filterCell = (set?: Candidate[]) => (
+            set?.filter(c => cellOf(c) === cell).map(c => digitOf(c))
+        );
 
         const solution = filterCell(result?.solutions)?.at(0);
         const eliminations = filterCell(result?.eliminations);
@@ -439,16 +430,16 @@ class Grid extends React.Component<GridProps> {
 
         return (
             <CellComponent
-                key={id}
-                cell={this.props.board.cell(id)}
-                selected={this.props.selectedCells.has(id)}
+                key={cell}
+                data={this.props.board.cell(cell)}
+                selected={this.props.selectedCells.has(cell)}
                 solution={solution}
                 eliminations={eliminations}
                 highlights={highlights}
                 highlights2={highlights2}
                 focus={this.props.focus}
-                onClick={() => this.props.onClickCell(id)}
-                onMouseMove={(event) => event.buttons === 1 && this.props.onMouseMove(id)}
+                onClick={() => this.props.onClickCell(cell)}
+                onMouseMove={(event) => event.buttons === 1 && this.props.onMouseMove(cell)}
             />
         );
     }
@@ -469,7 +460,7 @@ class Grid extends React.Component<GridProps> {
 }
 
 type CellProps = {
-    cell: CellData,
+    data: CellData,
     selected: boolean,
     focus?: Digit,
     solution?: Digit,
@@ -481,22 +472,22 @@ type CellProps = {
 };
 
 function CellComponent(props: CellProps) {
-    const cell = props.cell;
+    const data = props.data;
 
     const selectors = buildConditionalSelectors({
         "selected": props.selected,
-        "restricted": isSome(props.focus) && !cell.hasCandidate(props.focus),
+        "restricted": isSome(props.focus) && !data.hasCandidate(props.focus),
     });
 
-    const content = cell.hasDigit() ? (
+    const content = data.hasDigit() ? (
         <CellDigit
-            digit={cell.digit}
-            isGiven={cell.isGiven}
-            isFocus={cell.digit === props.focus}
+            digit={data.digit}
+            isGiven={data.isGiven}
+            isFocus={data.digit === props.focus}
         />
     ) : (
         <CellNotes
-            candidates={cell.candidates}
+            candidates={data.candidates}
             solution={props.solution}
             eliminations={props.eliminations}
             highlights={props.highlights}

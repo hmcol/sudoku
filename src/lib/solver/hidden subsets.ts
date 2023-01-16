@@ -1,6 +1,6 @@
 import { Strategy } from ".";
-import { notIn, tuplesOf } from "../combinatorics";
-import { Board, DIGITS, CellDigitPair, UNITS } from "../sudoku";
+import { iterProduct, notIn, tuplesOf } from "../combinatorics";
+import { Board, DIGITS, UNITS, newCandidate } from "../sudoku";
 
 export const hiddenPair: Strategy = {
     name: "hidden pair",
@@ -20,8 +20,8 @@ export const hiddenQuad: Strategy = {
 function makeHiddenSubset(n: 2 | 3 | 4) {
     return (board: Board) => {
         for (const unit of UNITS) {
-            const digits = DIGITS.filter(digit => unit.every(id => board.cell(id).digit !== digit
-            )
+            const digits = DIGITS.filter(digit =>
+                unit.every(cell => board.data[cell].digit !== digit)
             );
 
             for (const candidates of tuplesOf(n, digits)) {
@@ -33,21 +33,20 @@ function makeHiddenSubset(n: 2 | 3 | 4) {
                     continue;
                 }
 
-                const eliminations = candidateCells.map(id =>
-                    DIGITS.filter(notIn(candidates))
-                        .filter(digit => board.cell(id).hasCandidate(digit))
-                        .map(digit => [id, digit] as CellDigitPair)
-                ).flat();
+                const eliminations = iterProduct(candidateCells, DIGITS.filter(notIn(candidates)))
+                    .filter(([cell, digit]) => board.data[cell].hasCandidate(digit))
+                    .map(([cell, digit]) => newCandidate(cell, digit));
 
                 if (eliminations.length === 0) {
                     continue;
                 }
 
+                const highlights = iterProduct(candidateCells, candidates)
+                    .map(([cell, digit]) => newCandidate(cell, digit));
+
                 return {
                     eliminations,
-                    highlights: candidateCells.map(id =>
-                        candidates.map(digit => [id, digit] as CellDigitPair)
-                    ).flat(),
+                    highlights,
                 };
             }
         }

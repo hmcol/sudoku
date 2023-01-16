@@ -1,6 +1,6 @@
 import { Strategy } from ".";
 import { isNone, isSubset, notIn, tuplesOf } from "../combinatorics";
-import { Board, DIGITS, CellDigitPair, COLUMNS, ROWS } from "../sudoku";
+import { Board, DIGITS, COLUMNS, ROWS, newCandidate } from "../sudoku";
 
 export const xWing: Strategy = {
     name: "x-wing",
@@ -40,7 +40,7 @@ function makeBasicFish(n: 2 | 3 | 4) {
                         .flat()
                         .filter(notIn(candidateCells))
                         .filter(board.cellHasCandidate(digit))
-                        .map(cell => [cell, digit] as CellDigitPair);
+                        .map(cell => newCandidate(cell, digit));
 
                     if (eliminations.length === 0) {
                         continue;
@@ -48,7 +48,7 @@ function makeBasicFish(n: 2 | 3 | 4) {
 
                     return {
                         eliminations,
-                        highlights: candidateCells.map(cell => [cell, digit] as CellDigitPair),
+                        highlights: candidateCells.map(cell => newCandidate(cell, digit)),
                     };
                 }
             }

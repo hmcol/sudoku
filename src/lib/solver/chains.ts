@@ -1,5 +1,5 @@
 import { isNone, isSome, notEq } from "../combinatorics";
-import { CELLS, Cell, CellDigitPair, Candidate, cellOf, newCandidate, candidateToPair, digitOf, BOXES, COLUMNS, ROWS, UNITS, DIGITS, Digit, Board } from "../sudoku";
+import { CELLS, Cell, Candidate, cellOf, newCandidate, digitOf, BOXES, COLUMNS, ROWS, UNITS, DIGITS, Digit, Board } from "../sudoku";
 import { Strategy, StrategyResult } from ".";
 
 export const xChainSimple: Strategy = {
@@ -244,18 +244,18 @@ function oppLink(link: LinkType): LinkType {
 }
 
 type QueueItem = {
-    cid: Candidate,
-    id: Cell,
+    candidate: Candidate,
+    cell: Cell,
     digit: Digit,
     nextLink: LinkType,
     depth: number,
 };
 
-function newStackItem(cid: Candidate, nextLink: LinkType, depth: number = 1): QueueItem {
+function newQueueItem(candidate: Candidate, nextLink: LinkType, depth: number = 1): QueueItem {
     return {
-        cid: cid,
-        id: cellOf(cid),
-        digit: digitOf(cid),
+        candidate: candidate,
+        cell: cellOf(candidate),
+        digit: digitOf(candidate),
         nextLink: nextLink,
         depth,
     };
@@ -278,13 +278,14 @@ function findAlternatingChains(
     };
 
     for (const root of strongLinks.candidates) {
-        const [rootId, rootDigit] = candidateToPair(root);
+        const rootCell = cellOf(root);
+        const rootDigit = digitOf(root);
 
         const queue: QueueItem[] = [];
         const visited = new Set<Candidate>();
         const parents = new Map<Candidate, Candidate>();
 
-        queue.push(newStackItem(root, "strong"));
+        queue.push(newQueueItem(root, "strong"));
 
         while (queue.length > 0) {
             const u = queue.shift()!;
@@ -294,13 +295,13 @@ function findAlternatingChains(
 
                 // type 1: same digit on both ends
                 if (u.digit === rootDigit) {
-                    const eliminations = board.getDigitEliminations(rootDigit, [rootId, u.id]);
+                    const eliminations = board.getDigitEliminations(rootDigit, [rootCell, u.cell]);
 
                     if (eliminations.length > 0) {
-                        const chain = backtrackChain(u.cid, parents);
+                        const chain = backtrackChain(u.candidate, parents);
 
-                        const highlights = chain.filter((_, i) => i % 2 === 0).map(candidateToPair);
-                        const highlights2 = chain.filter((_, i) => i % 2 === 1).map(candidateToPair);
+                        const highlights = chain.filter((_, i) => i % 2 === 0);
+                        const highlights2 = chain.filter((_, i) => i % 2 === 1);
 
                         chains.push([
                             chain,
@@ -316,23 +317,23 @@ function findAlternatingChains(
                 // type 2: different digits which see each other
                 if (
                     u.digit !== rootDigit
-                    && UNITS.some(unit => unit.includes(rootId) && unit.includes(u.id))
+                    && UNITS.some(unit => unit.includes(rootCell) && unit.includes(u.cell))
                 ) {
-                    const eliminations: CellDigitPair[] = [];
+                    const eliminations = new Array<Candidate>();
 
-                    if (board.cell(rootId).hasCandidate(u.digit)) {
-                        eliminations.push([rootId, u.digit]);
+                    if (board.cell(rootCell).hasCandidate(u.digit)) {
+                        eliminations.push(newCandidate(rootCell, u.digit));
                     }
 
-                    if (board.cell(u.id).hasCandidate(rootDigit)) {
-                        eliminations.push([u.id, rootDigit]);
+                    if (board.cell(u.cell).hasCandidate(rootDigit)) {
+                        eliminations.push(newCandidate(u.cell, rootDigit));
                     }
 
                     if (eliminations.length > 0) {
-                        const chain = backtrackChain(u.cid, parents);
+                        const chain = backtrackChain(u.candidate, parents);
 
-                        const highlights = chain.filter((_, i) => i % 2 === 0).map(candidateToPair);
-                        const highlights2 = chain.filter((_, i) => i % 2 === 1).map(candidateToPair);
+                        const highlights = chain.filter((_, i) => i % 2 === 0);
+                        const highlights2 = chain.filter((_, i) => i % 2 === 1);
 
                         chains.push([
                             chain,
@@ -348,19 +349,19 @@ function findAlternatingChains(
 
             // keep looking
 
-            visited.add(u.cid);
+            visited.add(u.candidate);
 
             if (isSome(maxLength) && u.depth >= maxLength) {
                 continue;
             }
 
-            for (const vCid of links[u.nextLink].get(u.cid)) {
+            for (const vCid of links[u.nextLink].get(u.candidate)) {
                 if (visited.has(vCid)) {
                     continue;
                 }
 
-                parents.set(vCid, u.cid);
-                queue.push(newStackItem(
+                parents.set(vCid, u.candidate);
+                queue.push(newQueueItem(
                     vCid,
                     oppLink(u.nextLink),
                     u.depth + 1,
