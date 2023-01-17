@@ -7,7 +7,7 @@ export const fullHouse: Strategy = {
         const solutions = new Array<Candidate>();
 
         for (const unit of UNITS) {
-            const unsolvedCells = unit.filter(id => !board.cell(id).hasDigit());
+            const unsolvedCells = unit.filter(cell => !board.data[cell].hasDigit());
 
             if (unsolvedCells.length !== 1) {
                 continue;

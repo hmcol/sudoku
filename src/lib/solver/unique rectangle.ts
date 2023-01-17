@@ -164,7 +164,7 @@ export const ur2: Strategy = {
 
                     const highlights = iterProduct(rect, ab)
                         .map(([cell, digit]) => newCandidate(cell, digit));
-                    
+
 
                     return {
                         eliminations,
@@ -228,7 +228,7 @@ export const ur4: Strategy = {
                         if (eliminations.length === 0) {
                             continue;
                         }
-                        
+
                         const highlights = iterProduct([bv1, bv2], ab)
                             .concat([[dc1, strongDigit], [dc2, strongDigit]])
                             .map(([cell, digit]) => newCandidate(cell, digit));
@@ -246,11 +246,47 @@ export const ur4: Strategy = {
     },
 };
 
-const _ur5: Strategy = {
+export const ur5: Strategy = {
     name: "unique rectangle type 5",
-    func: (_board: Board) => {
+    func: (board: Board) => {
         // one or two ab cells, two or three abc cells
         // can eliminate c from every cell that sees both abc cells
+        for (const [rect, ab] of iterProduct(RECTANGLES, pairsOf(DIGITS))) {
+            const bivalueCells = rect.filter(cell =>
+                setEquality(ab, board.data[cell].candidates)
+            );
+
+            if (!(bivalueCells.length === 1 || bivalueCells.length === 2)) {
+                continue;
+            }
+            for (const c of DIGITS.filter(notIn(ab))) {
+                const trivalueCells = rect.filter(cell =>
+                    setEquality([...ab, c], board.data[cell].candidates)
+                );
+
+                if (trivalueCells.length !== 4 - bivalueCells.length) {
+                    continue;
+                }
+
+                const eliminations = board.getDigitEliminations(c, trivalueCells);
+
+                if (eliminations.length === 0) {
+                    continue;
+                }
+
+                const highlights = iterProduct(rect, ab)
+                    .map(([cell, digit]) => newCandidate(cell, digit));
+
+                const highlights2 = trivalueCells
+                    .map(cell => newCandidate(cell, c));
+
+                return {
+                    eliminations,
+                    highlights,
+                    highlights2,
+                };
+            }
+        }
 
         return undefined;
     },
@@ -270,8 +306,8 @@ const _ur6: Strategy = {
 
 // this checks for the most general case, but it would be more useful to first
 // check for easy specific cases
-export const uniqueRectangle: Strategy = {
-    name: "unique rectangle",
+export const hiddenRectangle: Strategy = {
+    name: "hidden unique rectangle",
     func: (board: Board) => {
         const g = makeStrongLinkGraph(board);
 

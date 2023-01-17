@@ -34,22 +34,26 @@ export class Board {
             return undefined;
         }
 
-        const cells: Partial<Record<Cell, CellData>> = {};
+        const data: Partial<Record<Cell, CellData>> = {};
 
-        for (const [index, id] of CELLS.entries()) {
+        for (const [index, cell] of CELLS.entries()) {
             const digit = parseDigit(str[index]);
 
-            cells[id] = isSome(digit) ? CellData.withGiven(digit) : new CellData();
+            data[cell] = isSome(digit) ? CellData.withGiven(digit) : new CellData();
         }
 
-        return Board.fromCells(cells as Record<Cell, CellData>);
+        const board = new Board();
+
+        board.data = data as Record<Cell, CellData>;
+
+        return board;
     }
 
     /**
      * @deprecated
      */
-    cell(id: Cell): CellData {
-        return this.data[id];
+    cell(cell: Cell): CellData {
+        return this.data[cell];
     }
 
     /**
@@ -87,11 +91,15 @@ export class Board {
         cellData.deleteDigit();
     }
 
-    clearCell(id: Cell) {
-        this.deleteDigit(id);
+    clearCell(cell: Cell) {
+        this.deleteDigit(cell);
     }
 
     // helper stuff ?
+
+    /**
+     * @deprecated
+     */
     cellHasCandidate(digit: Digit): (cell: Cell) => boolean {
         return cell => this.data[cell].hasCandidate(digit);
     }
@@ -111,7 +119,7 @@ export class Board {
 
     getDigitEliminations(digit: Digit, foci: Cell[]): Candidate[] {
         return this.getSharedNeighbors(...foci)
-            .filter(this.cellHasCandidate(digit))
+            .filter(cell => this.data[cell].hasCandidate(digit))
             .map(cell => newCandidate(cell, digit));
     }
 
