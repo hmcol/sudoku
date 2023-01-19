@@ -2,7 +2,7 @@ import React from "react";
 import { MouseEventHandler } from "react";
 import "./Game.css";
 import { Board, CellData, Cell, BOXES, Digit, DIGITS, parseDigit, cellOf, Candidate, digitOf } from "./lib/sudoku";
-import { isNone, isSome } from "./lib/combinatorics";
+import { isNone, isSome } from "./lib/util/option";
 import { STRATEGIES, Strategy, StrategyResult } from "./lib/solver";
 
 
@@ -174,7 +174,7 @@ export default class Game extends React.Component<any, GameState> {
     }
 
     inputDigit(digit: Digit) {
-        const board = new Board(this.state.board);
+        const board = this.state.board.clone();
         const selectedCells = new Set(this.state.selectedCells);
 
         for (const id of selectedCells) {
@@ -204,7 +204,7 @@ export default class Game extends React.Component<any, GameState> {
     // }
 
     clearSelection() {
-        const board = new Board(this.state.board);
+        const board = this.state.board.clone();
         const selectedCells = this.state.selectedCells;
 
         for (const id of selectedCells) {
@@ -291,7 +291,7 @@ export default class Game extends React.Component<any, GameState> {
         });
 
         // start computation
-        const board = new Board(this.state.board);
+        const board = this.state.board.clone();
 
         const promise = new Promise<StrategyResult | undefined>((resolve, _) => {
             setTimeout(() => {
@@ -324,7 +324,7 @@ export default class Game extends React.Component<any, GameState> {
     }
 
     applyCurrentResult() {
-        const board = new Board(this.state.board);
+        const board = this.state.board.clone();
         const result = this.state.result;
 
         if (isNone(result)) {

@@ -7,7 +7,9 @@ export const fullHouse: Strategy = {
         const solutions = new Array<Candidate>();
 
         for (const unit of UNITS) {
-            const unsolvedCells = unit.filter(cell => !board.data[cell].hasDigit());
+            const unsolvedCells = unit.filter(cell =>
+                board.data[cell].isUnsolved()
+            );
 
             if (unsolvedCells.length !== 1) {
                 continue;
@@ -31,15 +33,23 @@ export const hiddenSingle: Strategy = {
     func: (board: Board) => {
         const solutions = new Array<Candidate>();
 
-        for (const digit of DIGITS) {
-            for (const unit of UNITS) {
-                const candidateCells = unit.filter(cell =>
+        for (const unit of UNITS) {
+            const unsolvedCells = unit.filter(cell =>
+                board.data[cell].isUnsolved()
+            );
+
+            for (const digit of DIGITS) {
+                const candidateCells = unsolvedCells.filter(cell =>
                     board.data[cell].hasCandidate(digit)
                 );
 
-                if (candidateCells.length === 1) {
-                    solutions.push(newCandidate(candidateCells[0], digit));
+                if (candidateCells.length !== 1) {
+                    continue;
                 }
+
+                const [cell] = candidateCells;
+
+                solutions.push(newCandidate(cell, digit));
             }
         }
 
@@ -55,11 +65,15 @@ export const nakedSingle: Strategy = {
         const solutions = new Array<Candidate>();
 
         for (const cell of CELLS) {
-            const candidates = board.data[cell].candidates;
+            const candidateDigits = board.data[cell].candidates;
 
-            if (candidates.length === 1) {
-                solutions.push(newCandidate(cell, candidates[0]));
+            if (candidateDigits.length !== 1) {
+                continue;
             }
+
+            const [digit] = candidateDigits;
+
+            solutions.push(newCandidate(cell, digit));
         }
 
         return solutions.length > 0 ?

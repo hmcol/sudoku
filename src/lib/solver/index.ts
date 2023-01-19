@@ -7,9 +7,11 @@ import { hiddenPair, hiddenTriple, hiddenQuad } from "./hidden subsets";
 import { intersectionPointing, intersectionClaiming } from "./intersections";
 import { xWing, swordfish, jellyfish } from "./basic fish";
 import { skyscraper, kite, turbotFish } from "./single digit patterns";
-import { yWing, xyzWing, wWing } from "./wings";
+import { xyWing, xyzWing, wWing } from "./wings";
 import { bugPlusOne } from "./bug";
 import { Board, Candidate } from "../sudoku";
+import { LinkCache } from "./links";
+import { Option } from "../util/option";
 
 export type StrategyResult = {
     solutions?: Array<Candidate>;
@@ -20,7 +22,7 @@ export type StrategyResult = {
 
 export type Strategy = {
     name: string,
-    func: (board: Board) => StrategyResult | undefined,
+    func: (board: Board) => Option<StrategyResult>,
 };
 
 export const STRATEGIES: Strategy[] = [
@@ -44,7 +46,7 @@ export const STRATEGIES: Strategy[] = [
     turbotFish,
     xChainSimple,
     xChain,
-    yWing,
+    xyWing,
     xyzWing,
     wWing,
     ur1,
@@ -56,3 +58,13 @@ export const STRATEGIES: Strategy[] = [
     xyChain,
     aic,
 ];
+
+class Solver {
+    static readonly STRATEGIES = STRATEGIES;
+
+    links: LinkCache;
+
+    constructor(private readonly board: Board) {
+        this.links = new LinkCache(board);
+    }
+}

@@ -3,6 +3,8 @@
         "Bilocal",
         "bivalue",
         "strat",
-        "trivalue"
+        "tetravalue",
+        "trivalue",
+        "wxyz"
     ]
 }

@@ -1,5 +1,5 @@
 import { Strategy } from ".";
-import { intersection, pairsOf, Graph, Tuple, iterProduct3, iterProduct, range, notIn, notEq, setEquality, hasSubset } from "../combinatorics";
+import { intersection, pairsOf, Graph, Tuple, iterProduct3, iterProduct, range, notIn, notEq, setEquality, hasSubset } from "../util/combinatorics";
 import { CELLS, newCandidate, LINES, FLOORS, TOWERS, DIGITS, Board, UNITS } from "../sudoku";
 
 // binary type

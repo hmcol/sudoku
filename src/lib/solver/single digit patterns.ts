@@ -1,5 +1,5 @@
 import { Strategy } from ".";
-import { isSome } from "../combinatorics";
+import { isSome } from "../util/option";
 import { Board } from "../sudoku";
 import { makeBasicChain } from "./chains";
 

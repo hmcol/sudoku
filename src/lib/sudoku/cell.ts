@@ -1,4 +1,4 @@
-import { iterProduct, notEq, notIn } from "../combinatorics";
+import { iterProduct, notEq, notIn } from "../util/combinatorics";
 import { RowId, ColumnId, COLUMN_IDS, ROW_IDS, BOXES } from "./units";
 
 

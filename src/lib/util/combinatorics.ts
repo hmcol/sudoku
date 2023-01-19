@@ -1,3 +1,5 @@
+import { isNone } from "./option";
+
 type Filter<T> = (item: T) => boolean;
 
 // set stuff
@@ -22,15 +24,6 @@ export function isEq<T>(value: T): Filter<T> {
 
 export function notEq<T>(value: T): Filter<T> {
     return item => item !== value;
-}
-
-
-export function isSome<T>(item: T | undefined): item is T {
-    return item !== undefined;
-}
-
-export function isNone<T>(item: T | undefined): item is undefined {
-    return item === undefined;
 }
 
 

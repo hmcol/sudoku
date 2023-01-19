@@ -1,5 +1,6 @@
 import { Strategy } from ".";
-import { hasSubset, isNone, notIn } from "../combinatorics";
+import { hasSubset, notIn } from "../util/combinatorics";
+import { isNone } from "../util/option";
 import { Board, Cell, DIGITS, BOXES, LINES, newCandidate } from "../sudoku";
 
 export const intersectionPointing: Strategy = {
@@ -14,34 +15,33 @@ export const intersectionClaiming: Strategy = {
 
 function makeIntersection(baseType: Cell[][], coverType: Cell[][]) {
     return (board: Board) => {
-        for (const digit of DIGITS) {
-            for (const baseUnit of baseType) {
-                const candidateCells = baseUnit.filter(cell =>
-                    board.data[cell].hasCandidate(digit)
-                );
+        for (const x of DIGITS) {
+            const hasX = (cell: Cell) => board.data[cell].hasCandidate(x);
 
-                if (candidateCells.length < 2) {
+            for (const baseUnit of baseType) {
+                const xBaseCells = baseUnit.filter(hasX);
+
+                if (xBaseCells.length < 2) {
                     continue;
                 }
 
-                const coverUnit = coverType.find(hasSubset(candidateCells));
+                const coverUnit = coverType.find(hasSubset(xBaseCells));
 
                 if (isNone(coverUnit)) {
                     continue;
                 }
 
-                const eliminations = coverUnit
-                    .filter(notIn(candidateCells))
-                    .filter(cell => board.data[cell].hasCandidate(digit))
-                    .map(cell => newCandidate(cell, digit));
+                const coverMinusBaseCells = coverUnit
+                    .filter(hasX)
+                    .filter(notIn(xBaseCells));
 
-                if (eliminations.length === 0) {
+                if (coverMinusBaseCells.length === 0) {
                     continue;
                 }
 
                 return {
-                    eliminations,
-                    highlights: candidateCells.map(cell => newCandidate(cell, digit)),
+                    eliminations: coverMinusBaseCells.map(cell => newCandidate(cell, x)),
+                    highlights: xBaseCells.map(cell => newCandidate(cell, x)),
                 };
             }
         }

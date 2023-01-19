@@ -1,55 +1,58 @@
 import { Strategy } from ".";
-import { intersection, isSubset, notEq, notIn, pairsOf } from "../combinatorics";
-import { Board, CELLS, DIGITS, UNITS, newCandidate } from "../sudoku";
+import { intersection, isSubset, notEq, notIn, pairsOf, setEquality, triplesOf } from "../util/combinatorics";
+import { Board, CELLS, DIGITS, UNITS, neighborsOf, newCandidate } from "../sudoku";
 import { makeBasicChain } from "./chains";
 
-export const yWing: Strategy = {
-    name: "y-wing",
+export const xyWing: Strategy = {
+    name: "xy-wing",
     func: makeBasicChain(["bivalue"], ["weakUnit"], 6, 6),
 };
 
 export const xyzWing: Strategy = {
     name: "xyz-wing",
     func: (board: Board) => {
-        for (const xyzId of CELLS) {
-            const xyz = board.cell(xyzId).candidates;
+        const trivalueCells = CELLS.filter(cell =>
+            board.data[cell].candidates.length === 3
+        );
 
-            if (xyz.length !== 3) {
-                continue;
-            }
+        for (const xyzCell of trivalueCells) {
+            const xyz = board.data[xyzCell].candidates;
 
-            const bivalueNeighbors = board.getVisible(xyzId)
-                .filter(id => board.cell(id).candidates.length === 2)
-                .filter(id => isSubset(board.cell(id).candidates, xyz));
+            const bivalueNeighbors = neighborsOf(xyzCell)
+                .filter(cell => board.data[cell].candidates.length === 2)
+                .filter(cell => isSubset(board.data[cell].candidates, xyz));
 
-            for (const [xzId, yzId] of pairsOf(bivalueNeighbors)) {
-                const xz = board.cell(xzId).candidates;
-                const yz = board.cell(yzId).candidates;
+            for (const [xzCell, yzCell] of pairsOf(bivalueNeighbors)) {
+                const xz = board.data[xzCell].candidates;
+                const yz = board.data[yzCell].candidates;
 
-                if (isSubset(xz, yz)) {
+                if (setEquality(xz, yz)) {
                     continue;
                 }
 
-                const z = intersection(xz, yz)[0];
+                const [z] = intersection(xz, yz);
 
-                const eliminations = board.getDigitEliminations(z, [xyzId, xzId, yzId]);
+                const eliminations = board.getDigitEliminations(z, [xyzCell, xzCell, yzCell]);
 
-                if (eliminations.length > 0) {
-                    const x = xz.filter(notEq(z))[0];
-                    const y = yz.filter(notEq(z))[0];
-
-                    const highlights = ([
-                        [xyzId, x], [xyzId, y], [xyzId, z],
-                        [xzId, x], [xzId, z],
-                        [yzId, y], [yzId, z]
-                    ] as const)
-                        .map(([cell, digit]) => newCandidate(cell, digit));
-
-                    return {
-                        eliminations,
-                        highlights,
-                    };
+                if (eliminations.length === 0) {
+                    continue;
                 }
+
+                const [x] = xz.filter(notEq(z));
+                const [y] = yz.filter(notEq(z));
+
+                const highlights = ([
+                    [xyzCell, x], [xyzCell, y], [xyzCell, z],
+                    [xzCell, x], [xzCell, z],
+                    [yzCell, y], [yzCell, z]
+                ] as const)
+                    .map(([cell, digit]) => newCandidate(cell, digit));
+
+                return {
+                    eliminations,
+                    highlights,
+                };
+
             }
 
         }
@@ -104,6 +107,71 @@ export const wWing: Strategy = {
                     }
                 }
             }
+        }
+
+        return undefined;
+    },
+};
+
+export const wxyzWing: Strategy = {
+    name: "wxyz-wing",
+    func: (board: Board) => {
+        const tetravalueCells = CELLS.filter(cell =>
+            board.data[cell].candidates.length === 4
+        );
+
+        for (const wxyzCell of tetravalueCells) {
+            const wxyz = board.data[wxyzCell].candidates;
+
+            const bivalueNeighbors = neighborsOf(wxyzCell)
+                .filter(cell => board.data[cell].candidates.length === 2)
+                .filter(cell => board.data[cell].candidates, wxyz);
+
+            for (const [wzCell, xzCell, yzCell] of triplesOf(bivalueNeighbors)) {
+                const wz = board.data[wzCell].candidates;
+                const xz = board.data[xzCell].candidates;
+                const yz = board.data[yzCell].candidates;
+
+                if (setEquality(wz, xz) || setEquality(wz, yz) || setEquality(xz, yz)) {
+                    continue;
+                }
+
+                const commonDigits = wxyz.filter(z =>
+                    [wz, xz, yz].every(pair => pair.includes(z))
+                );
+
+                if (commonDigits.length !== 1) {
+                    continue;
+                }
+
+                const [z] = commonDigits;
+
+                const eliminations = board.getDigitEliminations(
+                    z,
+                    [wxyzCell, wzCell, xzCell, yzCell]
+                );
+
+                if (eliminations.length === 0) {
+                    continue;
+                }
+
+                const highlights = [wxyzCell, wzCell, xzCell, yzCell].flatMap(cell =>
+                    board.data[cell].candidates
+                        .filter(notEq(z))
+                        .map(digit => newCandidate(cell, digit))
+                );
+
+                const highlights2 = [wxyzCell, wzCell, xzCell, yzCell]
+                    .map(cell => newCandidate(cell, z));
+
+                return {
+                    eliminations,
+                    highlights,
+                    highlights2,
+                };
+
+            }
+
         }
 
         return undefined;

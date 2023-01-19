@@ -1,13 +1,14 @@
 import { Strategy } from ".";
-import { contains } from "../combinatorics";
-import { Board, CELLS, UNITS, newCandidate } from "../sudoku";
+import { contains } from "../util/combinatorics";
+import { isNone } from "../util/option";
+import { Board, CELLS, Cell, UNITS, newCandidate } from "../sudoku";
 
 export const bugPlusOne: Strategy = {
     name: "bug + 1",
     func: (board: Board) => {
         const nonBivalueCells = CELLS
-            .filter(id => !board.cell(id).hasDigit())
-            .filter(id => board.cell(id).candidates.length !== 2);
+            .filter(cell => board.data[cell].isUnsolved())
+            .filter(cell => board.data[cell].numberOfCandidates !== 2);
 
         if (nonBivalueCells.length !== 1) {
             return undefined;
@@ -15,27 +16,26 @@ export const bugPlusOne: Strategy = {
 
         const [bugCell] = nonBivalueCells;
 
-        const bugCandidates = board.cell(bugCell).candidates;
+        const bugCandidates = board.data[bugCell].candidates;
 
         if (bugCandidates.length !== 3) {
             return undefined;
         }
 
-        digitLoop: 
-        for (const digit of bugCandidates) {
-            for (const unit of UNITS.filter(contains(bugCell))) {
-                const count = unit.filter(board.cellHasCandidate(digit)).length;
+        const bugCellUnits = UNITS.filter(contains(bugCell));
 
-                if (count !== 3) {
-                    continue digitLoop;
-                }                
-            }
+        const bugDigit = bugCandidates.find(digit =>
+            bugCellUnits.every(unit =>
+                unit.filter(cell => board.data[cell].hasCandidate(digit)).length === 3
+            )
+        );
 
-            return {
-                solutions: [newCandidate(bugCell, digit)],
-            };
+        if (isNone(bugDigit)) {
+            return undefined;
         }
 
-        return undefined;
+        return {
+            solutions: [newCandidate(bugCell, bugDigit)],
+        };
     },
 };

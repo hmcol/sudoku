@@ -1,5 +1,5 @@
 import { Strategy } from ".";
-import { iterProduct, tuplesOf } from "../combinatorics";
+import { isIn, iterProduct, tuplesOf } from "../util/combinatorics";
 import { Board, DIGITS, UNITS, newCandidate } from "../sudoku";
 
 export const nakedPair: Strategy = {
@@ -20,27 +20,32 @@ export const nakedQuad: Strategy = {
 function makeNakedSubset(n: 2 | 3 | 4) {
     return (board: Board) => {
         for (const unit of UNITS) {
-            const unitFiltered = unit.filter(cell => !board.data[cell].hasDigit());
+            const unitFiltered = unit.filter(cell =>
+                board.data[cell].isUnsolved()
+            );
 
-            for (const cells of tuplesOf(n, unitFiltered)) {
-                const candidates = DIGITS.filter(digit => 
-                    cells.some(board.cellHasCandidate(digit))
+            for (const cellTuple of tuplesOf(n, unitFiltered)) {
+                const digitTuple = DIGITS.filter(digit =>
+                    cellTuple.some(cell => board.data[cell].hasCandidate(digit))
                 );
 
-                if (candidates.length !== n) {
+                if (digitTuple.length !== n) {
                     continue;
                 }
 
-                const eliminations = candidates.flatMap(digit =>
-                    board.getDigitEliminations(digit, cells)
+                const eliminations = digitTuple.flatMap(digit =>
+                    board.getDigitEliminations(digit, cellTuple)
                 );
 
                 if (eliminations.length === 0) {
                     continue;
                 }
 
-                const highlights = iterProduct(cells, candidates)
-                    .map(([cell, digit]) => newCandidate(cell, digit));
+                const highlights = cellTuple.flatMap(cell =>
+                    board.data[cell].candidates
+                        .filter(isIn(digitTuple))
+                        .map(digit => newCandidate(cell, digit))
+                );
 
                 return {
                     eliminations,

@@ -1,22 +1,27 @@
-import { Cell, CELLS } from "./cell";
+import { Cell, CELLS, neighborsOf } from "./cell";
 import { Candidate, cellOf, digitOf, newCandidate } from "./candidate";
 import { UNITS } from "./units";
-import { contains, isIn, isSome, notIn, setEquality } from "../combinatorics";
+import { contains, isIn, notIn, setEquality } from "../util/combinatorics";
+import { Option, isSome } from "../util/option";
 import { DIGITS, Digit, parseDigit } from "./digit";
 import { CellData } from "./cell data";
+import { LinkCache } from "../solver/links";
 
 
 export class Board {
     data: Record<Cell, CellData>;
+    links: LinkCache;
 
-    constructor(board?: Board) {
+    constructor() {
         const cells: Partial<Record<Cell, CellData>> = {};
 
         for (const id of CELLS) {
-            cells[id] = new CellData(board?.cell(id));
+            cells[id] = new CellData(id);
         }
 
         this.data = cells as Record<Cell, CellData>;
+
+        this.links = new LinkCache(this);
     }
 
     static fromCells(cells: Record<Cell, CellData>): Board {
@@ -27,7 +32,7 @@ export class Board {
         return board;
     }
 
-    static fromString(boardString: string): Board | undefined {
+    static fromString(boardString: string): Option<Board> {
         const str = boardString.trim();
 
         if (str.length < 81) {
@@ -39,7 +44,7 @@ export class Board {
         for (const [index, cell] of CELLS.entries()) {
             const digit = parseDigit(str[index]);
 
-            data[cell] = isSome(digit) ? CellData.withGiven(digit) : new CellData();
+            data[cell] = isSome(digit) ? CellData.withGiven(cell, digit) : new CellData(cell);
         }
 
         const board = new Board();
@@ -49,11 +54,25 @@ export class Board {
         return board;
     }
 
+    clone(): Board {
+        const board = new Board();
+
+        for (const cell of this.cells) {
+            board.data[cell.id] = cell.clone();
+        }
+
+        return board;
+    }
+
     /**
      * @deprecated
      */
     cell(cell: Cell): CellData {
         return this.data[cell];
+    }
+
+    get cells() {
+        return CELLS.map(cell => this.data[cell]);
     }
 
     /**
@@ -102,6 +121,12 @@ export class Board {
      */
     cellHasCandidate(digit: Digit): (cell: Cell) => boolean {
         return cell => this.data[cell].hasCandidate(digit);
+    }
+
+    arePeers(cell1: Cell, cell2: Cell): boolean {
+        return UNITS.some(unit => 
+            unit.includes(cell1) && unit.includes(cell2)    
+        );
     }
 
     getVisible(...focus: Cell[]): Cell[] {

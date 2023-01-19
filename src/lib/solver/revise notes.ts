@@ -1,5 +1,5 @@
 import { Strategy } from ".";
-import { isSome } from "../combinatorics";
+import { isSome } from "../util/option";
 import { Board, CELLS, Candidate, neighborsOf, newCandidate } from "../sudoku";
 
 export const reviseNotes: Strategy = {
@@ -14,11 +14,11 @@ export const reviseNotes: Strategy = {
                 continue;
             }
 
-            const cellEliminations = neighborsOf(cell)
-                .map(neighbor => board.data[neighbor].digit)
-                .filter(isSome)
-                .filter(digit => cellData.hasCandidate(digit))
-                .map(digit => newCandidate(cell, digit));
+            const neighbors = neighborsOf(cell);
+
+            const cellEliminations = cellData.candidates.filter(digit =>
+                neighbors.some(neighbor => board.data[neighbor].digit === digit)
+            ).map(digit => newCandidate(cell, digit));
 
             eliminations.push(...cellEliminations);
         }
