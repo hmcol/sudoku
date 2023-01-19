@@ -18,14 +18,14 @@ function makeIntersection(baseType: UnitType, coverType: UnitType) {
         for (const x of DIGITS) {
             const hasX = (cell: Cell) => cell.hasCandidate(x);
 
-            for (const baseUnit of board[baseType]) {
+            for (const baseUnit of board.iter(baseType)) {
                 const xBaseCells = baseUnit.filter(hasX);
 
                 if (xBaseCells.length < 2) {
                     continue;
                 }
 
-                const coverUnit = board[coverType].find(hasSubset(xBaseCells));
+                const coverUnit = board.iter(coverType).find(hasSubset(xBaseCells));
 
                 if (isNone(coverUnit)) {
                     continue;

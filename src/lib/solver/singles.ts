@@ -6,7 +6,7 @@ export const fullHouse: Strategy = {
     func: (board: Board) => {
         const solutions = new Array<Candidate>();
 
-        for (const unit of board.units) {
+        for (const unit of board.iterUnits()) {
             const unsolvedCells = unit.filter(cell => cell.isUnsolved());
 
             if (unsolvedCells.length !== 1) {
@@ -31,7 +31,7 @@ export const hiddenSingle: Strategy = {
     func: (board: Board) => {
         const solutions = new Array<Candidate>();
 
-        for (const unit of board.units) {
+        for (const unit of board.iterUnits()) {
             const unsolvedCells = unit.filter(cell => cell.isUnsolved());
 
             for (const digit of DIGITS) {
@@ -60,7 +60,7 @@ export const nakedSingle: Strategy = {
     func: (board: Board) => {
         const solutions = new Array<Candidate>();
 
-        for (const cell of board.cells) {
+        for (const cell of board.iterCells()) {
             if (cell.numberOfCandidates !== 1) {
                 continue;
             }

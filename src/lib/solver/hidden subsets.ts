@@ -1,5 +1,5 @@
 import { Strategy } from ".";
-import { isIn, notIn, tuplesOf } from "../util/combinatorics";
+import { iterProduct, notIn, tuplesOf } from "../util/combinatorics";
 import { Board, DIGITS, newCandidate } from "../sudoku";
 
 export const hiddenPair: Strategy = {
@@ -19,7 +19,7 @@ export const hiddenQuad: Strategy = {
 
 function makeHiddenSubset(n: 2 | 3 | 4) {
     return (board: Board) => {
-        for (const unit of board.units) {
+        for (const unit of board.iterUnits()) {
             const unsolvedDigitsInUnit = DIGITS.filter(digit =>
                 !unit.some(cell => cell.digit === digit)
             );
@@ -43,11 +43,9 @@ function makeHiddenSubset(n: 2 | 3 | 4) {
                     continue;
                 }
 
-                const highlights = cellTuple.flatMap(cell =>
-                    cell.candidates
-                        .filter(isIn(digitTuple))
-                        .map(digit => newCandidate(cell.id, digit))
-                );
+                const highlights = iterProduct(cellTuple, digitTuple)
+                    .filter(([cell, digit]) => cell.hasCandidate(digit))
+                    .map(([cell, digit]) => newCandidate(cell.id, digit));
 
                 return {
                     eliminations,

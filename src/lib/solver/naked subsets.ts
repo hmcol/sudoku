@@ -1,5 +1,5 @@
 import { Strategy } from ".";
-import { isIn, tuplesOf } from "../util/combinatorics";
+import { iterProduct, tuplesOf } from "../util/combinatorics";
 import { Board, DIGITS, newCandidate } from "../sudoku";
 
 export const nakedPair: Strategy = {
@@ -19,10 +19,8 @@ export const nakedQuad: Strategy = {
 
 function makeNakedSubset(n: 2 | 3 | 4) {
     return (board: Board) => {
-        for (const unit of board.units) {
-            const unsolvedCells = unit.filter(cell =>
-                cell.isUnsolved()
-            );
+        for (const unit of board.iterUnits()) {
+            const unsolvedCells = unit.filter(cell => cell.isUnsolved());
 
             for (const cellTuple of tuplesOf(n, unsolvedCells)) {
                 const digitTuple = DIGITS.filter(digit =>
@@ -33,19 +31,19 @@ function makeNakedSubset(n: 2 | 3 | 4) {
                     continue;
                 }
 
-                const eliminations = digitTuple.flatMap(digit =>
-                    board.getDigitEliminations(digit, cellTuple.map(cell => cell.id))
-                );
+                const tupleNeighbors = board.getNeighborsIntersection(...cellTuple);
+
+                const eliminations = iterProduct(tupleNeighbors, digitTuple)
+                    .filter(([cell, digit]) => cell.hasCandidate(digit))
+                    .map(([cell, digit]) => newCandidate(cell.id, digit));
 
                 if (eliminations.length === 0) {
                     continue;
                 }
 
-                const highlights = cellTuple.flatMap(cell =>
-                    cell.candidates
-                        .filter(isIn(digitTuple))
-                        .map(digit => newCandidate(cell.id, digit))
-                );
+                const highlights = iterProduct(cellTuple, digitTuple)
+                    .filter(([cell, digit]) => cell.hasCandidate(digit))
+                    .map(([cell, digit]) => newCandidate(cell.id, digit));
 
                 return {
                     eliminations,

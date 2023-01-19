@@ -1,6 +1,6 @@
 import { Strategy } from ".";
 import { intersection, pairsOf, Graph, Tuple, iterProduct3, iterProduct, range, notIn, notEq, setEquality, hasSubset } from "../util/combinatorics";
-import { CELLS, newCandidate, LINES, FLOORS, TOWERS, DIGITS, Board } from "../sudoku";
+import { newCandidate, FLOORS, TOWERS, DIGITS, Board } from "../sudoku";
 
 // binary type
 type B = 0 | 1;
@@ -93,7 +93,7 @@ const CUBES = (() => {
 export const ur1: Strategy = {
     name: "unique rectangle type 1",
     func: (board: Board) => {
-        const cellRectangles = RECTANGLES.map(rect => rect.map(cell => board.data[cell]));
+        const cellRectangles = RECTANGLES.map(rect => rect.map(cell => board.cells[cell]));
 
         for (const [rect, ab] of iterProduct(cellRectangles, pairsOf(DIGITS))) {
             const nonBivalueCells = rect.filter(cell =>
@@ -130,7 +130,7 @@ export const ur1: Strategy = {
 export const ur2: Strategy = {
     name: "unique rectangle type 2",
     func: (board: Board) => {
-        const cellRectangles = RECTANGLES.map(rect => rect.map(cell => board.data[cell]));
+        const cellRectangles = RECTANGLES.map(rect => rect.map(cell => board.cells[cell]));
 
         // two non-diagonal ab cells, two abc cells
         // can eliminate c from every cell that sees both abc cells
@@ -196,7 +196,7 @@ const _ur3: Strategy = {
 export const ur4: Strategy = {
     name: "unique rectangle type 4",
     func: (board: Board) => {
-        const cellRectangles = RECTANGLES.map(rect => rect.map(cell => board.data[cell]));
+        const cellRectangles = RECTANGLES.map(rect => rect.map(cell => board.cells[cell]));
         
         // two non-diagonal ab cells, two ab* cells strongly linked by a
         // can eliminate b from ab* cells
@@ -215,7 +215,7 @@ export const ur4: Strategy = {
                 const dc1 = rect[(i + 2) % 4];
                 const dc2 = rect[(i + 3) % 4];
 
-                for (const unit of board.units.filter(hasSubset([dc1, dc2]))) {
+                for (const unit of board.iterUnits().filter(hasSubset([dc1, dc2]))) {
                     for (const strongDigit of ab) {
                         const candidateCells = unit.filter(cell =>
                             cell.hasCandidate(strongDigit)
@@ -255,7 +255,7 @@ export const ur4: Strategy = {
 export const ur5: Strategy = {
     name: "unique rectangle type 5",
     func: (board: Board) => {
-        const cellRectangles = RECTANGLES.map(rect => rect.map(cell => board.data[cell]));
+        const cellRectangles = RECTANGLES.map(rect => rect.map(cell => board.cells[cell]));
 
         // one or two ab cells, two or three abc cells
         // can eliminate c from every cell that sees both abc cells
@@ -387,21 +387,21 @@ function makeStrongLinkGraph(board: Board) {
     const g = new Graph();
 
     // bivalue
-    for (const id of CELLS) {
-        const candidates = board.cell(id).candidates;
+    for (const cell of board.iterCells()) {
+        const candidates = cell.candidates;
 
         if (candidates.length === 2) {
-            g.addEdge(newCandidate(id, candidates[0]), newCandidate(id, candidates[1]));
+            g.addEdge(newCandidate(cell.id, candidates[0]), newCandidate(cell.id, candidates[1]));
         }
     }
 
     // line bilocal
-    for (const line of LINES) {
+    for (const line of board.iterLines()) {
         for (const digit of DIGITS) {
-            const candidateCells = line.filter(board.cellHasCandidate(digit));
+            const candidateCells = line.filter(cell => cell.hasCandidate(digit));
 
             if (candidateCells.length === 2) {
-                g.addEdge(newCandidate(candidateCells[0], digit), newCandidate(candidateCells[1], digit));
+                g.addEdge(newCandidate(candidateCells[0].id, digit), newCandidate(candidateCells[1].id, digit));
             }
         }
     }

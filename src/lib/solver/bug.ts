@@ -6,7 +6,7 @@ import { Board, newCandidate } from "../sudoku";
 export const bugPlusOne: Strategy = {
     name: "bug + 1",
     func: (board: Board) => {
-        const nonBivalueCells = board.cells
+        const nonBivalueCells = board.iterCells()
             .filter(cell => cell.isUnsolved())
             .filter(cell => cell.numberOfCandidates !== 2);
 
@@ -20,7 +20,7 @@ export const bugPlusOne: Strategy = {
             return undefined;
         }
 
-        const bugCellUnits = board.units.filter(contains(bugCell));
+        const bugCellUnits = board.iterUnits().filter(contains(bugCell));
 
         const bugDigit = bugCell.candidates.find(digit =>
             bugCellUnits.every(unit =>

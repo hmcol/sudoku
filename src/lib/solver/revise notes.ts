@@ -6,7 +6,7 @@ export const reviseNotes: Strategy = {
     func: (board: Board) => {
         const eliminations = new Array<Candidate>();
 
-        for (const cell of board.cells) {
+        for (const cell of board.iterCells()) {
             if (cell.hasDigit()) {
                 continue;
             }

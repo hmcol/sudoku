@@ -1,6 +1,6 @@
 import { CellId, CELLS, neighborsOf } from "./cell id";
 import { Candidate, cellOf, digitOf, newCandidate } from "./candidate";
-import { BOXES, COLUMNS, ROWS, UNITS } from "./units";
+import { BOXES, COLUMNS, ROWS, UNITS, UnitType } from "./units";
 import { contains, isIn, notIn, setEquality } from "../util/combinatorics";
 import { Option, isSome } from "../util/option";
 import { DIGITS, Digit, parseDigit } from "./digit";
@@ -9,7 +9,7 @@ import { LinkCache } from "../solver/links";
 
 
 export class Board {
-    data: Record<CellId, Cell>;
+    cells: Record<CellId, Cell>;
     links: LinkCache;
 
     constructor() {
@@ -19,7 +19,7 @@ export class Board {
             cells[id] = new Cell(id);
         }
 
-        this.data = cells as Record<CellId, Cell>;
+        this.cells = cells as Record<CellId, Cell>;
 
         this.links = new LinkCache(this);
     }
@@ -27,7 +27,7 @@ export class Board {
     static fromCells(cells: Record<CellId, Cell>): Board {
         const board = new Board();
 
-        board.data = { ...cells };
+        board.cells = { ...cells };
 
         return board;
     }
@@ -49,7 +49,7 @@ export class Board {
 
         const board = new Board();
 
-        board.data = data as Record<CellId, Cell>;
+        board.cells = data as Record<CellId, Cell>;
 
         return board;
     }
@@ -57,8 +57,8 @@ export class Board {
     clone(): Board {
         const board = new Board();
 
-        for (const cell of this.cells) {
-            board.data[cell.id] = cell.clone();
+        for (const cell of this.iterCells()) {
+            board.cells[cell.id] = cell.clone();
         }
 
         return board;
@@ -67,17 +67,8 @@ export class Board {
     /**
      * @deprecated
      */
-    cell(cell: CellId): Cell {
-        return this.data[cell];
-    }
-
-    
-
-    /**
-     * @deprecated
-     */
     inputDigit(cell: CellId, digit: Digit) {
-        const cellData = this.data[cell];
+        const cellData = this.cells[cell];
 
         if (cellData.isGiven) {
             return;
@@ -87,19 +78,19 @@ export class Board {
     }
 
     hasCandidate(candidate: Candidate): boolean {
-        return this.data[cellOf(candidate)].hasCandidate(digitOf(candidate));
+        return this.cells[cellOf(candidate)].hasCandidate(digitOf(candidate));
     }
 
     fixCandidate(candidate: Candidate) {
-        this.data[cellOf(candidate)].setDigit(digitOf(candidate));
+        this.cells[cellOf(candidate)].setDigit(digitOf(candidate));
     }
 
     eliminateCandidate(candidate: Candidate) {
-        this.data[cellOf(candidate)].eliminateCandidate(digitOf(candidate));
+        this.cells[cellOf(candidate)].eliminateCandidate(digitOf(candidate));
     }
 
     deleteDigit(cell: CellId) {
-        const cellData = this.data[cell];
+        const cellData = this.cells[cell];
 
         if (cellData.isGiven) {
             return;
@@ -114,16 +105,9 @@ export class Board {
 
     // helper stuff ?
 
-    /**
-     * @deprecated
-     */
-    cellHasCandidate(digit: Digit): (cell: CellId) => boolean {
-        return cell => this.data[cell].hasCandidate(digit);
-    }
-
     arePeers(cell1: CellId, cell2: CellId): boolean {
-        return UNITS.some(unit => 
-            unit.includes(cell1) && unit.includes(cell2)    
+        return UNITS.some(unit =>
+            unit.includes(cell1) && unit.includes(cell2)
         );
     }
 
@@ -131,7 +115,7 @@ export class Board {
         return UNITS
             .filter(unit => focus.some(isIn(unit)))
             .flat()
-            .filter(id => !this.cell(id).hasDigit())
+            .filter(id => this.cells[id].isUnsolved())
             .filter(notIn(focus));
     }
 
@@ -142,43 +126,63 @@ export class Board {
 
     getDigitEliminations(digit: Digit, foci: CellId[]): Candidate[] {
         return this.getSharedNeighbors(...foci)
-            .filter(cell => this.data[cell].hasCandidate(digit))
+            .filter(cell => this.cells[cell].hasCandidate(digit))
             .map(cell => newCandidate(cell, digit));
     }
 
     isComplete(): boolean {
-        return UNITS.every(unit =>
-            setEquality(unit.map(cell => this.data[cell].digit), DIGITS)
+        return this.iterUnits().every(unit =>
+            setEquality(unit.map(cell => cell.digit), DIGITS)
         );
     }
 
     // new cell handling stuff
 
-    get cells() {
-        return CELLS.map(id => this.data[id]);
+    iter(unitType: UnitType) {
+        switch (unitType) {
+            case "rows": return this.iterRows();
+            case "columns": return this.iterColumns();
+            case "lines": return this.iterLines();
+            case "boxes": return this.iterBoxes();
+            case "units": return this.iterUnits();
+        }
     }
 
-    get rows() {
-        return ROWS.map(row => row.map(id => this.data[id]));
+    iterCells() {
+        return CELLS.map(id => this.cells[id]);
     }
 
-    get columns() {
-        return COLUMNS.map(column => column.map(id => this.data[id]));
+    iterRows() {
+        return ROWS.map(row => row.map(id => this.cells[id]));
     }
 
-    get lines() {
-        return [...this.rows, ...this.columns];
+    iterColumns() {
+        return COLUMNS.map(column => column.map(id => this.cells[id]));
     }
 
-    get boxes() {
-        return BOXES.map(box => box.map(id => this.data[id]));
+    iterLines() {
+        return [...this.iterRows(), ...this.iterColumns()];
     }
 
-    get units() {
-        return UNITS.map(unit => unit.map(id => this.data[id]));
+    iterBoxes() {
+        return BOXES.map(box => box.map(id => this.cells[id]));
+    }
+
+    iterUnits() {
+        return UNITS.map(unit => unit.map(id => this.cells[id]));
     }
 
     getNeighbors(cell: Cell) {
-        return neighborsOf(cell.id).map(id => this.data[id]);
+        return neighborsOf(cell.id).map(id => this.cells[id]);
+    }
+
+    getNeighborsUnion(...cells: Cell[]) {
+        const neighborhoods = cells.map(cell => this.getNeighbors(cell));
+        return this.iterCells().filter(cell => neighborhoods.some(contains(cell)));
+    }
+
+    getNeighborsIntersection(...cells: Cell[]) {
+        const neighborhoods = cells.map(cell => this.getNeighbors(cell));
+        return this.iterCells().filter(cell => neighborhoods.every(contains(cell)));
     }
 }

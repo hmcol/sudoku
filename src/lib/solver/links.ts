@@ -32,11 +32,11 @@ export class LinkCache {
             const links = new MultiMapSet<Candidate, Candidate>();
 
             const bivalueCells = CELLS.filter(cell =>
-                board.data[cell].numberOfCandidates === 2
+                board.cells[cell].numberOfCandidates === 2
             );
 
             for (const cell of bivalueCells) {
-                const [a, b] = board.data[cell].candidates
+                const [a, b] = board.cells[cell].candidates
                     .map(digit => newCandidate(cell, digit));
 
                 links.add(a, b);
@@ -52,7 +52,7 @@ export class LinkCache {
             for (const unit of unitType) {
                 for (const x of DIGITS) {
                     const xCells = unit.filter(cell =>
-                        board.data[cell].hasCandidate(x)
+                        board.cells[cell].hasCandidate(x)
                     );
 
                     if (xCells.length !== 2) {
@@ -94,7 +94,7 @@ export class LinkCache {
             const links = new MultiMapSet<Candidate, Candidate>();
 
             for (const cell of CELLS) {
-                const cellCandidates = board.data[cell].candidates
+                const cellCandidates = board.cells[cell].candidates
                     .map(digit => newCandidate(cell, digit));
 
                 for (const [a, b] of pairsOf(cellCandidates)) {
@@ -112,7 +112,7 @@ export class LinkCache {
             for (const unit of unitType) {
                 for (const x of DIGITS) {
                     const xCandidates = unit
-                        .filter(cell =>board.data[cell].hasCandidate(x))
+                        .filter(cell =>board.cells[cell].hasCandidate(x))
                         .map(cell => newCandidate(cell, x));
 
                     for (const [a, b] of pairsOf(xCandidates)) {

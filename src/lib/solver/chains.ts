@@ -37,8 +37,6 @@ export function makeBasicChain(
 
         const chains = findAlternatingChains(board, strong, weak, minLength, maxLength);
 
-        // console.log(chains);
-
         return shortestChain(chains);
     };
 }
@@ -51,7 +49,7 @@ function oppLink(link: LinkType): LinkType {
 
 type QueueItem = {
     candidate: Candidate,
-    cell: CellId,
+    cellId: CellId,
     digit: Digit,
     nextLink: LinkType,
     depth: number,
@@ -60,7 +58,7 @@ type QueueItem = {
 function newQueueItem(candidate: Candidate, nextLink: LinkType, depth: number = 1): QueueItem {
     return {
         candidate: candidate,
-        cell: cellOf(candidate),
+        cellId: cellOf(candidate),
         digit: digitOf(candidate),
         nextLink: nextLink,
         depth,
@@ -84,7 +82,7 @@ function findAlternatingChains(
     };
 
     for (const root of strongLinks.keys()) {
-        const rootCell = cellOf(root);
+        const rootId = cellOf(root);
         const rootDigit = digitOf(root);
 
         const queue: QueueItem[] = [];
@@ -101,7 +99,9 @@ function findAlternatingChains(
 
                 // type 1: same digit on both ends
                 if (u.digit === rootDigit) {
-                    const eliminations = board.getDigitEliminations(rootDigit, [rootCell, u.cell]);
+                    // const targets = board.getNeighborsIntersection(rootId, u.cellId);
+
+                    const eliminations = board.getDigitEliminations(rootDigit, [rootId, u.cellId]);
 
                     if (eliminations.length > 0) {
                         const chain = backtrackChain(u.candidate, parents);
@@ -122,17 +122,17 @@ function findAlternatingChains(
 
                 // type 2: different digits which see each other
                 if (
-                    u.digit !== rootDigit && u.cell !== rootCell
-                    && UNITS.some(unit => unit.includes(rootCell) && unit.includes(u.cell))
+                    u.digit !== rootDigit && u.cellId !== rootId
+                    && UNITS.some(unit => unit.includes(rootId) && unit.includes(u.cellId))
                 ) {
                     const eliminations = new Array<Candidate>();
 
-                    if (board.data[rootCell].hasCandidate(u.digit)) {
-                        eliminations.push(newCandidate(rootCell, u.digit));
+                    if (board.cells[rootId].hasCandidate(u.digit)) {
+                        eliminations.push(newCandidate(rootId, u.digit));
                     }
 
-                    if (board.data[u.cell].hasCandidate(rootDigit)) {
-                        eliminations.push(newCandidate(u.cell, rootDigit));
+                    if (board.cells[u.cellId].hasCandidate(rootDigit)) {
+                        eliminations.push(newCandidate(u.cellId, rootDigit));
                     }
 
                     if (eliminations.length > 0) {
@@ -199,8 +199,6 @@ function shortestChain(chains: ChainResult[]): Option<StrategyResult> {
     const shortest = chains.reduce((acc, cur) =>
         acc[0].length <= cur[0].length ? acc : cur,
     );
-
-    console.log(shortest);
 
     return shortest[1];
 }

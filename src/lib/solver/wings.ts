@@ -1,5 +1,5 @@
 import { Strategy } from ".";
-import { intersection, isSubset, notEq, notIn, pairsOf, setEquality, triplesOf } from "../util/combinatorics";
+import { intersection, isSubset, iterProduct, notEq, notIn, pairsOf, setEquality, triplesOf } from "../util/combinatorics";
 import { Board, DIGITS, newCandidate } from "../sudoku";
 import { makeBasicChain } from "./chains";
 
@@ -11,7 +11,7 @@ export const xyWing: Strategy = {
 export const xyzWing: Strategy = {
     name: "xyz-wing",
     func: (board: Board) => {
-        const trivalueCells = board.cells.filter(cell =>
+        const trivalueCells = board.iterCells().filter(cell =>
             cell.numberOfCandidates === 3
         );
 
@@ -32,25 +32,28 @@ export const xyzWing: Strategy = {
 
                 const [z] = intersection(xz, yz);
 
-                const eliminations = board.getDigitEliminations(z, [xyzCell.id, xzCell.id, yzCell.id]);
+                const eliminations = board
+                    .getNeighborsIntersection(xyzCell, xzCell, yzCell)
+                    .filter(cell => cell.hasCandidate(z))
+                    .map(cell => newCandidate(cell.id, z));
 
                 if (eliminations.length === 0) {
                     continue;
                 }
+                
+                const highlights = [xyzCell, xzCell, yzCell]
+                    .map(cell => newCandidate(cell.id, z));
 
-                const [x] = xz.filter(notEq(z));
-                const [y] = yz.filter(notEq(z));
-
-                const highlights = ([
-                    [xyzCell, x], [xyzCell, y], [xyzCell, z],
-                    [xzCell, x], [xzCell, z],
-                    [yzCell, y], [yzCell, z]
-                ] as const)
-                    .map(([cell, digit]) => newCandidate(cell.id, digit));
-
+                const highlights2 = [xyzCell, xzCell, yzCell].flatMap(cell =>
+                    cell.candidates
+                        .filter(notEq(z))
+                        .map(digit => newCandidate(cell.id, digit))
+                );
+                
                 return {
                     eliminations,
                     highlights,
+                    highlights2,
                 };
 
             }
@@ -61,64 +64,10 @@ export const xyzWing: Strategy = {
     },
 };
 
-export const wWing: Strategy = {
-    name: "w-wing",
-    func: (board: Board) => {
-        for (const x of DIGITS) {
-            for (const baseUnit of board.units) {
-                const xCells = baseUnit.filter(cell => cell.hasCandidate(x));
-
-                if (xCells.length !== 2) {
-                    continue;
-                }
-
-                const wxCells = xCells.map(xCell => board.getNeighbors(xCell)
-                    .filter(notIn(baseUnit))
-                    .filter(wxCell =>
-                        wxCell.numberOfCandidates === 2
-                        && wxCell.hasCandidate(x)
-                    )
-                );
-
-                for (const wxCell1 of wxCells[0]) {
-                    const w = wxCell1.candidates.find(notEq(x))!;
-
-                    for (const wxCell2 of wxCells[1].filter(cell => cell.hasCandidate(w))) {
-
-                        const eliminations = board.getDigitEliminations(w, [wxCell1.id, wxCell2.id]);
-
-                        if (eliminations.length === 0) {
-                            continue;
-                        }
-
-                        const [x1Id, x2Id] = xCells;
-
-                        const highlights = [wxCell1, wxCell2].map(
-                            cell => newCandidate(cell.id, w)
-                        );
-
-                        const highlights2 = [x1Id, x2Id, wxCell1, wxCell2].map(
-                            cell => newCandidate(cell.id, x)
-                        );
-
-                        return {
-                            eliminations,
-                            highlights,
-                            highlights2,
-                        };
-                    }
-                }
-            }
-        }
-
-        return undefined;
-    },
-};
-
 export const wxyzWing: Strategy = {
     name: "wxyz-wing",
     func: (board: Board) => {
-        const tetravalueCells = board.cells.filter(cell =>
+        const tetravalueCells = board.iterCells().filter(cell =>
             cell.numberOfCandidates === 4
         );
 
@@ -148,23 +97,24 @@ export const wxyzWing: Strategy = {
 
                 const [z] = commonDigits;
 
-                const eliminations = board.getDigitEliminations(
-                    z,
-                    [wxyzCell.id, wzCell.id, xzCell.id, yzCell.id]
-                );
+                const eliminations = board
+                    .getNeighborsIntersection(wxyzCell, wzCell, xzCell, yzCell)
+                    .filter(cell => cell.hasCandidate(z))
+                    .map(cell => newCandidate(cell.id, z));
+
 
                 if (eliminations.length === 0) {
                     continue;
                 }
 
-                const highlights = [wxyzCell, wzCell, xzCell, yzCell].flatMap(cell =>
+                const highlights = [wxyzCell, wzCell, xzCell, yzCell]
+                    .map(cell => newCandidate(cell.id, z));
+
+                const highlights2 = [wxyzCell, wzCell, xzCell, yzCell].flatMap(cell =>
                     cell.candidates
                         .filter(notEq(z))
                         .map(digit => newCandidate(cell.id, digit))
                 );
-
-                const highlights2 = [wxyzCell, wzCell, xzCell, yzCell]
-                    .map(cell => newCandidate(cell.id, z));
 
                 return {
                     eliminations,
@@ -174,6 +124,59 @@ export const wxyzWing: Strategy = {
 
             }
 
+        }
+
+        return undefined;
+    },
+};
+
+export const wWing: Strategy = {
+    name: "w-wing",
+    func: (board: Board) => {
+        for (const x of DIGITS) {
+            for (const baseUnit of board.iterUnits()) {
+                const xCells = baseUnit.filter(cell => cell.hasCandidate(x));
+
+                if (xCells.length !== 2) {
+                    continue;
+                }
+
+                const [wx1Cells, wx2Cells] = xCells.map(xCell =>
+                    board.getNeighbors(xCell)
+                        .filter(notIn(baseUnit))
+                        .filter(wxCell => wxCell.numberOfCandidates === 2)
+                        .filter(wxCell => wxCell.hasCandidate(x))
+                );
+
+                const wxCellPairs = iterProduct(wx1Cells, wx2Cells)
+                    .filter(([wxCell1, wxCell2]) =>
+                        setEquality(wxCell1.candidates, wxCell2.candidates)
+                    );
+
+                for (const wxCells of wxCellPairs) {
+                    const [w] = wxCells[0].candidates.filter(notEq(x));
+
+                    const eliminations = board.getNeighborsIntersection(...wxCells)
+                        .filter(cell => cell.hasCandidate(w))
+                        .map(cell => newCandidate(cell.id, w));
+
+                    if (eliminations.length === 0) {
+                        continue;
+                    }
+
+                    const highlights = wxCells
+                        .map(cell => newCandidate(cell.id, w));
+
+                    const highlights2 = [...xCells, ...wxCells]
+                        .map(cell => newCandidate(cell.id, x));
+
+                    return {
+                        eliminations,
+                        highlights,
+                        highlights2,
+                    };
+                }
+            }
         }
 
         return undefined;

@@ -88,13 +88,13 @@ export default class Game extends React.Component<any, GameState> {
     }
 
     handleClickCell(id: CellId) {
-        this.state.board.cell(id).hasDigit() ?
+        this.state.board.cells[id].hasDigit() ?
             this.handleClickCellDigit(id) :
             this.handleClickCellNotes(id);
     }
 
     handleClickCellDigit(id: CellId) {
-        const cell = this.state.board.cell(id);
+        const cell = this.state.board.cells[id];
         const digit = cell.digit!;
         const selectedCells = new Set(this.state.selectedCells);
 
@@ -232,7 +232,7 @@ export default class Game extends React.Component<any, GameState> {
         // console.log("try complete");
 
         if (await this.takeStep()) {
-            setTimeout(this.tryComplete.bind(this), 300);
+            setTimeout(this.tryComplete.bind(this), 0);
         }
     }
 
@@ -294,9 +294,9 @@ export default class Game extends React.Component<any, GameState> {
         const board = this.state.board.clone();
 
         const promise = new Promise<StrategyResult | undefined>((resolve, _) => {
-            setTimeout(() => {
+            // setTimeout(() => {
                 resolve(strat.func(board));
-            }, 0);
+            // }, 0);
         });
 
         const result = await promise;
@@ -417,10 +417,10 @@ type GridProps = {
 
 class Grid extends React.Component<GridProps> {
 
-    renderCell(cell: CellId) {
+    renderCell(cellId: CellId) {
         const result = this.props.result;
         const filterCell = (set?: Candidate[]) => (
-            set?.filter(c => cellOf(c) === cell).map(c => digitOf(c))
+            set?.filter(c => cellOf(c) === cellId).map(c => digitOf(c))
         );
 
         const solution = filterCell(result?.solutions)?.at(0);
@@ -430,16 +430,16 @@ class Grid extends React.Component<GridProps> {
 
         return (
             <CellComponent
-                key={cell}
-                data={this.props.board.cell(cell)}
-                selected={this.props.selectedCells.has(cell)}
+                key={cellId}
+                data={this.props.board.cells[cellId]}
+                selected={this.props.selectedCells.has(cellId)}
                 solution={solution}
                 eliminations={eliminations}
                 highlights={highlights}
                 highlights2={highlights2}
                 focus={this.props.focus}
-                onClick={() => this.props.onClickCell(cell)}
-                onMouseMove={(event) => event.buttons === 1 && this.props.onMouseMove(cell)}
+                onClick={() => this.props.onClickCell(cellId)}
+                onMouseMove={(event) => event.buttons === 1 && this.props.onMouseMove(cellId)}
             />
         );
     }
