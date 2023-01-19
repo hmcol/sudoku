@@ -1,6 +1,6 @@
 import { Strategy } from ".";
 import { intersection, pairsOf, Graph, Tuple, iterProduct3, iterProduct, range, notIn, notEq, setEquality, hasSubset } from "../util/combinatorics";
-import { CELLS, newCandidate, LINES, FLOORS, TOWERS, DIGITS, Board, UNITS } from "../sudoku";
+import { CELLS, newCandidate, LINES, FLOORS, TOWERS, DIGITS, Board } from "../sudoku";
 
 // binary type
 type B = 0 | 1;
@@ -93,9 +93,11 @@ const CUBES = (() => {
 export const ur1: Strategy = {
     name: "unique rectangle type 1",
     func: (board: Board) => {
-        for (const [rect, ab] of iterProduct(RECTANGLES, pairsOf(DIGITS))) {
+        const cellRectangles = RECTANGLES.map(rect => rect.map(cell => board.data[cell]));
+
+        for (const [rect, ab] of iterProduct(cellRectangles, pairsOf(DIGITS))) {
             const nonBivalueCells = rect.filter(cell =>
-                !setEquality(ab, board.data[cell].candidates)
+                !setEquality(ab, cell.candidates)
             );
 
             if (nonBivalueCells.length !== 1) {
@@ -105,15 +107,15 @@ export const ur1: Strategy = {
             const [cell] = nonBivalueCells;
 
             const eliminations = ab
-                .filter(digit => board.data[cell].hasCandidate(digit))
-                .map(digit => newCandidate(cell, digit));
+                .filter(digit => cell.hasCandidate(digit))
+                .map(digit => newCandidate(cell.id, digit));
 
             if (eliminations.length === 0) {
                 continue;
             }
 
             const highlights = iterProduct(rect.filter(notEq(cell)), ab)
-                .map(([cell, digit]) => newCandidate(cell, digit));
+                .map(([cell, digit]) => newCandidate(cell.id, digit));
 
             return {
                 eliminations,
@@ -128,17 +130,19 @@ export const ur1: Strategy = {
 export const ur2: Strategy = {
     name: "unique rectangle type 2",
     func: (board: Board) => {
+        const cellRectangles = RECTANGLES.map(rect => rect.map(cell => board.data[cell]));
+
         // two non-diagonal ab cells, two abc cells
         // can eliminate c from every cell that sees both abc cells
-        for (const [rect, ab] of iterProduct(RECTANGLES, pairsOf(DIGITS))) {
+        for (const [rect, ab] of iterProduct(cellRectangles, pairsOf(DIGITS))) {
             for (const i of range(4)) {
                 const bv1 = rect[i];
-                if (!setEquality(ab, board.data[bv1].candidates)) {
+                if (!setEquality(ab, bv1.candidates)) {
                     continue;
                 }
 
                 const bv2 = rect[(i + 1) % 4];
-                if (!setEquality(ab, board.data[bv2].candidates)) {
+                if (!setEquality(ab, bv2.candidates)) {
                     continue;
                 }
 
@@ -148,28 +152,28 @@ export const ur2: Strategy = {
                 for (const c of DIGITS.filter(notIn(ab))) {
                     const abc = [...ab, c];
 
-                    if (!setEquality(abc, board.data[tv1].candidates)) {
+                    if (!setEquality(abc, tv1.candidates)) {
                         continue;
                     }
 
-                    if (!setEquality(abc, board.data[tv2].candidates)) {
+                    if (!setEquality(abc, tv2.candidates)) {
                         continue;
                     }
 
-                    const eliminations = board.getDigitEliminations(c, [tv1, tv2]);
+                    const eliminations = board.getDigitEliminations(c, [tv1.id, tv2.id]);
 
                     if (eliminations.length === 0) {
                         continue;
                     }
 
                     const highlights = iterProduct(rect, ab)
-                        .map(([cell, digit]) => newCandidate(cell, digit));
+                        .map(([cell, digit]) => newCandidate(cell.id, digit));
 
 
                     return {
                         eliminations,
                         highlights,
-                        highlights2: [newCandidate(tv1, c), newCandidate(tv2, c)],
+                        highlights2: [newCandidate(tv1.id, c), newCandidate(tv2.id, c)],
                     };
                 }
             }
@@ -192,27 +196,29 @@ const _ur3: Strategy = {
 export const ur4: Strategy = {
     name: "unique rectangle type 4",
     func: (board: Board) => {
+        const cellRectangles = RECTANGLES.map(rect => rect.map(cell => board.data[cell]));
+        
         // two non-diagonal ab cells, two ab* cells strongly linked by a
         // can eliminate b from ab* cells
-        for (const [rect, ab] of iterProduct(RECTANGLES, pairsOf(DIGITS))) {
+        for (const [rect, ab] of iterProduct(cellRectangles, pairsOf(DIGITS))) {
             for (const i of range(4)) {
                 const bv1 = rect[i];
-                if (!setEquality(ab, board.data[bv1].candidates)) {
+                if (!setEquality(ab, bv1.candidates)) {
                     continue;
                 }
 
                 const bv2 = rect[(i + 1) % 4];
-                if (!setEquality(ab, board.data[bv2].candidates)) {
+                if (!setEquality(ab, bv2.candidates)) {
                     continue;
                 }
 
                 const dc1 = rect[(i + 2) % 4];
                 const dc2 = rect[(i + 3) % 4];
 
-                for (const unit of UNITS.filter(hasSubset([dc1, dc2]))) {
+                for (const unit of board.units.filter(hasSubset([dc1, dc2]))) {
                     for (const strongDigit of ab) {
                         const candidateCells = unit.filter(cell =>
-                            board.data[cell].hasCandidate(strongDigit)
+                            cell.hasCandidate(strongDigit)
                         );
 
                         if (!setEquality(candidateCells, [dc1, dc2])) {
@@ -222,8 +228,8 @@ export const ur4: Strategy = {
                         const otherDigit = ab.filter(notEq(strongDigit))[0];
 
                         const eliminations = [dc1, dc2]
-                            .filter(board.cellHasCandidate(otherDigit))
-                            .map(cell => newCandidate(cell, otherDigit));
+                            .filter(cell => cell.hasCandidate(otherDigit))
+                            .map(cell => newCandidate(cell.id, otherDigit));
 
                         if (eliminations.length === 0) {
                             continue;
@@ -231,7 +237,7 @@ export const ur4: Strategy = {
 
                         const highlights = iterProduct([bv1, bv2], ab)
                             .concat([[dc1, strongDigit], [dc2, strongDigit]])
-                            .map(([cell, digit]) => newCandidate(cell, digit));
+                            .map(([cell, digit]) => newCandidate(cell.id, digit));
 
                         return {
                             eliminations,
@@ -249,11 +255,13 @@ export const ur4: Strategy = {
 export const ur5: Strategy = {
     name: "unique rectangle type 5",
     func: (board: Board) => {
+        const cellRectangles = RECTANGLES.map(rect => rect.map(cell => board.data[cell]));
+
         // one or two ab cells, two or three abc cells
         // can eliminate c from every cell that sees both abc cells
-        for (const [rect, ab] of iterProduct(RECTANGLES, pairsOf(DIGITS))) {
+        for (const [rect, ab] of iterProduct(cellRectangles, pairsOf(DIGITS))) {
             const bivalueCells = rect.filter(cell =>
-                setEquality(ab, board.data[cell].candidates)
+                setEquality(ab, cell.candidates)
             );
 
             if (!(bivalueCells.length === 1 || bivalueCells.length === 2)) {
@@ -261,24 +269,24 @@ export const ur5: Strategy = {
             }
             for (const c of DIGITS.filter(notIn(ab))) {
                 const trivalueCells = rect.filter(cell =>
-                    setEquality([...ab, c], board.data[cell].candidates)
+                    setEquality([...ab, c], cell.candidates)
                 );
 
                 if (trivalueCells.length !== 4 - bivalueCells.length) {
                     continue;
                 }
 
-                const eliminations = board.getDigitEliminations(c, trivalueCells);
+                const eliminations = board.getDigitEliminations(c, trivalueCells.map(cell => cell.id));
 
                 if (eliminations.length === 0) {
                     continue;
                 }
 
                 const highlights = iterProduct(rect, ab)
-                    .map(([cell, digit]) => newCandidate(cell, digit));
+                    .map(([cell, digit]) => newCandidate(cell.id, digit));
 
                 const highlights2 = trivalueCells
-                    .map(cell => newCandidate(cell, c));
+                    .map(cell => newCandidate(cell.id, c));
 
                 return {
                     eliminations,

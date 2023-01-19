@@ -1,41 +1,74 @@
-import { iterProduct, notEq, notIn } from "../util/combinatorics";
-import { RowId, ColumnId, COLUMN_IDS, ROW_IDS, BOXES } from "./units";
+import { isNone, isSome } from "../util/option";
+import { CellId } from "./cell id";
+import { DIGITS, Digit } from "./digit";
 
 
-export type Cell = `${RowId}${ColumnId}`;
+export class Cell {
+    readonly id: CellId;
+    digit?: Digit;
+    isGiven: boolean = false;
+    private candidatesInternal: Set<Digit> = new Set(DIGITS);
 
-export function newCell(row: RowId, column: ColumnId): Cell {
-    return `${row}${column}` as Cell;
-}
+    constructor(id: CellId) {
+        this.id = id;
+    }
 
-export function rowIdOf(cell: Cell): RowId {
-    return cell[0] as RowId;
-}
+    static withGiven(id: CellId, givenDigit: Digit): Cell {
+        const cellData = new Cell(id);
 
-export function rowOf(cell: Cell): Cell[] {
-    return COLUMN_IDS.map(column => newCell(rowIdOf(cell), column));
-}
+        cellData.digit = givenDigit;
+        cellData.isGiven = true;
+        cellData.candidatesInternal.clear();
 
-export function columnIdOf(cell: Cell): ColumnId {
-    return parseInt(cell[1]) as ColumnId;
-}
+        return cellData;
+    }
 
-export function columnOf(cell: Cell): Cell[] {
-    return ROW_IDS.map(row => newCell(row, columnIdOf(cell)));
-}
+    clone(): Cell {
+        const data = new Cell(this.id);
 
-export function boxOf(cell: Cell): Cell[] {
-    // every cell has a box, so this is safe
-    return BOXES.find(box => box.includes(cell))!;
-}
+        data.digit = this.digit;
+        data.isGiven = this.isGiven;
+        data.candidatesInternal = new Set(this.candidatesInternal);
 
-export const CELLS: Cell[] = iterProduct(ROW_IDS, COLUMN_IDS).map(pair => newCell(...pair));
+        return data;
+    }
 
+    get candidates(): Digit[] {
+        // return DIGITS.filter(digit => this.hasCandidate(digit));
+        return [...this.candidatesInternal];
+    }
 
-export function neighborsOf(cell: Cell): Cell[] {
-    const box = boxOf(cell);
+    get numberOfCandidates(): number {
+        return this.candidatesInternal.size;
+    }
 
-    return box.filter(notEq(cell))
-        .concat(rowOf(cell).filter(notIn(box)))
-        .concat(columnOf(cell).filter(notIn(box)));
+    hasDigit(): this is { digit: Digit; } {
+        return isSome(this.digit);
+    }
+
+    isUnsolved(): this is { digit: undefined; } {
+        return isNone(this.digit);
+    }
+
+    setDigit(digit: Digit) {
+        this.digit = digit;
+        this.candidatesInternal.clear();
+    }
+
+    deleteDigit() {
+        this.digit = undefined;
+        this.candidatesInternal = new Set(DIGITS);
+    }
+
+    hasCandidate(digit: Digit): boolean {
+        return this.candidatesInternal.has(digit);
+    }
+
+    eliminateCandidate(digit: Digit) {
+        this.candidatesInternal.delete(digit);
+    }
+
+    isBivalue(): boolean {
+        return this.candidates.length === 2;
+    }
 }

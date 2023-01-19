@@ -1,7 +1,7 @@
 import { Strategy } from ".";
 import { isSubset, notIn, tuplesOf } from "../util/combinatorics";
 import { isNone } from "../util/option";
-import { Board, DIGITS, COLUMNS, ROWS, newCandidate, Cell } from "../sudoku";
+import { Board, DIGITS, newCandidate, Cell, UnitType } from "../sudoku";
 
 export const xWing: Strategy = {
     name: "x-wing",
@@ -18,19 +18,24 @@ export const jellyfish: Strategy = {
     func: makeBasicFish(4),
 };
 
+const unitTypePairs: [UnitType, UnitType][] = [
+    ["columns", "rows"],
+    ["rows", "columns"],
+]
+
 function makeBasicFish(n: 2 | 3 | 4) {
     return (board: Board) => {
         for (const x of DIGITS) {
             // filter for iterator of cells that have x as a candidate
-            const hasX = (cell: Cell) => board.data[cell].hasCandidate(x);
+            const hasX = (cell: Cell) => cell.hasCandidate(x);
 
-            for (const [baseType, coverType] of [[COLUMNS, ROWS], [ROWS, COLUMNS]]) {
-                const baseTypeFiltered = baseType.filter(unit => unit.some(hasX));
+            for (const [baseType, coverType] of unitTypePairs) {
+                const baseTypeFiltered = board[baseType].filter(unit => unit.some(hasX));
 
                 for (const baseUnits of tuplesOf(n, baseTypeFiltered)) {
                     const baseCells = baseUnits.flat().filter(hasX);
 
-                    const coverUnits = tuplesOf(n, coverType).find(units =>
+                    const coverUnits = tuplesOf(n, board[coverType]).find(units =>
                         isSubset(baseCells, units.flat())
                     );
 
@@ -47,8 +52,8 @@ function makeBasicFish(n: 2 | 3 | 4) {
                     }
 
                     return {
-                        eliminations: coverMinusBaseCells.map(cell => newCandidate(cell, x)),
-                        highlights: baseCells.map(cell => newCandidate(cell, x)),
+                        eliminations: coverMinusBaseCells.map(cell => newCandidate(cell.id, x)),
+                        highlights: baseCells.map(cell => newCandidate(cell.id, x)),
                     };
                 }
             }

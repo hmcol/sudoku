@@ -1,4 +1,4 @@
-import { Cell, newCell } from "./cell";
+import { CellId, newCell } from "./cell id";
 
 // rows
 
@@ -10,9 +10,13 @@ export const ROW_IDS: RowId[] = ["A", "B", "C", "D", "E", "F", "G", "H", "I"];
 export type ColumnId = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
 export const COLUMN_IDS: ColumnId[] = [1, 2, 3, 4, 5, 6, 7, 8, 9];
 
+export type UnitType = "rows" | "columns" | "lines" | "boxes" | "units";
+
+
+
 // units
 
-export const BOXES: Cell[][] = [
+export const BOXES: CellId[][] = [
     ["A1", "A2", "A3", "B1", "B2", "B3", "C1", "C2", "C3"],
     ["A4", "A5", "A6", "B4", "B5", "B6", "C4", "C5", "C6"],
     ["A7", "A8", "A9", "B7", "B8", "B9", "C7", "C8", "C9"],
@@ -24,14 +28,14 @@ export const BOXES: Cell[][] = [
     ["G7", "G8", "G9", "H7", "H8", "H9", "I7", "I8", "I9"],
 ];
 
-export const ROWS: Cell[][] = ROW_IDS.map(r => COLUMN_IDS.map(c => newCell(r, c)));
-export const COLUMNS: Cell[][] = COLUMN_IDS.map(c => ROW_IDS.map(r => newCell(r, c)));
+export const ROWS: CellId[][] = ROW_IDS.map(r => COLUMN_IDS.map(c => newCell(r, c)));
+export const COLUMNS: CellId[][] = COLUMN_IDS.map(c => ROW_IDS.map(r => newCell(r, c)));
 
-export const LINES: Cell[][] = ROWS.concat(COLUMNS);
-export const UNITS: Cell[][] = BOXES.concat(LINES);
+export const LINES: CellId[][] = ROWS.concat(COLUMNS);
+export const UNITS: CellId[][] = BOXES.concat(LINES);
 
 // chutes
 
-export const FLOORS: Cell[][][] = [ROWS.slice(0, 3), ROWS.slice(3, 6), ROWS.slice(6, 9)];
-export const TOWERS: Cell[][][] = [COLUMNS.slice(0, 3), COLUMNS.slice(3, 6), COLUMNS.slice(6, 9)];
+export const FLOORS: CellId[][][] = [ROWS.slice(0, 3), ROWS.slice(3, 6), ROWS.slice(6, 9)];
+export const TOWERS: CellId[][][] = [COLUMNS.slice(0, 3), COLUMNS.slice(3, 6), COLUMNS.slice(6, 9)];
 export const CHUTES = FLOORS.concat(TOWERS);

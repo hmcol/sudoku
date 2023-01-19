@@ -1,31 +1,31 @@
 import { Strategy } from ".";
 import { hasSubset, notIn } from "../util/combinatorics";
 import { isNone } from "../util/option";
-import { Board, Cell, DIGITS, BOXES, LINES, newCandidate } from "../sudoku";
+import { Board, DIGITS, newCandidate, Cell, UnitType } from "../sudoku";
 
 export const intersectionPointing: Strategy = {
     name: "intersection pointing",
-    func: makeIntersection(BOXES, LINES),
+    func: makeIntersection("boxes", "lines"),
 };
 
 export const intersectionClaiming: Strategy = {
     name: "intersection claiming",
-    func: makeIntersection(LINES, BOXES),
+    func: makeIntersection("lines", "boxes"),
 };
 
-function makeIntersection(baseType: Cell[][], coverType: Cell[][]) {
+function makeIntersection(baseType: UnitType, coverType: UnitType) {
     return (board: Board) => {
         for (const x of DIGITS) {
-            const hasX = (cell: Cell) => board.data[cell].hasCandidate(x);
+            const hasX = (cell: Cell) => cell.hasCandidate(x);
 
-            for (const baseUnit of baseType) {
+            for (const baseUnit of board[baseType]) {
                 const xBaseCells = baseUnit.filter(hasX);
 
                 if (xBaseCells.length < 2) {
                     continue;
                 }
 
-                const coverUnit = coverType.find(hasSubset(xBaseCells));
+                const coverUnit = board[coverType].find(hasSubset(xBaseCells));
 
                 if (isNone(coverUnit)) {
                     continue;
@@ -40,8 +40,8 @@ function makeIntersection(baseType: Cell[][], coverType: Cell[][]) {
                 }
 
                 return {
-                    eliminations: coverMinusBaseCells.map(cell => newCandidate(cell, x)),
-                    highlights: xBaseCells.map(cell => newCandidate(cell, x)),
+                    eliminations: coverMinusBaseCells.map(cell => newCandidate(cell.id, x)),
+                    highlights: xBaseCells.map(cell => newCandidate(cell.id, x)),
                 };
             }
         }

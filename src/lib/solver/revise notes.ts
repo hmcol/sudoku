@@ -1,24 +1,23 @@
 import { Strategy } from ".";
-import { isSome } from "../util/option";
-import { Board, CELLS, Candidate, neighborsOf, newCandidate } from "../sudoku";
+import { Board, Candidate, newCandidate } from "../sudoku";
 
 export const reviseNotes: Strategy = {
     name: "revise notes",
     func: (board: Board) => {
         const eliminations = new Array<Candidate>();
 
-        for (const cell of CELLS) {
-            const cellData = board.data[cell];
-
-            if (cellData.hasDigit()) {
+        for (const cell of board.cells) {
+            if (cell.hasDigit()) {
                 continue;
             }
 
-            const neighbors = neighborsOf(cell);
+            const neighbors = board.getNeighbors(cell);
 
-            const cellEliminations = cellData.candidates.filter(digit =>
-                neighbors.some(neighbor => board.data[neighbor].digit === digit)
-            ).map(digit => newCandidate(cell, digit));
+            const cellEliminations = cell.candidates
+                .filter(digit =>
+                    neighbors.some(neighbor => neighbor.digit === digit)
+                )
+                .map(digit => newCandidate(cell.id, digit));
 
             eliminations.push(...cellEliminations);
         }

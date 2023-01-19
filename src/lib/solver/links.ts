@@ -1,7 +1,7 @@
-import { BOXES, Board, CELLS, COLUMNS, Candidate, Cell, DIGITS, ROWS, newCandidate } from "../sudoku";
+import { BOXES, Board, CELLS, COLUMNS, Candidate, CellId, DIGITS, ROWS, newCandidate } from "../sudoku";
 import { MultiMapSet } from "../util/MultiMap";
 import { Cached } from "../util/cache";
-import { iterProduct, pairsOf } from "../util/combinatorics";
+import { pairsOf } from "../util/combinatorics";
 
 export type LinkSet = MultiMapSet<Candidate, Candidate>;
 
@@ -46,7 +46,7 @@ export class LinkCache {
             return links;
         });
 
-        const initBilocal = (unitType: Cell[][]) => {
+        const initBilocal = (unitType: CellId[][]) => {
             const links = new MultiMapSet<Candidate, Candidate>();
 
             for (const unit of unitType) {
@@ -106,7 +106,7 @@ export class LinkCache {
             return links;
         });
 
-        const initWeakLocal = (unitType: Cell[][]) => {
+        const initWeakLocal = (unitType: CellId[][]) => {
             const links = new MultiMapSet<Candidate, Candidate>();
 
             for (const unit of unitType) {

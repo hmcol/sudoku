@@ -1,6 +1,6 @@
 import { Strategy } from ".";
-import { isIn, iterProduct, notIn, tuplesOf } from "../util/combinatorics";
-import { Board, DIGITS, UNITS, newCandidate } from "../sudoku";
+import { isIn, notIn, tuplesOf } from "../util/combinatorics";
+import { Board, DIGITS, newCandidate } from "../sudoku";
 
 export const hiddenPair: Strategy = {
     name: "hidden pair",
@@ -19,14 +19,14 @@ export const hiddenQuad: Strategy = {
 
 function makeHiddenSubset(n: 2 | 3 | 4) {
     return (board: Board) => {
-        for (const unit of UNITS) {
+        for (const unit of board.units) {
             const unsolvedDigitsInUnit = DIGITS.filter(digit =>
-                !unit.some(cell => board.data[cell].digit === digit)
+                !unit.some(cell => cell.digit === digit)
             );
 
             for (const digitTuple of tuplesOf(n, unsolvedDigitsInUnit)) {
                 const cellTuple = unit.filter(cell =>
-                    digitTuple.some(digit => board.data[cell].hasCandidate(digit))
+                    digitTuple.some(digit => cell.hasCandidate(digit))
                 );
 
                 if (cellTuple.length !== n) {
@@ -34,9 +34,9 @@ function makeHiddenSubset(n: 2 | 3 | 4) {
                 }
 
                 const eliminations = cellTuple.flatMap(cell =>
-                    board.data[cell].candidates
+                    cell.candidates
                         .filter(notIn(digitTuple))
-                        .map(digit => newCandidate(cell, digit))
+                        .map(digit => newCandidate(cell.id, digit))
                 );
 
                 if (eliminations.length === 0) {
@@ -44,9 +44,9 @@ function makeHiddenSubset(n: 2 | 3 | 4) {
                 }
 
                 const highlights = cellTuple.flatMap(cell =>
-                    board.data[cell].candidates
+                    cell.candidates
                         .filter(isIn(digitTuple))
-                        .map(digit => newCandidate(cell, digit))
+                        .map(digit => newCandidate(cell.id, digit))
                 );
 
                 return {

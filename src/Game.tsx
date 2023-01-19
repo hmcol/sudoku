@@ -1,7 +1,7 @@
 import React from "react";
 import { MouseEventHandler } from "react";
 import "./Game.css";
-import { Board, CellData, Cell, BOXES, Digit, DIGITS, parseDigit, cellOf, Candidate, digitOf } from "./lib/sudoku";
+import { Board, Cell, CellId, BOXES, Digit, DIGITS, parseDigit, cellOf, Candidate, digitOf } from "./lib/sudoku";
 import { isNone, isSome } from "./lib/util/option";
 import { STRATEGIES, Strategy, StrategyResult } from "./lib/solver";
 
@@ -12,7 +12,7 @@ type InputMode = "digit" | "note" | "accent" | "strike";
 type GameState = {
     board: Board,
     history: Board[],
-    selectedCells: Set<Cell>,
+    selectedCells: Set<CellId>,
     inputMode: InputMode,
     focus?: Digit,
     result?: StrategyResult,
@@ -87,13 +87,13 @@ export default class Game extends React.Component<any, GameState> {
         });
     }
 
-    handleClickCell(id: Cell) {
+    handleClickCell(id: CellId) {
         this.state.board.cell(id).hasDigit() ?
             this.handleClickCellDigit(id) :
             this.handleClickCellNotes(id);
     }
 
-    handleClickCellDigit(id: Cell) {
+    handleClickCellDigit(id: CellId) {
         const cell = this.state.board.cell(id);
         const digit = cell.digit!;
         const selectedCells = new Set(this.state.selectedCells);
@@ -111,7 +111,7 @@ export default class Game extends React.Component<any, GameState> {
         });
     }
 
-    handleClickCellNotes(id: Cell) {
+    handleClickCellNotes(id: CellId) {
         const selectedCells = new Set(this.state.selectedCells);
         let inputMode = this.state.inputMode;
 
@@ -130,7 +130,7 @@ export default class Game extends React.Component<any, GameState> {
         });
     }
 
-    handleMouseMove(id: Cell) {
+    handleMouseMove(id: CellId) {
         const selectedCells = new Set(this.state.selectedCells);
 
         selectedCells.add(id);
@@ -408,16 +408,16 @@ function SolverControls(props: SolverControlsProps) {
 
 type GridProps = {
     board: Board,
-    selectedCells: Set<Cell>,
+    selectedCells: Set<CellId>,
     result?: StrategyResult,
     focus?: Digit,
-    onClickCell: (id: Cell) => void,
-    onMouseMove: (id: Cell) => void,
+    onClickCell: (id: CellId) => void,
+    onMouseMove: (id: CellId) => void,
 };
 
 class Grid extends React.Component<GridProps> {
 
-    renderCell(cell: Cell) {
+    renderCell(cell: CellId) {
         const result = this.props.result;
         const filterCell = (set?: Candidate[]) => (
             set?.filter(c => cellOf(c) === cell).map(c => digitOf(c))
@@ -460,7 +460,7 @@ class Grid extends React.Component<GridProps> {
 }
 
 type CellProps = {
-    data: CellData,
+    data: Cell,
     selected: boolean,
     focus?: Digit,
     solution?: Digit,

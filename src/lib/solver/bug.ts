@@ -1,14 +1,14 @@
 import { Strategy } from ".";
 import { contains } from "../util/combinatorics";
 import { isNone } from "../util/option";
-import { Board, CELLS, Cell, UNITS, newCandidate } from "../sudoku";
+import { Board, newCandidate } from "../sudoku";
 
 export const bugPlusOne: Strategy = {
     name: "bug + 1",
     func: (board: Board) => {
-        const nonBivalueCells = CELLS
-            .filter(cell => board.data[cell].isUnsolved())
-            .filter(cell => board.data[cell].numberOfCandidates !== 2);
+        const nonBivalueCells = board.cells
+            .filter(cell => cell.isUnsolved())
+            .filter(cell => cell.numberOfCandidates !== 2);
 
         if (nonBivalueCells.length !== 1) {
             return undefined;
@@ -16,17 +16,15 @@ export const bugPlusOne: Strategy = {
 
         const [bugCell] = nonBivalueCells;
 
-        const bugCandidates = board.data[bugCell].candidates;
-
-        if (bugCandidates.length !== 3) {
+        if (bugCell.numberOfCandidates !== 3) {
             return undefined;
         }
 
-        const bugCellUnits = UNITS.filter(contains(bugCell));
+        const bugCellUnits = board.units.filter(contains(bugCell));
 
-        const bugDigit = bugCandidates.find(digit =>
+        const bugDigit = bugCell.candidates.find(digit =>
             bugCellUnits.every(unit =>
-                unit.filter(cell => board.data[cell].hasCandidate(digit)).length === 3
+                unit.filter(cell => cell.hasCandidate(digit)).length === 3
             )
         );
 
@@ -35,7 +33,7 @@ export const bugPlusOne: Strategy = {
         }
 
         return {
-            solutions: [newCandidate(bugCell, bugDigit)],
+            solutions: [newCandidate(bugCell.id, bugDigit)],
         };
     },
 };

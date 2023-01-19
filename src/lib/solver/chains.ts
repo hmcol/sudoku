@@ -1,8 +1,7 @@
-import { notEq } from "../util/combinatorics";
-import { Option, isNone, isSome } from "../util/option";
-import { CELLS, Cell, Candidate, cellOf, newCandidate, digitOf, BOXES, COLUMNS, ROWS, UNITS, DIGITS, Digit, Board } from "../sudoku";
+import { Option, isSome } from "../util/option";
+import { CellId, Candidate, cellOf, newCandidate, digitOf, UNITS, Digit, Board } from "../sudoku";
 import { Strategy, StrategyResult } from ".";
-import { LinkCache, LinkClass, LinkSet, getLinks } from "./links";
+import { LinkClass, LinkSet, getLinks } from "./links";
 
 export const xChainSimple: Strategy = {
     name: "x-chain simple",
@@ -52,7 +51,7 @@ function oppLink(link: LinkType): LinkType {
 
 type QueueItem = {
     candidate: Candidate,
-    cell: Cell,
+    cell: CellId,
     digit: Digit,
     nextLink: LinkType,
     depth: number,
