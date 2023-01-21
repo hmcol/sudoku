@@ -5,7 +5,7 @@ import { contains, isIn, notIn, setEquality } from "../util/combinatorics";
 import { Option, isSome } from "../util/option";
 import { DIGITS, Digit, parseDigit } from "./digit";
 import { Cell } from "./cell";
-import { LinkCache } from "../solver/links";
+import { LinkCache } from "../strategies/links";
 
 
 export class Board {
@@ -124,6 +124,9 @@ export class Board {
         return CELLS.filter(id => neighbors.every(contains(id)));
     }
 
+    /**
+     * @deprecated
+     */
     getDigitEliminations(digit: Digit, foci: CellId[]): Candidate[] {
         return this.getSharedNeighbors(...foci)
             .filter(cell => this.cells[cell].hasCandidate(digit))

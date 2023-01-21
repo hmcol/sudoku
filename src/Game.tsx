@@ -1,32 +1,42 @@
 import React from "react";
 import { MouseEventHandler } from "react";
 import "./Game.css";
-import { Board, Cell, CellId, BOXES, Digit, DIGITS, parseDigit, cellOf, Candidate, digitOf } from "./lib/sudoku";
+import {
+    Board,
+    Cell,
+    CellId,
+    BOXES,
+    Digit,
+    DIGITS,
+    parseDigit,
+    cellOf,
+    Candidate,
+    digitOf,
+} from "./lib/sudoku";
 import { isNone, isSome } from "./lib/util/option";
-import { STRATEGIES, Strategy, StrategyResult } from "./lib/solver";
-
-
+import { STRATEGIES, Strategy, StrategyResult } from "./lib/strategies";
 
 type InputMode = "digit" | "note" | "accent" | "strike";
 
 type GameState = {
-    board: Board,
-    history: Board[],
-    selectedCells: Set<CellId>,
-    inputMode: InputMode,
-    focus?: Digit,
-    result?: StrategyResult,
+    board: Board;
+    history: Board[];
+    selectedCells: Set<CellId>;
+    inputMode: InputMode;
+    focus?: Digit;
+    result?: StrategyResult;
     strategyStatus: Map<string, "?" | "yes" | "no">;
 };
 
-export default class Game extends React.Component<any, GameState> {
-    constructor(props: any) {
+export default class Game extends React.Component<unknown, GameState> {
+    constructor(props: unknown) {
         super(props);
 
         this.state = {
-            board: Board.fromString(
-                "6.7..5.1.58...79......6......5.....9...936...3.....4......8......36...94.5.2..8.6"
-            )!,
+            board:
+                Board.fromString(
+                    "6.7..5.1.58...79......6......5.....9...936...3.....4......8......36...94.5.2..8.6"
+                ) ?? new Board(),
             history: [],
             selectedCells: new Set(),
             inputMode: "digit",
@@ -35,16 +45,14 @@ export default class Game extends React.Component<any, GameState> {
     }
 
     updateBoard(board: Board) {
-        this.setState(prevState => ({
+        this.setState((prevState) => ({
             board,
             history: prevState.history.concat(prevState.board),
         }));
     }
 
     resetBoard() {
-        const board = this.state.history.length > 0 ?
-            this.state.history[0] :
-            this.state.board;
+        const board = this.state.history.length > 0 ? this.state.history[0] : this.state.board;
 
         this.setState({
             board,
@@ -56,7 +64,9 @@ export default class Game extends React.Component<any, GameState> {
     }
 
     loadBoardString() {
-        const str = prompt("Enter a string of at least 81 characters. The digits 1-9 are used to represent the given values. All other intermediate characters are interpreted as blanks. leading and trailing whitespace is ignored.");
+        const str = prompt(
+            "Enter a string of at least 81 characters. The digits 1-9 are used to represent the given values. All other intermediate characters are interpreted as blanks. leading and trailing whitespace is ignored."
+        );
 
         const board = Board.fromString(str ?? "");
 
@@ -88,14 +98,19 @@ export default class Game extends React.Component<any, GameState> {
     }
 
     handleClickCell(id: CellId) {
-        this.state.board.cells[id].hasDigit() ?
-            this.handleClickCellDigit(id) :
-            this.handleClickCellNotes(id);
+        this.state.board.cells[id].hasDigit()
+            ? this.handleClickCellDigit(id)
+            : this.handleClickCellNotes(id);
     }
 
     handleClickCellDigit(id: CellId) {
         const cell = this.state.board.cells[id];
-        const digit = cell.digit!;
+        const digit = cell.digit;
+
+        if (isNone(digit)) {
+            return;
+        }
+
         const selectedCells = new Set(this.state.selectedCells);
 
         if (selectedCells.has(id)) {
@@ -137,7 +152,7 @@ export default class Game extends React.Component<any, GameState> {
 
         this.setState({
             selectedCells,
-            inputMode: "note"
+            inputMode: "note",
         });
     }
 
@@ -232,7 +247,9 @@ export default class Game extends React.Component<any, GameState> {
         // console.log("try complete");
 
         if (await this.takeStep()) {
-            setTimeout(this.tryComplete.bind(this), 0);
+            setTimeout(() => {
+                this.tryComplete.bind(this);
+            }, 0);
         }
     }
 
@@ -260,7 +277,7 @@ export default class Game extends React.Component<any, GameState> {
     }
 
     undoStep() {
-        this.setState(prevState => {
+        this.setState((prevState) => {
             const history = prevState.history;
 
             if (history.length === 0) {
@@ -282,20 +299,20 @@ export default class Game extends React.Component<any, GameState> {
 
     async checkStrategy(strat: Strategy): Promise<boolean> {
         // pre-computation
-        this.setState(prevState => {
+        this.setState((prevState) => {
             const strategyStatus = new Map(prevState.strategyStatus);
             strategyStatus.set(strat.name, "?");
             return {
-                strategyStatus
+                strategyStatus,
             };
         });
 
         // start computation
         const board = this.state.board.clone();
 
-        const promise = new Promise<StrategyResult | undefined>((resolve, _) => {
+        const promise = new Promise<StrategyResult | undefined>((resolve) => {
             // setTimeout(() => {
-                resolve(strat.func(board));
+            resolve(strat.func(board));
             // }, 0);
         });
 
@@ -304,11 +321,11 @@ export default class Game extends React.Component<any, GameState> {
         // post-computation
         const found = isSome(result);
 
-        this.setState(prevState => {
+        this.setState((prevState) => {
             const strategyStatus = new Map(prevState.strategyStatus);
             strategyStatus.set(strat.name, found ? "yes" : "no");
             return {
-                strategyStatus
+                strategyStatus,
             };
         });
 
@@ -349,10 +366,7 @@ export default class Game extends React.Component<any, GameState> {
 
     render() {
         return (
-            <div className="game"
-                tabIndex={-1}
-                onKeyDown={this.handleKeyDown.bind(this)}
-            >
+            <div className="game" tabIndex={-1} onKeyDown={this.handleKeyDown.bind(this)}>
                 <Grid
                     board={this.state.board}
                     selectedCells={this.state.selectedCells}
@@ -370,12 +384,14 @@ export default class Game extends React.Component<any, GameState> {
                     <SolverControls
                         onReset={this.resetBoard.bind(this)}
                         onLoadString={this.loadBoardString.bind(this)}
-                        onStep={this.takeStep.bind(this)}
+                        onStep={() => void this.takeStep()}
                         onUndo={this.undoStep.bind(this)}
-                        onComplete={this.tryComplete.bind(this)}
+                        onComplete={() => {
+                            this.tryComplete.bind(this);
+                        }}
                     />
                     <StrategyList
-                        onClick={this.checkStrategy.bind(this)}
+                        onClick={(strat) => void this.checkStrategy(strat)}
                         strategyStatus={this.state.strategyStatus}
                     />
                 </div>
@@ -385,18 +401,16 @@ export default class Game extends React.Component<any, GameState> {
 }
 
 type SolverControlsProps = {
-    onLoadString: () => void,
-    onReset: () => void,
-    onStep: () => void,
-    onUndo: () => void,
-    onComplete: () => void,
+    onLoadString: () => void;
+    onReset: () => void;
+    onStep: () => void;
+    onUndo: () => void;
+    onComplete: () => void;
 };
 
 function SolverControls(props: SolverControlsProps) {
     return (
-        <div
-            className="solver-controls"
-        >
+        <div className="solver-controls">
             <button onClick={props.onLoadString}>load</button>
             <button onClick={props.onReset}>reset</button>
             <button onClick={props.onUndo}>undo</button>
@@ -407,21 +421,19 @@ function SolverControls(props: SolverControlsProps) {
 }
 
 type GridProps = {
-    board: Board,
-    selectedCells: Set<CellId>,
-    result?: StrategyResult,
-    focus?: Digit,
-    onClickCell: (id: CellId) => void,
-    onMouseMove: (id: CellId) => void,
+    board: Board;
+    selectedCells: Set<CellId>;
+    result?: StrategyResult;
+    focus?: Digit;
+    onClickCell: (id: CellId) => void;
+    onMouseMove: (id: CellId) => void;
 };
 
 class Grid extends React.Component<GridProps> {
-
     renderCell(cellId: CellId) {
         const result = this.props.result;
-        const filterCell = (set?: Candidate[]) => (
-            set?.filter(c => cellOf(c) === cellId).map(c => digitOf(c))
-        );
+        const filterCell = (set?: Candidate[]) =>
+            set?.filter((c) => cellOf(c) === cellId).map((c) => digitOf(c));
 
         const solution = filterCell(result?.solutions)?.at(0);
         const eliminations = filterCell(result?.eliminations);
@@ -447,44 +459,38 @@ class Grid extends React.Component<GridProps> {
     render() {
         return (
             <div className="grid">
-                {BOXES.map((box, index) =>
+                {BOXES.map((box, index) => (
                     <div className="box" key={index}>
-                        {box.map((id) =>
-                            this.renderCell(id)
-                        )}
+                        {box.map((id) => this.renderCell(id))}
                     </div>
-                )}
+                ))}
             </div>
         );
     }
 }
 
 type CellProps = {
-    data: Cell,
-    selected: boolean,
-    focus?: Digit,
-    solution?: Digit,
-    eliminations?: Digit[],
-    highlights?: Digit[],
-    highlights2?: Digit[],
-    onClick: MouseEventHandler,
-    onMouseMove: MouseEventHandler,
+    data: Cell;
+    selected: boolean;
+    focus?: Digit;
+    solution?: Digit;
+    eliminations?: Digit[];
+    highlights?: Digit[];
+    highlights2?: Digit[];
+    onClick: MouseEventHandler;
+    onMouseMove: MouseEventHandler;
 };
 
 function CellComponent(props: CellProps) {
     const data = props.data;
 
     const selectors = buildConditionalSelectors({
-        "selected": props.selected,
-        "restricted": isSome(props.focus) && !data.hasCandidate(props.focus),
+        selected: props.selected,
+        restricted: isSome(props.focus) && !data.hasCandidate(props.focus),
     });
 
     const content = data.hasDigit() ? (
-        <CellDigit
-            digit={data.digit}
-            isGiven={data.isGiven}
-            isFocus={data.digit === props.focus}
-        />
+        <CellDigit digit={data.digit} isGiven={data.isGiven} isFocus={data.digit === props.focus} />
     ) : (
         <CellNotes
             candidates={data.candidates}
@@ -504,35 +510,29 @@ function CellComponent(props: CellProps) {
             {content}
         </div>
     );
-};
+}
 
 type CellDigitProps = {
-    digit: Digit,
-    isGiven: boolean,
-    isFocus: boolean,
+    digit: Digit;
+    isGiven: boolean;
+    isFocus: boolean;
 };
 
 function CellDigit(props: CellDigitProps) {
     const selectors = buildConditionalSelectors({
-        "given": props.isGiven,
-        "focus": props.isFocus,
+        given: props.isGiven,
+        focus: props.isFocus,
     });
 
-    return (
-        <div
-            className={"cell-digit" + selectors}
-        >
-            {props.digit}
-        </div>
-    );
+    return <div className={"cell-digit" + selectors}>{props.digit}</div>;
 }
 
 type CellNotesProps = {
-    candidates: Digit[],
-    solution?: Digit,
-    eliminations?: Digit[],
-    highlights?: Digit[],
-    highlights2?: Digit[],
+    candidates: Digit[];
+    solution?: Digit;
+    eliminations?: Digit[];
+    highlights?: Digit[];
+    highlights2?: Digit[];
 };
 
 function CellNotes(props: CellNotesProps) {
@@ -554,22 +554,22 @@ function CellNotes(props: CellNotesProps) {
 
     return (
         <div className={`cell-notes`}>
-            {DIGITS.map(digit =>
+            {DIGITS.map((digit) => (
                 <Note
                     key={digit}
                     digit={digit}
                     shown={props.candidates.includes(digit)}
                     highlight={determineHighlightColor(digit)}
                 />
-            )}
+            ))}
         </div>
     );
 }
 
 type NoteProps = {
-    digit: Digit,
-    shown: boolean,
-    highlight?: "red" | "green" | "blue" | "yellow",
+    digit: Digit;
+    shown: boolean;
+    highlight?: "red" | "green" | "blue" | "yellow";
 };
 
 function Note(props: NoteProps) {
@@ -579,37 +579,26 @@ function Note(props: NoteProps) {
         [color]: isSome(props.highlight) && props.shown,
     });
 
-    return (
-        <div
-            className={"note" + selectors}
-        >
-            {props.shown ? props.digit : " "}
-        </div>
-    );
-};
+    return <div className={"note" + selectors}>{props.shown ? props.digit : " "}</div>;
+}
 
 type NoteSelectorProps = {
-    inputMode: InputMode,
-    onClick: (inputMode: InputMode) => void,
+    inputMode: InputMode;
+    onClick: (inputMode: InputMode) => void;
 };
 
 function NoteSelector(props: NoteSelectorProps) {
     function renderOption(inputMode: InputMode, label: string) {
         const selectors = buildConditionalSelectors({
-            "selected": props.inputMode === inputMode,
+            selected: props.inputMode === inputMode,
         });
 
         return (
-            <div
-                className={"note-option" + selectors}
-                onClick={() => props.onClick(inputMode)}
-            >
+            <div className={"note-option" + selectors} onClick={() => props.onClick(inputMode)}>
                 {label}
             </div>
         );
-
     }
-
 
     return (
         <div>
@@ -621,8 +610,7 @@ function NoteSelector(props: NoteSelectorProps) {
             </div>
         </div>
     );
-
-};
+}
 
 type StrategyListProps = {
     onClick: (strat: Strategy) => void;
@@ -633,15 +621,9 @@ function StrategyList(props: StrategyListProps) {
     function renderItem(strat: Strategy, index: number) {
         return (
             <div className="strategy-item" key={index}>
-                <div className="strategy-number">
-                    {String(index).padStart(2, "0")}
-                </div>
-                <div className={"strategy-name"}>
-                    {strat.name}
-                </div>
-                <div className={"strategy-status"}
-                    onClick={() => props.onClick(strat)}
-                >
+                <div className="strategy-number">{String(index).padStart(2, "0")}</div>
+                <div className={"strategy-name"}>{strat.name}</div>
+                <div className={"strategy-status"} onClick={() => props.onClick(strat)}>
                     {props.strategyStatus.get(strat.name) ?? " "}
                 </div>
             </div>
@@ -651,20 +633,17 @@ function StrategyList(props: StrategyListProps) {
     return (
         <>
             Strategies
-            <div className="strategy-list">
-                {STRATEGIES.map(renderItem)}
-            </div>
+            <div className="strategy-list">{STRATEGIES.map(renderItem)}</div>
         </>
     );
-};
-
+}
 
 // helper functions -----------------------------------------------------------
 
-function buildConditionalSelectors(args: { [selector: string]: boolean; }) {
+function buildConditionalSelectors(args: Record<string, boolean>) {
     const selectors = Object.entries(args)
-        .filter(([_, condition]) => condition)
-        .map(([selector, _]) => selector);
+        .filter(([, condition]) => condition)
+        .map(([selector]) => selector);
 
     return [""].concat(selectors).join(" ");
 }

@@ -5,7 +5,7 @@ import { RowId, ColumnId, COLUMN_IDS, ROW_IDS, BOXES } from "./units";
 export type CellId = `${RowId}${ColumnId}`;
 
 export function newCell(row: RowId, column: ColumnId): CellId {
-    return `${row}${column}` as CellId;
+    return `${row}${column}`;
 }
 
 export function rowIdOf(cell: CellId): RowId {
@@ -24,9 +24,9 @@ export function columnOf(cell: CellId): CellId[] {
     return ROW_IDS.map(row => newCell(row, columnIdOf(cell)));
 }
 
-export function boxOf(cell: CellId): CellId[] {
+export function boxOf(id: CellId): CellId[] {
     // every cell has a box, so this is safe
-    return BOXES.find(box => box.includes(cell))!;
+    return BOXES.find(box => box.includes(id)) ?? [];
 }
 
 export const CELLS: CellId[] = iterProduct(ROW_IDS, COLUMN_IDS).map(pair => newCell(...pair));

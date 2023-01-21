@@ -1,6 +1,7 @@
 import { Strategy } from ".";
 import { intersection, pairsOf, Graph, Tuple, iterProduct3, iterProduct, range, notIn, notEq, setEquality, hasSubset } from "../util/combinatorics";
 import { newCandidate, FLOORS, TOWERS, DIGITS, Board } from "../sudoku";
+import { Option, isSome } from "../util/option";
 
 // binary type
 type B = 0 | 1;
@@ -183,15 +184,15 @@ export const ur2: Strategy = {
     },
 };
 
-const _ur3: Strategy = {
-    name: "unique rectangle type 3",
-    func: (_board: Board) => {
-        // two non-diagonal ab cells, two ab* cells
-        // use * to make naked subset
+// const _ur3: Strategy = {
+//     name: "unique rectangle type 3",
+//     func: (_board: Board) => {
+//         // two non-diagonal ab cells, two ab* cells
+//         // use * to make naked subset
 
-        return undefined;
-    },
-};
+//         return undefined;
+//     },
+// };
 
 export const ur4: Strategy = {
     name: "unique rectangle type 4",
@@ -300,16 +301,16 @@ export const ur5: Strategy = {
     },
 };
 
-const _ur6: Strategy = {
-    name: "unique rectangle type 6",
-    func: (_board: Board) => {
-        // two diagonal ab cells, two diagonal ab* cells
-        // a is strongly linked in both/all units
-        // can eliminate a from ab* cells
+// const _ur6: Strategy = {
+//     name: "unique rectangle type 6",
+//     func: (_board: Board) => {
+//         // two diagonal ab cells, two diagonal ab* cells
+//         // a is strongly linked in both/all units
+//         // can eliminate a from ab* cells
 
-        return undefined;
-    },
-};
+//         return undefined;
+//     },
+// };
 
 
 // this checks for the most general case, but it would be more useful to first
@@ -330,13 +331,13 @@ export const hiddenRectangle: Strategy = {
                 const edge = (v1: V, v2: V) => g.hasEdge(vertexToId(v1), vertexToId(v2));
 
                 // breadth-first alternating search
-                const queue: [V, "strong" | "weak"][] = [];
+                type Parity = "strong" | "weak";
+                const queue: [V, Parity][] = [];
                 const visited = new Set<string>();
-
-                queue.push([[0, 0, 0], "weak"]);
-
-                while (queue.length > 0) {
-                    const [u, nextLink] = queue.shift()!;
+                
+                let queueItem: Option<[V, Parity]> = [[0, 0, 0], "weak"];
+                while (isSome(queueItem)) {
+                    const [u, nextLink] = queueItem;
 
                     visited.add(idOf(u));
 
@@ -360,6 +361,8 @@ export const hiddenRectangle: Strategy = {
                             nextLink === "strong" ? "weak" : "strong",
                         ]);
                     }
+
+                    queueItem = queue.shift();
                 }
 
                 // check if "deadly" friends were found in the search
@@ -374,7 +377,7 @@ export const hiddenRectangle: Strategy = {
                     }
                 }
 
-            };
+            }
         }
 
         return undefined;

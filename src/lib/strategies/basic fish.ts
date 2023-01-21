@@ -21,7 +21,7 @@ export const jellyfish: Strategy = {
 const unitTypePairs: [UnitType, UnitType][] = [
     ["columns", "rows"],
     ["rows", "columns"],
-]
+];
 
 function makeBasicFish(n: 2 | 3 | 4) {
     return (board: Board) => {
@@ -30,12 +30,12 @@ function makeBasicFish(n: 2 | 3 | 4) {
             const hasX = (cell: Cell) => cell.hasCandidate(x);
 
             for (const [baseType, coverType] of unitTypePairs) {
-                const baseTypeFiltered = board.iter(baseType).filter(unit => unit.some(hasX));
+                const baseTypeFiltered = board.iter(baseType).filter((unit) => unit.some(hasX));
 
                 for (const baseUnits of tuplesOf(n, baseTypeFiltered)) {
                     const baseCells = baseUnits.flat().filter(hasX);
 
-                    const coverUnits = tuplesOf(n, board.iter(coverType)).find(units =>
+                    const coverUnits = tuplesOf(n, board.iter(coverType)).find((units) =>
                         isSubset(baseCells, units.flat())
                     );
 
@@ -43,7 +43,8 @@ function makeBasicFish(n: 2 | 3 | 4) {
                         continue;
                     }
 
-                    const coverMinusBaseCells = coverUnits.flat()
+                    const coverMinusBaseCells = coverUnits
+                        .flat()
                         .filter(hasX)
                         .filter(notIn(baseCells));
 
@@ -52,8 +53,8 @@ function makeBasicFish(n: 2 | 3 | 4) {
                     }
 
                     return {
-                        eliminations: coverMinusBaseCells.map(cell => newCandidate(cell.id, x)),
-                        highlights: baseCells.map(cell => newCandidate(cell.id, x)),
+                        eliminations: coverMinusBaseCells.map((cell) => newCandidate(cell.id, x)),
+                        highlights: baseCells.map((cell) => newCandidate(cell.id, x)),
                     };
                 }
             }

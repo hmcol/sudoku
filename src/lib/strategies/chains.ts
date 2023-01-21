@@ -55,7 +55,7 @@ type QueueItem = {
     depth: number,
 };
 
-function newQueueItem(candidate: Candidate, nextLink: LinkType, depth: number = 1): QueueItem {
+function newQueueItem(candidate: Candidate, nextLink: LinkType, depth = 1): QueueItem {
     return {
         candidate: candidate,
         cellId: cellOf(candidate),
@@ -89,10 +89,11 @@ function findAlternatingChains(
         const visited = new Set<Candidate>();
         const parents = new Map<Candidate, Candidate>();
 
-        queue.push(newQueueItem(root, "strong"));
+        queue.push();
 
-        while (queue.length > 0) {
-            const u = queue.shift()!;
+        let queueItem: Option<QueueItem> = newQueueItem(root, "strong");
+        while (isSome(queueItem)) {
+            const u = queueItem;
 
             // if chain is nontrivial and ends with a strong link
             if (u.depth >= (minLength ?? 4) && u.nextLink === "weak") {
@@ -173,6 +174,8 @@ function findAlternatingChains(
                     u.depth + 1,
                 ));
             }
+
+            queueItem = queue.shift();
         }
     }
 
@@ -180,12 +183,12 @@ function findAlternatingChains(
 }
 
 function backtrackChain(end: Candidate, parents: Map<Candidate, Candidate>): Candidate[] {
-    const chain = [end];
+    const chain = new Array<Candidate>();
 
-    let v = end;
-    while (parents.has(v)) {
-        v = parents.get(v)!;
+    let v: Option<Candidate> = end;
+    while (isSome(v)) {
         chain.push(v);
+        v = parents.get(v);
     }
 
     return chain;

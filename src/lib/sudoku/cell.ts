@@ -2,12 +2,11 @@ import { isNone, isSome } from "../util/option";
 import { CellId } from "./cell id";
 import { DIGITS, Digit } from "./digit";
 
-
 export class Cell {
     readonly id: CellId;
     digit?: Digit;
-    isGiven: boolean = false;
-    private candidatesInternal: Set<Digit> = new Set(DIGITS);
+    isGiven = false;
+    private candidatesInternal = new Set<Digit>(DIGITS);
 
     constructor(id: CellId) {
         this.id = id;
@@ -42,11 +41,11 @@ export class Cell {
         return this.candidatesInternal.size;
     }
 
-    hasDigit(): this is { digit: Digit; } {
+    hasDigit(): this is { digit: Digit } {
         return isSome(this.digit);
     }
 
-    isUnsolved(): this is { digit: undefined; } {
+    isUnsolved(): this is { digit: undefined } {
         return isNone(this.digit);
     }
 

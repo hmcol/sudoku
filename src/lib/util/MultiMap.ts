@@ -1,16 +1,20 @@
+import { isNone } from "./option";
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 class DefaultMap<K, V> extends Map<K, V> {
-    constructor(
-        private readonly defaultValue: V
-    ) {
+    constructor(private readonly defaultValue: V) {
         super();
     }
 
     get(key: K): V {
-        if (!this.has(key)) {
-            this.set(key, this.defaultValue);
+        let value = super.get(key);
+
+        if (isNone(value)) {
+            value = this.defaultValue;
+            this.set(key, value);
         }
 
-        return super.get(key)!;
+        return value;
     }
 }
 
@@ -20,7 +24,7 @@ export class MultiMapArray<K, V> extends Map<K, V[]> {
     }
 
     add(key: K, value: V) {
-        const values = this.get(key) ?? [];
+        const values = this.get(key);
 
         values.push(value);
 
@@ -50,6 +54,6 @@ export class MultiMapSet<K, V> extends Map<K, Set<V>> {
             }
         }
 
-        return mms;   
+        return mms;
     }
 }

@@ -10,19 +10,19 @@ import { skyscraper, kite, turbotFish } from "./single digit patterns";
 import { xyWing, xyzWing, wWing } from "./wings";
 import { bugPlusOne } from "./bug";
 import { Board, Candidate } from "../sudoku";
-import { LinkCache } from "./links";
+// import { LinkCache } from "./links";
 import { Option } from "../util/option";
 
 export type StrategyResult = {
-    solutions?: Array<Candidate>;
-    eliminations?: Array<Candidate>;
-    highlights?: Array<Candidate>;
-    highlights2?: Array<Candidate>;
+    solutions?: Candidate[];
+    eliminations?: Candidate[];
+    highlights?: Candidate[];
+    highlights2?: Candidate[];
 };
 
 export type Strategy = {
-    name: string,
-    func: (board: Board) => Option<StrategyResult>,
+    name: string;
+    func: (board: Board) => Option<StrategyResult>;
 };
 
 export const STRATEGIES: Strategy[] = [
@@ -58,13 +58,3 @@ export const STRATEGIES: Strategy[] = [
     xyChain,
     aic,
 ];
-
-class Solver {
-    static readonly STRATEGIES = STRATEGIES;
-
-    links: LinkCache;
-
-    constructor(private readonly board: Board) {
-        this.links = new LinkCache(board);
-    }
-}
