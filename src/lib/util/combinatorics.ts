@@ -5,7 +5,7 @@ type Filter<T> = (item: T) => boolean;
 // set stuff
 
 export function isSubset<T>(arr1: T[], arr2: T[]): boolean {
-    return arr1.every(item => arr2.includes(item));
+    return arr1.every((item) => arr2.includes(item));
 }
 
 export function intersection<T>(arr1: T[], arr2: T[]): T[] {
@@ -19,42 +19,36 @@ export function setEquality<T>(arr1: T[], arr2: T[]): boolean {
 // filters and filter builders
 
 export function isEq<T>(value: T): Filter<T> {
-    return item => item === value;
+    return (item) => item === value;
 }
 
 export function notEq<T>(value: T): Filter<T> {
-    return item => item !== value;
+    return (item) => item !== value;
 }
 
-
 export function isIn<T>(arr: T[]): Filter<T> {
-    return item => arr.includes(item);
+    return (item) => arr.includes(item);
 }
 
 export function notIn<T>(arr: T[]): Filter<T> {
-    return item => !arr.includes(item);
+    return (item) => !arr.includes(item);
 }
 
-
 export function contains<T>(value: T): Filter<T[]> {
-    return item => item.includes(value);
+    return (item) => item.includes(value);
 }
 
 export function hasSubset<T>(arr: T[]): Filter<T[]> {
-    return item => isSubset(arr, item);
+    return (item) => isSubset(arr, item);
 }
 
 // iterators
 
 type TupleSize = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
 
-export type Tuple<
-    T,
-    N extends TupleSize,
-    A extends T[] = []
-> = N extends A["length"] ?
-    A :
-    Tuple<T, N, [...A, T]>;
+export type Tuple<T, N extends TupleSize, A extends T[] = []> = N extends A["length"]
+    ? A
+    : Tuple<T, N, [...A, T]>;
 
 export function range(n: number): number[] {
     return [...Array(n).keys()];
@@ -72,7 +66,11 @@ export function iterProduct<A, B>(aIter: Iterable<A>, bIter: Iterable<B>): [A, B
     return product;
 }
 
-export function iterProduct3<A, B, C>(aIter: Iterable<A>, bIter: Iterable<B>, cIter: Iterable<C>): [A, B, C][] {
+export function iterProduct3<A, B, C>(
+    aIter: Iterable<A>,
+    bIter: Iterable<B>,
+    cIter: Iterable<C>
+): [A, B, C][] {
     const product = new Array<[A, B, C]>();
 
     for (const a of aIter) {
@@ -86,7 +84,7 @@ export function iterProduct3<A, B, C>(aIter: Iterable<A>, bIter: Iterable<B>, cI
 
 function orderedChoose(n: number, k: number): number[][] {
     if (k === 1) {
-        return range(n).map(i => [i]);
+        return range(n).map((i) => [i]);
     }
 
     if (k === n) {
@@ -94,7 +92,7 @@ function orderedChoose(n: number, k: number): number[][] {
     }
 
     return orderedChoose(n - 1, k).concat(
-        orderedChoose(n - 1, k - 1).map(s => s.concat([n - 1]))
+        orderedChoose(n - 1, k - 1).map((s) => s.concat([n - 1]))
     );
 }
 
@@ -103,8 +101,7 @@ export function tuplesOf<T>(n: number, arr: T[]): T[][] {
         return [];
     }
 
-    return orderedChoose(arr.length, n)
-        .map(index => index.map(i => arr[i]));
+    return orderedChoose(arr.length, n).map((index) => index.map((i) => arr[i]));
 }
 
 export function pairsOf<T>(arr: T[]): Tuple<T, 2>[] {
@@ -117,9 +114,7 @@ export function triplesOf<T>(arr: T[]): Tuple<T, 3>[] {
 
 export function quadsOf<T>(arr: T[]): Tuple<T, 4>[] {
     return tuplesOf(4, arr) as Tuple<T, 4>[];
-
 }
-
 
 // graph stuff ----------------------------------------------------------------
 

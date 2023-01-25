@@ -7,7 +7,6 @@ import { DIGITS, Digit, parseDigit } from "./digit";
 import { Cell } from "./cell";
 import { LinkCache } from "../strategies/links";
 
-
 export class Board {
     cells: Record<CellId, Cell>;
     links: LinkCache;
@@ -24,12 +23,12 @@ export class Board {
         this.links = new LinkCache(this);
     }
 
-    static fromCells(cells: Record<CellId, Cell>): Board {
-        const board = new Board();
-
-        board.cells = { ...cells };
-
-        return board;
+    static default(): Board {
+        return (
+            Board.fromString(
+                "607005010580007900000060000005000009000936000300000400000080000003600094050200806"
+            ) ?? new Board()
+        );
     }
 
     static fromString(boardString: string): Option<Board> {
@@ -106,22 +105,19 @@ export class Board {
     // helper stuff ?
 
     arePeers(cell1: CellId, cell2: CellId): boolean {
-        return UNITS.some(unit =>
-            unit.includes(cell1) && unit.includes(cell2)
-        );
+        return UNITS.some((unit) => unit.includes(cell1) && unit.includes(cell2));
     }
 
     getVisible(...focus: CellId[]): CellId[] {
-        return UNITS
-            .filter(unit => focus.some(isIn(unit)))
+        return UNITS.filter((unit) => focus.some(isIn(unit)))
             .flat()
-            .filter(id => this.cells[id].isUnsolved())
+            .filter((id) => this.cells[id].isUnsolved())
             .filter(notIn(focus));
     }
 
     getSharedNeighbors(...foci: CellId[]): CellId[] {
-        const neighbors = foci.map(id => this.getVisible(id));
-        return CELLS.filter(id => neighbors.every(contains(id)));
+        const neighbors = foci.map((id) => this.getVisible(id));
+        return CELLS.filter((id) => neighbors.every(contains(id)));
     }
 
     /**
@@ -129,13 +125,16 @@ export class Board {
      */
     getDigitEliminations(digit: Digit, foci: CellId[]): Candidate[] {
         return this.getSharedNeighbors(...foci)
-            .filter(cell => this.cells[cell].hasCandidate(digit))
-            .map(cell => newCandidate(cell, digit));
+            .filter((cell) => this.cells[cell].hasCandidate(digit))
+            .map((cell) => newCandidate(cell, digit));
     }
 
     isComplete(): boolean {
-        return this.iterUnits().every(unit =>
-            setEquality(unit.map(cell => cell.digit), DIGITS)
+        return this.iterUnits().every((unit) =>
+            setEquality(
+                unit.map((cell) => cell.digit),
+                DIGITS
+            )
         );
     }
 
@@ -143,24 +142,29 @@ export class Board {
 
     iter(unitType: UnitType) {
         switch (unitType) {
-            case "rows": return this.iterRows();
-            case "columns": return this.iterColumns();
-            case "lines": return this.iterLines();
-            case "boxes": return this.iterBoxes();
-            case "units": return this.iterUnits();
+            case "rows":
+                return this.iterRows();
+            case "columns":
+                return this.iterColumns();
+            case "lines":
+                return this.iterLines();
+            case "boxes":
+                return this.iterBoxes();
+            case "units":
+                return this.iterUnits();
         }
     }
 
     iterCells() {
-        return CELLS.map(id => this.cells[id]);
+        return CELLS.map((id) => this.cells[id]);
     }
 
     iterRows() {
-        return ROWS.map(row => row.map(id => this.cells[id]));
+        return ROWS.map((row) => row.map((id) => this.cells[id]));
     }
 
     iterColumns() {
-        return COLUMNS.map(column => column.map(id => this.cells[id]));
+        return COLUMNS.map((column) => column.map((id) => this.cells[id]));
     }
 
     iterLines() {
@@ -168,24 +172,24 @@ export class Board {
     }
 
     iterBoxes() {
-        return BOXES.map(box => box.map(id => this.cells[id]));
+        return BOXES.map((box) => box.map((id) => this.cells[id]));
     }
 
     iterUnits() {
-        return UNITS.map(unit => unit.map(id => this.cells[id]));
+        return UNITS.map((unit) => unit.map((id) => this.cells[id]));
     }
 
     getNeighbors(cell: Cell) {
-        return neighborsOf(cell.id).map(id => this.cells[id]);
+        return neighborsOf(cell.id).map((id) => this.cells[id]);
     }
 
     getNeighborsUnion(...cells: Cell[]) {
-        const neighborhoods = cells.map(cell => this.getNeighbors(cell));
-        return this.iterCells().filter(cell => neighborhoods.some(contains(cell)));
+        const neighborhoods = cells.map((cell) => this.getNeighbors(cell));
+        return this.iterCells().filter((cell) => neighborhoods.some(contains(cell)));
     }
 
     getNeighborsIntersection(...cells: Cell[]) {
-        const neighborhoods = cells.map(cell => this.getNeighbors(cell));
-        return this.iterCells().filter(cell => neighborhoods.every(contains(cell)));
+        const neighborhoods = cells.map((cell) => this.getNeighbors(cell));
+        return this.iterCells().filter((cell) => neighborhoods.every(contains(cell)));
     }
 }

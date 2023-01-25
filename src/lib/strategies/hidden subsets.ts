@@ -20,23 +20,23 @@ export const hiddenQuad: Strategy = {
 function makeHiddenSubset(n: 2 | 3 | 4) {
     return (board: Board) => {
         for (const unit of board.iterUnits()) {
-            const unsolvedDigitsInUnit = DIGITS.filter(digit =>
-                !unit.some(cell => cell.digit === digit)
+            const unsolvedDigitsInUnit = DIGITS.filter(
+                (digit) => !unit.some((cell) => cell.digit === digit)
             );
 
             for (const digitTuple of tuplesOf(n, unsolvedDigitsInUnit)) {
-                const cellTuple = unit.filter(cell =>
-                    digitTuple.some(digit => cell.hasCandidate(digit))
+                const cellTuple = unit.filter((cell) =>
+                    digitTuple.some((digit) => cell.hasCandidate(digit))
                 );
 
                 if (cellTuple.length !== n) {
                     continue;
                 }
 
-                const eliminations = cellTuple.flatMap(cell =>
+                const eliminations = cellTuple.flatMap((cell) =>
                     cell.candidates
                         .filter(notIn(digitTuple))
-                        .map(digit => newCandidate(cell.id, digit))
+                        .map((digit) => newCandidate(cell.id, digit))
                 );
 
                 if (eliminations.length === 0) {
@@ -57,4 +57,3 @@ function makeHiddenSubset(n: 2 | 3 | 4) {
         return undefined;
     };
 }
-

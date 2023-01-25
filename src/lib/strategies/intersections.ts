@@ -31,17 +31,15 @@ function makeIntersection(baseType: UnitType, coverType: UnitType) {
                     continue;
                 }
 
-                const coverMinusBaseCells = coverUnit
-                    .filter(hasX)
-                    .filter(notIn(xBaseCells));
+                const coverMinusBaseCells = coverUnit.filter(hasX).filter(notIn(xBaseCells));
 
                 if (coverMinusBaseCells.length === 0) {
                     continue;
                 }
 
                 return {
-                    eliminations: coverMinusBaseCells.map(cell => newCandidate(cell.id, x)),
-                    highlights: xBaseCells.map(cell => newCandidate(cell.id, x)),
+                    eliminations: coverMinusBaseCells.map((cell) => newCandidate(cell.id, x)),
+                    highlights: xBaseCells.map((cell) => newCandidate(cell.id, x)),
                 };
             }
         }

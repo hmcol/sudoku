@@ -33,10 +33,7 @@ export default class Game extends React.Component<unknown, GameState> {
         super(props);
 
         this.state = {
-            board:
-                Board.fromString(
-                    "6.7..5.1.58...79......6......5.....9...936...3.....4......8......36...94.5.2..8.6"
-                ) ?? new Board(),
+            board: Board.default(),
             history: [],
             selectedCells: new Set(),
             inputMode: "digit",
@@ -76,7 +73,7 @@ export default class Game extends React.Component<unknown, GameState> {
 
         this.setState({
             board,
-            history: [board],
+            history: [],
         });
 
         this.resetSelection();
@@ -193,7 +190,7 @@ export default class Game extends React.Component<unknown, GameState> {
         const selectedCells = new Set(this.state.selectedCells);
 
         for (const id of selectedCells) {
-            board.inputDigit(id, digit);
+            board.cells[id].setDigit(digit);
         }
 
         this.updateBoard(board);
@@ -248,7 +245,7 @@ export default class Game extends React.Component<unknown, GameState> {
 
         if (await this.takeStep()) {
             setTimeout(() => {
-                this.tryComplete.bind(this);
+                void this.tryComplete();
             }, 0);
         }
     }
@@ -311,9 +308,9 @@ export default class Game extends React.Component<unknown, GameState> {
         const board = this.state.board.clone();
 
         const promise = new Promise<StrategyResult | undefined>((resolve) => {
-            // setTimeout(() => {
-            resolve(strat.func(board));
-            // }, 0);
+            setTimeout(() => {
+                resolve(strat.func(board));
+            }, 0);
         });
 
         const result = await promise;
@@ -366,29 +363,27 @@ export default class Game extends React.Component<unknown, GameState> {
 
     render() {
         return (
-            <div className="game" tabIndex={-1} onKeyDown={this.handleKeyDown.bind(this)}>
+            <div className="game" tabIndex={-1} onKeyDown={(event) => this.handleKeyDown(event)}>
                 <Grid
                     board={this.state.board}
                     selectedCells={this.state.selectedCells}
                     result={this.state.result}
                     focus={this.state.focus}
-                    onClickCell={this.handleClickCell.bind(this)}
-                    onMouseMove={this.handleMouseMove.bind(this)}
+                    onClickCell={(id) => this.handleClickCell(id)}
+                    onMouseMove={(id) => this.handleMouseMove(id)}
                 />
                 <div className="game-info">
                     <div>Sudoku</div>
                     <NoteSelector
                         inputMode={this.state.inputMode}
-                        onClick={this.updateInputMode.bind(this)}
+                        onClick={(inputMode) => this.updateInputMode(inputMode)}
                     />
                     <SolverControls
-                        onReset={this.resetBoard.bind(this)}
-                        onLoadString={this.loadBoardString.bind(this)}
+                        onReset={() => this.resetBoard()}
+                        onLoadString={() => this.loadBoardString()}
                         onStep={() => void this.takeStep()}
-                        onUndo={this.undoStep.bind(this)}
-                        onComplete={() => {
-                            this.tryComplete.bind(this);
-                        }}
+                        onUndo={() => this.undoStep()}
+                        onComplete={() => void this.tryComplete()}
                     />
                     <StrategyList
                         onClick={(strat) => void this.checkStrategy(strat)}

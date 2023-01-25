@@ -20,11 +20,11 @@ export const nakedQuad: Strategy = {
 function makeNakedSubset(n: 2 | 3 | 4) {
     return (board: Board) => {
         for (const unit of board.iterUnits()) {
-            const unsolvedCells = unit.filter(cell => cell.isUnsolved());
+            const unsolvedCells = unit.filter((cell) => cell.isUnsolved());
 
             for (const cellTuple of tuplesOf(n, unsolvedCells)) {
-                const digitTuple = DIGITS.filter(digit =>
-                    cellTuple.some(cell => cell.hasCandidate(digit))
+                const digitTuple = DIGITS.filter((digit) =>
+                    cellTuple.some((cell) => cell.hasCandidate(digit))
                 );
 
                 if (digitTuple.length !== n) {

@@ -12,8 +12,6 @@ export const COLUMN_IDS: ColumnId[] = [1, 2, 3, 4, 5, 6, 7, 8, 9];
 
 export type UnitType = "rows" | "columns" | "lines" | "boxes" | "units";
 
-
-
 // units
 
 export const BOXES: CellId[][] = [
@@ -28,8 +26,8 @@ export const BOXES: CellId[][] = [
     ["G7", "G8", "G9", "H7", "H8", "H9", "I7", "I8", "I9"],
 ];
 
-export const ROWS: CellId[][] = ROW_IDS.map(r => COLUMN_IDS.map(c => newCell(r, c)));
-export const COLUMNS: CellId[][] = COLUMN_IDS.map(c => ROW_IDS.map(r => newCell(r, c)));
+export const ROWS: CellId[][] = ROW_IDS.map((r) => COLUMN_IDS.map((c) => newCell(r, c)));
+export const COLUMNS: CellId[][] = COLUMN_IDS.map((c) => ROW_IDS.map((r) => newCell(r, c)));
 
 export const LINES: CellId[][] = ROWS.concat(COLUMNS);
 export const UNITS: CellId[][] = BOXES.concat(LINES);

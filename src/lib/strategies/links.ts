@@ -1,4 +1,14 @@
-import { BOXES, Board, CELLS, COLUMNS, Candidate, CellId, DIGITS, ROWS, newCandidate } from "../sudoku";
+import {
+    BOXES,
+    Board,
+    CELLS,
+    COLUMNS,
+    Candidate,
+    CellId,
+    DIGITS,
+    ROWS,
+    newCandidate,
+} from "../sudoku";
 import { MultiMapSet } from "../util/MultiMap";
 import { Cached } from "../util/cache";
 import { pairsOf } from "../util/combinatorics";
@@ -17,7 +27,6 @@ export class LinkCache {
 
     private readonly strongInternal: Cached<LinkSet>;
 
-
     private readonly weakCellInternal: Cached<LinkSet>;
 
     private readonly weakRowInternal: Cached<LinkSet>;
@@ -31,13 +40,12 @@ export class LinkCache {
         this.bivalueInternal = new Cached(() => {
             const links = new MultiMapSet<Candidate, Candidate>();
 
-            const bivalueCells = CELLS.filter(cell =>
-                board.cells[cell].numberOfCandidates === 2
-            );
+            const bivalueCells = CELLS.filter((cell) => board.cells[cell].numberOfCandidates === 2);
 
             for (const cell of bivalueCells) {
-                const [a, b] = board.cells[cell].candidates
-                    .map(digit => newCandidate(cell, digit));
+                const [a, b] = board.cells[cell].candidates.map((digit) =>
+                    newCandidate(cell, digit)
+                );
 
                 links.add(a, b);
                 links.add(b, a);
@@ -51,15 +59,13 @@ export class LinkCache {
 
             for (const unit of unitType) {
                 for (const x of DIGITS) {
-                    const xCells = unit.filter(cell =>
-                        board.cells[cell].hasCandidate(x)
-                    );
+                    const xCells = unit.filter((cell) => board.cells[cell].hasCandidate(x));
 
                     if (xCells.length !== 2) {
                         continue;
                     }
 
-                    const [a, b] = xCells.map(cell => newCandidate(cell, x));
+                    const [a, b] = xCells.map((cell) => newCandidate(cell, x));
 
                     links.add(a, b);
                     links.add(b, a);
@@ -69,33 +75,25 @@ export class LinkCache {
             return links;
         };
 
-        this.bilocalRowInternal = new Cached(() =>
-            initBilocal(ROWS)
-        );
+        this.bilocalRowInternal = new Cached(() => initBilocal(ROWS));
 
-        this.bilocalColumnInternal = new Cached(() =>
-            initBilocal(COLUMNS)
-        );
+        this.bilocalColumnInternal = new Cached(() => initBilocal(COLUMNS));
 
-        this.bilocalBoxInternal = new Cached(() =>
-            initBilocal(BOXES)
-        );
+        this.bilocalBoxInternal = new Cached(() => initBilocal(BOXES));
 
         this.bilocalInternal = new Cached(() =>
             this.bilocalRow.concat(this.bilocalColumn).concat(this.bilocalBox)
         );
 
-        this.strongInternal = new Cached(() =>
-            this.bivalue.concat(this.bilocal)
-        );
-
+        this.strongInternal = new Cached(() => this.bivalue.concat(this.bilocal));
 
         this.weakCellInternal = new Cached(() => {
             const links = new MultiMapSet<Candidate, Candidate>();
 
             for (const cell of CELLS) {
-                const cellCandidates = board.cells[cell].candidates
-                    .map(digit => newCandidate(cell, digit));
+                const cellCandidates = board.cells[cell].candidates.map((digit) =>
+                    newCandidate(cell, digit)
+                );
 
                 for (const [a, b] of pairsOf(cellCandidates)) {
                     links.add(a, b);
@@ -112,8 +110,8 @@ export class LinkCache {
             for (const unit of unitType) {
                 for (const x of DIGITS) {
                     const xCandidates = unit
-                        .filter(cell =>board.cells[cell].hasCandidate(x))
-                        .map(cell => newCandidate(cell, x));
+                        .filter((cell) => board.cells[cell].hasCandidate(x))
+                        .map((cell) => newCandidate(cell, x));
 
                     for (const [a, b] of pairsOf(xCandidates)) {
                         links.add(a, b);
@@ -125,25 +123,17 @@ export class LinkCache {
             return links;
         };
 
-        this.weakRowInternal = new Cached(() =>
-            initWeakLocal(ROWS)
-        );
+        this.weakRowInternal = new Cached(() => initWeakLocal(ROWS));
 
-        this.weakColumnInternal = new Cached(() =>
-            initWeakLocal(COLUMNS)
-        );
+        this.weakColumnInternal = new Cached(() => initWeakLocal(COLUMNS));
 
-        this.weakBoxInternal = new Cached(() =>
-            initWeakLocal(BOXES)
-        );
+        this.weakBoxInternal = new Cached(() => initWeakLocal(BOXES));
 
         this.weakUnitInternal = new Cached(() =>
             this.weakRow.concat(this.weakColumn).concat(this.weakBox)
         );
 
-        this.weakInternal = new Cached(() =>
-            this.weakCell.concat(this.weakUnit)
-        );
+        this.weakInternal = new Cached(() => this.weakCell.concat(this.weakUnit));
     }
 
     get bivalue() {

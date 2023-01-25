@@ -14,16 +14,12 @@ export const reviseNotes: Strategy = {
             const neighbors = board.getNeighbors(cell);
 
             const cellEliminations = cell.candidates
-                .filter(digit =>
-                    neighbors.some(neighbor => neighbor.digit === digit)
-                )
-                .map(digit => newCandidate(cell.id, digit));
+                .filter((digit) => neighbors.some((neighbor) => neighbor.digit === digit))
+                .map((digit) => newCandidate(cell.id, digit));
 
             eliminations.push(...cellEliminations);
         }
 
-        return eliminations.length > 0 ?
-            { eliminations } :
-            undefined;
+        return eliminations.length > 0 ? { eliminations } : undefined;
     },
 };

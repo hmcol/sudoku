@@ -1,5 +1,17 @@
 import { Strategy } from ".";
-import { intersection, pairsOf, Graph, Tuple, iterProduct3, iterProduct, range, notIn, notEq, setEquality, hasSubset } from "../util/combinatorics";
+import {
+    intersection,
+    pairsOf,
+    Graph,
+    Tuple,
+    iterProduct3,
+    iterProduct,
+    range,
+    notIn,
+    notEq,
+    setEquality,
+    hasSubset,
+} from "../util/combinatorics";
 import { newCandidate, FLOORS, TOWERS, DIGITS, Board } from "../sudoku";
 import { Option, isSome } from "../util/option";
 
@@ -22,15 +34,19 @@ function idOf([x, y, z]: V) {
 
 const CUBE_INDICES: V[] = iterProduct3(BS, BS, BS);
 
-
 // shape iterators
 
 const RECTANGLES = (() => {
     const rectangles = [];
 
-    for (const [hChutes, vChutes] of [[FLOORS, TOWERS], [TOWERS, FLOORS]]) {
+    for (const [hChutes, vChutes] of [
+        [FLOORS, TOWERS],
+        [TOWERS, FLOORS],
+    ]) {
         // pairs of "horizontal" lines in different chutes
-        const hLinePairs = pairsOf(hChutes).map(pair => iterProduct(...pair)).flat();
+        const hLinePairs = pairsOf(hChutes)
+            .map((pair) => iterProduct(...pair))
+            .flat();
 
         // pairs of "vertical" lines in the same chute
         const vLinePairs = vChutes.map(pairsOf).flat();
@@ -43,10 +59,7 @@ const RECTANGLES = (() => {
             const dlCell = intersection(downLine, leftLine)[0];
             const drCell = intersection(downLine, rightLine)[0];
 
-            rectangles.push([
-                ulCell, urCell,
-                dlCell, drCell,
-            ]);
+            rectangles.push([ulCell, urCell, dlCell, drCell]);
 
             // rectangles.push([
             //     [urCell, drCell],
@@ -94,12 +107,10 @@ const CUBES = (() => {
 export const ur1: Strategy = {
     name: "unique rectangle type 1",
     func: (board: Board) => {
-        const cellRectangles = RECTANGLES.map(rect => rect.map(cell => board.cells[cell]));
+        const cellRectangles = RECTANGLES.map((rect) => rect.map((cell) => board.cells[cell]));
 
         for (const [rect, ab] of iterProduct(cellRectangles, pairsOf(DIGITS))) {
-            const nonBivalueCells = rect.filter(cell =>
-                !setEquality(ab, cell.candidates)
-            );
+            const nonBivalueCells = rect.filter((cell) => !setEquality(ab, cell.candidates));
 
             if (nonBivalueCells.length !== 1) {
                 continue;
@@ -108,15 +119,16 @@ export const ur1: Strategy = {
             const [cell] = nonBivalueCells;
 
             const eliminations = ab
-                .filter(digit => cell.hasCandidate(digit))
-                .map(digit => newCandidate(cell.id, digit));
+                .filter((digit) => cell.hasCandidate(digit))
+                .map((digit) => newCandidate(cell.id, digit));
 
             if (eliminations.length === 0) {
                 continue;
             }
 
-            const highlights = iterProduct(rect.filter(notEq(cell)), ab)
-                .map(([cell, digit]) => newCandidate(cell.id, digit));
+            const highlights = iterProduct(rect.filter(notEq(cell)), ab).map(([cell, digit]) =>
+                newCandidate(cell.id, digit)
+            );
 
             return {
                 eliminations,
@@ -131,7 +143,7 @@ export const ur1: Strategy = {
 export const ur2: Strategy = {
     name: "unique rectangle type 2",
     func: (board: Board) => {
-        const cellRectangles = RECTANGLES.map(rect => rect.map(cell => board.cells[cell]));
+        const cellRectangles = RECTANGLES.map((rect) => rect.map((cell) => board.cells[cell]));
 
         // two non-diagonal ab cells, two abc cells
         // can eliminate c from every cell that sees both abc cells
@@ -167,9 +179,9 @@ export const ur2: Strategy = {
                         continue;
                     }
 
-                    const highlights = iterProduct(rect, ab)
-                        .map(([cell, digit]) => newCandidate(cell.id, digit));
-
+                    const highlights = iterProduct(rect, ab).map(([cell, digit]) =>
+                        newCandidate(cell.id, digit)
+                    );
 
                     return {
                         eliminations,
@@ -197,8 +209,8 @@ export const ur2: Strategy = {
 export const ur4: Strategy = {
     name: "unique rectangle type 4",
     func: (board: Board) => {
-        const cellRectangles = RECTANGLES.map(rect => rect.map(cell => board.cells[cell]));
-        
+        const cellRectangles = RECTANGLES.map((rect) => rect.map((cell) => board.cells[cell]));
+
         // two non-diagonal ab cells, two ab* cells strongly linked by a
         // can eliminate b from ab* cells
         for (const [rect, ab] of iterProduct(cellRectangles, pairsOf(DIGITS))) {
@@ -218,7 +230,7 @@ export const ur4: Strategy = {
 
                 for (const unit of board.iterUnits().filter(hasSubset([dc1, dc2]))) {
                     for (const strongDigit of ab) {
-                        const candidateCells = unit.filter(cell =>
+                        const candidateCells = unit.filter((cell) =>
                             cell.hasCandidate(strongDigit)
                         );
 
@@ -229,15 +241,18 @@ export const ur4: Strategy = {
                         const otherDigit = ab.filter(notEq(strongDigit))[0];
 
                         const eliminations = [dc1, dc2]
-                            .filter(cell => cell.hasCandidate(otherDigit))
-                            .map(cell => newCandidate(cell.id, otherDigit));
+                            .filter((cell) => cell.hasCandidate(otherDigit))
+                            .map((cell) => newCandidate(cell.id, otherDigit));
 
                         if (eliminations.length === 0) {
                             continue;
                         }
 
                         const highlights = iterProduct([bv1, bv2], ab)
-                            .concat([[dc1, strongDigit], [dc2, strongDigit]])
+                            .concat([
+                                [dc1, strongDigit],
+                                [dc2, strongDigit],
+                            ])
                             .map(([cell, digit]) => newCandidate(cell.id, digit));
 
                         return {
@@ -256,20 +271,18 @@ export const ur4: Strategy = {
 export const ur5: Strategy = {
     name: "unique rectangle type 5",
     func: (board: Board) => {
-        const cellRectangles = RECTANGLES.map(rect => rect.map(cell => board.cells[cell]));
+        const cellRectangles = RECTANGLES.map((rect) => rect.map((cell) => board.cells[cell]));
 
         // one or two ab cells, two or three abc cells
         // can eliminate c from every cell that sees both abc cells
         for (const [rect, ab] of iterProduct(cellRectangles, pairsOf(DIGITS))) {
-            const bivalueCells = rect.filter(cell =>
-                setEquality(ab, cell.candidates)
-            );
+            const bivalueCells = rect.filter((cell) => setEquality(ab, cell.candidates));
 
             if (!(bivalueCells.length === 1 || bivalueCells.length === 2)) {
                 continue;
             }
             for (const c of DIGITS.filter(notIn(ab))) {
-                const trivalueCells = rect.filter(cell =>
+                const trivalueCells = rect.filter((cell) =>
                     setEquality([...ab, c], cell.candidates)
                 );
 
@@ -277,17 +290,20 @@ export const ur5: Strategy = {
                     continue;
                 }
 
-                const eliminations = board.getDigitEliminations(c, trivalueCells.map(cell => cell.id));
+                const eliminations = board.getDigitEliminations(
+                    c,
+                    trivalueCells.map((cell) => cell.id)
+                );
 
                 if (eliminations.length === 0) {
                     continue;
                 }
 
-                const highlights = iterProduct(rect, ab)
-                    .map(([cell, digit]) => newCandidate(cell.id, digit));
+                const highlights = iterProduct(rect, ab).map(([cell, digit]) =>
+                    newCandidate(cell.id, digit)
+                );
 
-                const highlights2 = trivalueCells
-                    .map(cell => newCandidate(cell.id, c));
+                const highlights2 = trivalueCells.map((cell) => newCandidate(cell.id, c));
 
                 return {
                     eliminations,
@@ -312,7 +328,6 @@ export const ur5: Strategy = {
 //     },
 // };
 
-
 // this checks for the most general case, but it would be more useful to first
 // check for easy specific cases
 export const hiddenRectangle: Strategy = {
@@ -323,10 +338,8 @@ export const hiddenRectangle: Strategy = {
         // find rectangles
         for (const cube of CUBES) {
             for (const [i, j, k] of CUBE_INDICES) {
-
-                const vertexToId = ([x, y, z]: V) => (
-                    cube[x === 0 ? i : 1 - i][y === 0 ? j : 1 - j][z === 0 ? k : 1 - k]
-                );
+                const vertexToId = ([x, y, z]: V) =>
+                    cube[x === 0 ? i : 1 - i][y === 0 ? j : 1 - j][z === 0 ? k : 1 - k];
 
                 const edge = (v1: V, v2: V) => g.hasEdge(vertexToId(v1), vertexToId(v2));
 
@@ -334,7 +347,7 @@ export const hiddenRectangle: Strategy = {
                 type Parity = "strong" | "weak";
                 const queue: [V, Parity][] = [];
                 const visited = new Set<string>();
-                
+
                 let queueItem: Option<[V, Parity]> = [[0, 0, 0], "weak"];
                 while (isSome(queueItem)) {
                     const [u, nextLink] = queueItem;
@@ -344,11 +357,11 @@ export const hiddenRectangle: Strategy = {
                     let adjacentVertices: V[] = [
                         [flip(u[0]), u[1], u[2]],
                         [u[0], flip(u[1]), u[2]],
-                        [u[0], u[1], flip(u[2])]
+                        [u[0], u[1], flip(u[2])],
                     ];
 
                     if (nextLink === "strong") {
-                        adjacentVertices = adjacentVertices.filter(v => edge(u, v));
+                        adjacentVertices = adjacentVertices.filter((v) => edge(u, v));
                     }
 
                     for (const v of adjacentVertices) {
@@ -356,10 +369,7 @@ export const hiddenRectangle: Strategy = {
                             continue;
                         }
 
-                        queue.push([
-                            v,
-                            nextLink === "strong" ? "weak" : "strong",
-                        ]);
+                        queue.push([v, nextLink === "strong" ? "weak" : "strong"]);
                     }
 
                     queueItem = queue.shift();
@@ -376,15 +386,12 @@ export const hiddenRectangle: Strategy = {
                         };
                     }
                 }
-
             }
         }
 
         return undefined;
     },
 };
-
-
 
 function makeStrongLinkGraph(board: Board) {
     const g = new Graph();
@@ -401,14 +408,16 @@ function makeStrongLinkGraph(board: Board) {
     // line bilocal
     for (const line of board.iterLines()) {
         for (const digit of DIGITS) {
-            const candidateCells = line.filter(cell => cell.hasCandidate(digit));
+            const candidateCells = line.filter((cell) => cell.hasCandidate(digit));
 
             if (candidateCells.length === 2) {
-                g.addEdge(newCandidate(candidateCells[0].id, digit), newCandidate(candidateCells[1].id, digit));
+                g.addEdge(
+                    newCandidate(candidateCells[0].id, digit),
+                    newCandidate(candidateCells[1].id, digit)
+                );
             }
         }
     }
 
     return g;
 }
-

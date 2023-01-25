@@ -20,7 +20,6 @@ export const skyscraper: Strategy = {
     },
 };
 
-
 export const kite: Strategy = {
     name: "kite",
     func: makeBasicChain(["bilocalRow", "bilocalColumn"], ["weakBox"], 4, 4),

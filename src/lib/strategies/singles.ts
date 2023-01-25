@@ -7,7 +7,7 @@ export const fullHouse: Strategy = {
         const solutions = new Array<Candidate>();
 
         for (const unit of board.iterUnits()) {
-            const unsolvedCells = unit.filter(cell => cell.isUnsolved());
+            const unsolvedCells = unit.filter((cell) => cell.isUnsolved());
 
             if (unsolvedCells.length !== 1) {
                 continue;
@@ -20,9 +20,7 @@ export const fullHouse: Strategy = {
             solutions.push(newCandidate(cell.id, digit));
         }
 
-        return solutions.length > 0 ?
-            { solutions } :
-            undefined;
+        return solutions.length > 0 ? { solutions } : undefined;
     },
 };
 
@@ -32,12 +30,10 @@ export const hiddenSingle: Strategy = {
         const solutions = new Array<Candidate>();
 
         for (const unit of board.iterUnits()) {
-            const unsolvedCells = unit.filter(cell => cell.isUnsolved());
+            const unsolvedCells = unit.filter((cell) => cell.isUnsolved());
 
             for (const digit of DIGITS) {
-                const candidateCells = unsolvedCells.filter(cell =>
-                    cell.hasCandidate(digit)
-                );
+                const candidateCells = unsolvedCells.filter((cell) => cell.hasCandidate(digit));
 
                 if (candidateCells.length !== 1) {
                     continue;
@@ -49,9 +45,7 @@ export const hiddenSingle: Strategy = {
             }
         }
 
-        return solutions.length > 0 ?
-            { solutions } :
-            undefined;
+        return solutions.length > 0 ? { solutions } : undefined;
     },
 };
 
@@ -70,8 +64,6 @@ export const nakedSingle: Strategy = {
             solutions.push(newCandidate(cell.id, digit));
         }
 
-        return solutions.length > 0 ?
-            { solutions } :
-            undefined;
+        return solutions.length > 0 ? { solutions } : undefined;
     },
 };

@@ -1,4 +1,4 @@
-import { Option, isSome } from "../util/option";
+import { Option, isNone, isSome } from "../util/option";
 import { CellId, Candidate, cellOf, newCandidate, digitOf, UNITS, Digit, Board } from "../sudoku";
 import { Strategy, StrategyResult } from ".";
 import { LinkClass, LinkSet, getLinks } from "./links";
@@ -18,12 +18,10 @@ export const xyChain: Strategy = {
     func: makeBasicChain(["bivalue"], ["weakUnit"]),
 };
 
-
 export const aic: Strategy = {
     name: "aic",
-    func: makeBasicChain(["bivalue", "bilocal"], ["weakUnit", "weakCell"])
+    func: makeBasicChain(["bivalue", "bilocal"], ["weakUnit", "weakCell"]),
 };
-
 
 export function makeBasicChain(
     strongClasses: LinkClass[],
@@ -48,11 +46,11 @@ function oppLink(link: LinkType): LinkType {
 }
 
 type QueueItem = {
-    candidate: Candidate,
-    cellId: CellId,
-    digit: Digit,
-    nextLink: LinkType,
-    depth: number,
+    candidate: Candidate;
+    cellId: CellId;
+    digit: Digit;
+    nextLink: LinkType;
+    depth: number;
 };
 
 function newQueueItem(candidate: Candidate, nextLink: LinkType, depth = 1): QueueItem {
@@ -77,8 +75,8 @@ function findAlternatingChains(
     const chains = new Array<ChainResult>();
 
     const links = {
-        "strong": strongLinks,
-        "weak": weakLinks,
+        strong: strongLinks,
+        weak: weakLinks,
     };
 
     for (const root of strongLinks.keys()) {
@@ -89,15 +87,17 @@ function findAlternatingChains(
         const visited = new Set<Candidate>();
         const parents = new Map<Candidate, Candidate>();
 
-        queue.push();
+        queue.push(newQueueItem(root, "strong"));
 
-        let queueItem: Option<QueueItem> = newQueueItem(root, "strong");
-        while (isSome(queueItem)) {
-            const u = queueItem;
+        while (true) {
+            const u = queue.shift();
+
+            if (isNone(u)) {
+                break;
+            }
 
             // if chain is nontrivial and ends with a strong link
             if (u.depth >= (minLength ?? 4) && u.nextLink === "weak") {
-
                 // type 1: same digit on both ends
                 if (u.digit === rootDigit) {
                     // const targets = board.getNeighborsIntersection(rootId, u.cellId);
@@ -116,15 +116,16 @@ function findAlternatingChains(
                                 eliminations,
                                 highlights,
                                 highlights2,
-                            }
+                            },
                         ]);
                     }
                 }
 
                 // type 2: different digits which see each other
                 if (
-                    u.digit !== rootDigit && u.cellId !== rootId
-                    && UNITS.some(unit => unit.includes(rootId) && unit.includes(u.cellId))
+                    u.digit !== rootDigit &&
+                    u.cellId !== rootId &&
+                    UNITS.some((unit) => unit.includes(rootId) && unit.includes(u.cellId))
                 ) {
                     const eliminations = new Array<Candidate>();
 
@@ -148,7 +149,7 @@ function findAlternatingChains(
                                 eliminations,
                                 highlights,
                                 highlights2,
-                            }
+                            },
                         ]);
                     }
                 }
@@ -168,14 +169,8 @@ function findAlternatingChains(
                 }
 
                 parents.set(vCid, u.candidate);
-                queue.push(newQueueItem(
-                    vCid,
-                    oppLink(u.nextLink),
-                    u.depth + 1,
-                ));
+                queue.push(newQueueItem(vCid, oppLink(u.nextLink), u.depth + 1));
             }
-
-            queueItem = queue.shift();
         }
     }
 
@@ -199,10 +194,7 @@ function shortestChain(chains: ChainResult[]): Option<StrategyResult> {
         return undefined;
     }
 
-    const shortest = chains.reduce((acc, cur) =>
-        acc[0].length <= cur[0].length ? acc : cur,
-    );
+    const shortest = chains.reduce((acc, cur) => (acc[0].length <= cur[0].length ? acc : cur));
 
     return shortest[1];
 }
-
